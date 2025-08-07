@@ -24,10 +24,10 @@ existing code working and these will be copy pasted over from the previous repos
 regenerate the result figures.
 
 Feel free to join in on any of the tasks. Currently the ones working on them are:
-Task 1: Gio
-Task 2: Manuel
-Task 3: CJ
-Task 4: Nobody
+1. Gio
+2. Manuel
+3. CJ
+4. Nobody
 
 If you have any questions, dont hesitate to ask!
 
