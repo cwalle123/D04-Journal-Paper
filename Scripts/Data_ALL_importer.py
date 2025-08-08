@@ -54,7 +54,7 @@ def LLS_A_excel_to_array(tow_num):
 
     tow_data = df[[LLS_A_width, LLS_A_weights]].iloc[:smallest_file_length].to_numpy()
 
-    return tow_data, [LLS_A_width, LLS_A_weights]
+    return tow_data, ['width_LLS_A', LLS_A_weights]
 
 def LLS_B_excel_to_array(tow_num):
     """
@@ -96,7 +96,7 @@ def LLS_B_excel_to_array(tow_num):
 
     tow_data = df[[LLS_B_width, LLS_B_weights]].iloc[:smallest_file_length].to_numpy()
 
-    return tow_data, [LLS_B_width, LLS_B_weights]
+    return tow_data, ['width_LLS_B', LLS_B_weights]
 
 def CAM_excel_to_array(tow_num):
     """
@@ -138,7 +138,7 @@ def CAM_excel_to_array(tow_num):
 
     tow_data = df[[CAM_centerline, CAM_weights]].iloc[:smallest_file_length].to_numpy()
 
-    return tow_data, [CAM_centerline, CAM_weights]
+    return tow_data, ['center_CAM', CAM_weights]
 
 def LT_x_excel_to_array(tow_num):
     """
@@ -180,7 +180,7 @@ def LT_x_excel_to_array(tow_num):
 
     tow_data = df[[LT_x, LT_weights]].iloc[:smallest_file_length].to_numpy()
 
-    return tow_data, [LT_x, LT_weights]
+    return tow_data, ['x', LT_weights]
 
 def LT_y_normalized_excel_to_array(tow_num):
     """
@@ -222,7 +222,7 @@ def LT_y_normalized_excel_to_array(tow_num):
 
     tow_data = df[[LT_y_normalized, LT_weights]].iloc[:smallest_file_length].to_numpy()
 
-    return tow_data, [LT_y_normalized, LT_weights]
+    return tow_data, ['y', LT_weights]
 
 def GAP_excel_to_array(gap_num):
     """
