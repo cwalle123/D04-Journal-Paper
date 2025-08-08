@@ -3,6 +3,12 @@
 * Data_ALL_importer.py: Find out which Gap column to use from the excel files
 * 
 * Data_ALL_statistics.py: Check if the functions take in numpy arrays and if not adapt the functions to do so
-* 
-* Handling_ALL_Functions.py: Fix the get_synced_data function to actually call the synced data properly
+*
 
+UPDATE: 
+The cache files now hold all the relevant data needed for the project in csv files. Calling get_synced_data now
+requires tow information and sensor information, see Handling_ALL_Functions.py. This now outputs the data in
+NumPy arrays to make the code run more efficiently and to be able to use the data with easier commands.
+
+For those working on the files that need this data as an input, make sure to adapt your functions (can be with gpt ofc)
+to take in this new data stream. Note that this data is only time synced which should be fine for all of our applications.

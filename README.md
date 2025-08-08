@@ -7,7 +7,7 @@ with the previous repository. This is partly due to having too many scripts, but
 as our *data stream is now different*, we require less/different scripts.
 
 After talking with Siddharth about the syncing issue found a couple weeks back, we decided
-on continuing with *time synced data* that Siddharth had used in his code a few years back.
+on continuing with *time synced data that Siddharth had used* in his code a few years back.
 This means that many of the syncing and files relates to the syncing is no longer needed,
 and means that we are continuing with the assumptions that there is no correlation between
 different error types.
@@ -29,7 +29,7 @@ Feel free to join in on any of the tasks. Currently the ones working on them are
 3. CJ
 4. Nobody
 
-More specific tasks are to be added/completed in the TODO file.
+More specific tasks and updates are to be added/completed in the TODO file.
 
 If you have any questions, dont hesitate to ask!
 
