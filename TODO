@@ -5,3 +5,4 @@
 * Data_ALL_statistics.py: Check if the functions take in numpy arrays and if not adapt the functions to do so
 * 
 * Handling_ALL_Functions.py: Fix the get_synced_data function to actually call the synced data properly
+

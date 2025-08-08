@@ -7,139 +7,85 @@ import numpy as np
 import pandas as pd
 import glob
 import os
+import shutil
 
 # Internal imports
-import Scripts.Data_ALL_importer
+from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, GAP_excel_to_array
 
 ###################################################################################################################################################################################################
-"""Functions for purging, saving and loading data"""
+"""Functions for saving, loading, and purging data"""
 
-_save_path = "Cached data\\"
+CACHE_FOLDER = "Cached Data"
 
-def _save_table(data_table:pd.DataFrame, short_name:str)-> None:
-    '''This function saves a pandas dataframe as
-        a .pkl, it will be saved with the short name, 
-        use that to access it'''
-    
-    data_table.to_pickle(_save_path + short_name + ".pkl")
-    # note! this does not save headers or indexes. might need to change that depending on how we do
-    return
+def save_cached_data(name: str, array: np.ndarray):
+    os.makedirs(CACHE_FOLDER, exist_ok=True)
+    path = os.path.join(CACHE_FOLDER, f"{name}.csv")
+    np.savetxt(path, array, delimiter=",")
+    print(f"[CACHE] Saved '{name}' to {path}")
 
-def _load_table(short_name:str)->pd.DataFrame:
-    '''This function reads a pkl and turns it into 
-        a panda Dataframe. access it with the same name 
-        used in the save_csv() function if file doesn't exist it returns none'''
-    
-    try:
-        return pd.read_pickle(_save_path + short_name + ".pkl")
-    except FileNotFoundError:
-        return None
+def load_cached_data(name: str) -> np.ndarray:
+    path = os.path.join(CACHE_FOLDER, f"{name}.csv")
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"No cached file found for '{name}'")
+    return np.loadtxt(path, delimiter=",")
 
-def export_to_csv(data_table:pd.DataFrame, name:str)-> None:
-    '''This function exports the table to CSV.
-        Note! if you want to save your progress, use the save_table() function instead,
-        as the CSV is not reversibly saved (metadata is lost)'''
-    
-    data_table.to_csv(_save_path + name)
-    return None
-
-def purge_cache(confirmation:bool = False)->None:
-    '''gets rid of all the files in the cache.\n
-    Warning! don't do this unless you're sure you want to\n
-    you will have to generate all the data again'''
-
-    print("purging cache...")
-    if confirmation != True:
-        raise PermissionError("You did not give confirmation for purging the cache. are you sure you want to do this?")
-
-    files = glob.glob(_save_path + "*")
-    for file in files:
-        if os.path.isfile(file):
-            os.remove(file)
-    print("cache purged")
-
-def create_cache()->None:
-    """runs through all the datatypes and generates the cache, will take some time"""
-    print("Let there be cache...")
-    codes = ["LT","LLS_A","LLS_B","CAM"]
-    tows = range(1,32)
-
-    for code in codes:
-        for tow in tows:
-            get_processed_data(tow,code, True)
-    print("Cache created!")
-
-def create_processed_cache()->None:
-    '''generates the cache for the time and space synced tows'''
-    print("Let there be cache...")
-    tows = range(1,32)
-    for tow in tows:
-        get_synced_data(tow, spacesynced=False, overwrite=True)
-        get_synced_data(tow, spacesynced=True, overwrite=True)
-    print("Cache created!")
+def purge_cached_data():
+    if os.path.exists(CACHE_FOLDER):
+        for file in os.listdir(CACHE_FOLDER):
+            os.remove(os.path.join(CACHE_FOLDER, file))
+        print("[CACHE] All cached data purged.")
 
 ################################################################################################################
 """Functions for calling data"""
 
-def get_synced_data(tow:int, sensor_type:str, overwrite=False, helper=False)->pd.DataFrame:
+def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -> np.ndarray:
     '''
-    This function handles ALL the grabbing and processing of the raw data\n
-    call this and it will do all the stuff for you, no other functions needed\n
-    the function parameters are:\n
-    \n
-    tow:int, the index of the tow from 1 to 32\n
-    sensor_type:str, the type of data to get. valid keys are: "LT","LLS_A","LLS_B","CAM"\n
-    overwrite:bool (optional), If this is true, the function will ignore the cache\n
-    and reprocess the raw data. False by default. only do this if something in the processing\n
-    has changed, or if the raw data has changed.\n
-    helper is a variable that should always be false when using (it's just to make it work with get synced data)\n
-    (it circumvents the messages and the saving process since sync will save instead)
+    Loads processed data for a given tow & sensor, with caching.
+    Combines multiple arrays horizontally if needed.
     '''
-
-    # generate consistent name:
-    # first check if key is valid
-    if sensor_type not in ["LT","LLS_A","LLS_B","CAM"]:
-        raise KeyError(f"the Key {sensor_type} was invalid: No such data exists")
-    # then that tow exists:
-    if tow not in range(1,32):
+    if sensor_type not in ["LT", "LLS_A", "LLS_B", "CAM"]:
+        raise KeyError(f"The key '{sensor_type}' is invalid")
+    if tow not in range(1, 32):
         raise IndexError(f"Tow ID {tow} is out of range")
-    # set the name
-    name = sensor_type + "_" + str(tow)
-    if not helper: # ignore all the data
-        # check if file exists:
-        data = _load_table(name)
 
-        if data is not None and not overwrite:
-            #if true the data already exists, return it:
-            return data
-        # else the data doesn't exist, grab it
-        print(f"No file with code {name} cached. Generating new data...")
+    name = f"{sensor_type}_{tow}"
+
+    # --- Try cache ---
+    if not helper and not overwrite:
+        try:
+            cached_array = load_cached_data(name)
+            print(f"[CACHE] Loaded '{name}' from cache")
+            return cached_array
+        except FileNotFoundError:
+            print(f"[CACHE] No cache found for '{name}'. Processing new data...")
+
+    # --- Generate list of arrays ---
+    arrays = []
     match sensor_type:
         case "LT":
-            # Laser Tracker
-            data = np.array(LT_exceltolist()[tow-1]).T
-            processesed_data = _handle_LT(*data[1:], tow)
-
+            arrays.append(LT_x_excel_to_array()[:, (tow-1)*2:(tow-1)*2 + 2])
+            arrays.append(LT_y_normalized_excel_to_array()[:, (tow-1)*2:(tow-1)*2 + 2])
         case "CAM":
-            # Camera Data
-            data = np.array(CAM_exceltolist()[tow-1]).T
-            processesed_data = _handle_camera(*data[:4])
-
+            arrays.append(CAM_excel_to_array()[:, (tow-1)*2:(tow-1)*2 + 2])
         case "LLS_A":
-            # Laser Line Sensor 1
-            data = np.array(LLS_exceltoarray()[tow*2-2]).T
-            processesed_data = _handle_LLS(*data[:4])
-
+            arrays.append(LLS_A_excel_to_array()[:, (tow-1)*2:(tow-1)*2 + 2])
         case "LLS_B":
-            # Laser Line Sensor 2
-            data = np.array(LLS_exceltoarray()[tow*2-1]).T
-            processesed_data = _handle_LLS(*data[:4])
+            arrays.append(LLS_B_excel_to_array()[:, (tow-1)*2:(tow-1)*2 + 2])
+
+    # --- Combine arrays dynamically ---
+    processed_data = arrays[0] if len(arrays) == 1 else np.hstack(arrays)
+
+    # --- Save to cache ---
     if not helper:
-        _save_table(processesed_data, name) # save the data
-    return processesed_data
+        save_cached_data(name, processed_data)
+
+    return processed_data
+
+##############################################################################################################
+"""Run this file"""
 
 def main():
-    "Hi"
+    get_synced_data(2, "LT", True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
