@@ -32,3 +32,12 @@ font_small = 12
 font_medium = 14
 font_large = 16
 font_extra_large = 24
+
+##############################################################################################################
+"""Model Parameters"""
+
+BINS = 40
+NOMINAL_LT_Y = 0  # nominal value for LT y
+NOMINAL_LLS_A = 6.25  # example nominal value for LLS A
+NOMINAL_LLS_B = 6.35  # nominal value for LLS B
+NOMINAL_CAM = 0  # nominal value for CAM
