@@ -2,4 +2,6 @@
 * Data_ALL_importer.py: Find out why data cut is happening around row 413 for the LLSs instead of later and if that matters
 * Data_ALL_importer.py: Find out which Gap column to use from the excel files
 * 
+* Data_ALL_statistics.py: Check if the functions take in numpy arrays and if not adapt the functions to do so
 * 
+* Handling_ALL_Functions.py: Fix the get_synced_data function to actually call the synced data properly

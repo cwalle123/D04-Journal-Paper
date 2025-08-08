@@ -1,53 +1,25 @@
+"""This file handles the generation of the 4 statistical models.
+   Written by: Manuel Cruz & Diogo Ying"""
+
+##############################################################################################################
+
+# External imports
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
+from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
+
+# Internal imports
 from Scripts.Handling_ALL_Functions import get_synced_data
 import Scripts.constants as constants
 
+##############################################################################################################
+"""Functions"""
 
-'''Written by: Manuel Cruz & Diogo Ying'''
-
-# This import below is very long so that we can get the best fitting distributution for each error dataset
-from scipy.stats import (norm, logistic, gamma, beta, expon, lognorm, skewnorm,
-                        gumbel_r, gumbel_l, genextreme) 
-
-
-# TODO: check if this function is necessary now.
-'''def get_all_sensor_data():
-    results_LLSA, results_LLSB, results_LT, results_CAM = [], [], [], []
-
-    for i in range(1, 32):
-        df = get_synced_data(tow=i, overwrite=False)
-        if df.shape[1] > 4:
-            df = df.iloc[:, :4]
-        elif df.shape[1] == 3:
-            df.insert(2, "temp", np.nan)
-        df.columns = ["time", "width", "center", "error_LLS_A"]
-        results_LLSA.append(df)
-
-    for j in range(1, 32):
-        df = get_synced_data(tow=j, overwrite=False)
-        df.columns = ["time", "width", "center", "error_LLS_B"]
-        results_LLSB.append(df)
-
-    for k in range(1, 32):
-        df = get_synced_data(tow=k, overwrite=False)[["time", "error_LT"]]
-        results_LT.append(df)
-
-    for w in range(1, 32):
-        df = get_synced_data(tow=w, overwrite=False)
-        df["error_CAM"] = -df["center"]
-        results_CAM.append(df[["time", "error_CAM"]])
-
-
-    return {"LLS_A": pd.concat(results_LLSA, ignore_index=True),
-            "LLS_B": pd.concat(results_LLSB, ignore_index=True),
-            "LT":    pd.concat(results_LT,   ignore_index=True),
-            "CAM":   pd.concat(results_CAM,  ignore_index=True)}'''
-
-'''Get relevant statistical values for each error dataset'''
 def statistical_values(data: pd.DataFrame):
+    '''Get relevant statistical values for each error dataset'''
+
     errors = [
         data['error_LLS_A'],
         data['error_LLS_B'],
@@ -65,9 +37,9 @@ def statistical_values(data: pd.DataFrame):
         stats['max'].append(round(e.max(), 4))
     return stats
 
-'''Plots all histograms in the same Figure. 
-The x-axis is manually set for each plot for better visualization.'''
 def plot_histograms(data: pd.DataFrame, title: str, bin_widths: list[float] = None, run = bool):
+    '''Plots all histograms in the same Figure. 
+    The x-axis is manually set for each plot for better visualization.'''
 
     if run == True:
         distribution_labels = {
@@ -144,9 +116,9 @@ def plot_histograms(data: pd.DataFrame, title: str, bin_widths: list[float] = No
         plt.tight_layout()
         plt.show()
 
-'''Plots all histograms in different Figures. 
-The x-axis has the same range for all figures.'''
 def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None, run = bool):
+    '''Plots all histograms in different Figures. 
+    The x-axis has the same range for all figures.'''
 
     if run == True:
         distribution_labels = {
@@ -234,7 +206,6 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
         plt.tight_layout()
         plt.show()
 
-
 def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =None, run = bool):
 
     if run == True:
@@ -280,11 +251,8 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.tight_layout()
         plt.show()
 
-    
-
-
-'''This function fits the best distribution to the four error types automatically'''
 def best_fit_distribution(data, bins=40, distributions=None):
+    '''This function fits the best distribution to the four error types automatically'''
 
     # Compute the histogram of the data
     y, bin_edges = np.histogram(data, bins=bins, density=True)
@@ -328,7 +296,9 @@ def best_fit_distribution(data, bins=40, distributions=None):
     # Return the distribution with the lowest error (SSE)
     return best
 
-'''Actually calling the plots'''
+##############################################################################################################
+"""Run this file"""
+
 def main():
     df = pd.concat((get_synced_data(t, spacesynced=True) for t in range(2,32)), ignore_index=True)
 

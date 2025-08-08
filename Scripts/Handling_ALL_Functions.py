@@ -9,147 +9,12 @@ import glob
 import os
 
 # Internal imports
-from Scripts.constants import z_ref
-from Scripts.Data_ALL_importer import LLS_exceltoarray, CAM_exceltolist, LT_exceltolist
+import Scripts.Data_ALL_importer
 
-################################################################################################################
-"""Functions for Laser Tracker"""
-
-def _handle_LT(time: list,
-               x: list,
-               y: list,
-               z: list,
-               tow: int) -> pd.DataFrame:
-    """
-    Build the LT DataFrame and then drop any points
-    where y decreases (i.e. the gantry returning).
-    """
-    import numpy as np
-    import pandas as pd
-
-    # 1) build the raw table exactly as before
-    rows = len(time)
-    tbl = np.empty((rows, 6))
-    error_y, error_z = _error_LT(y, z, tow)
-    t0 = time_to_float(time[0])
-
-    for i in range(rows):
-        tbl[i,0] = time_to_float(time[i]) - t0
-        tbl[i,1] = x[i]
-        tbl[i,2] = y[i]
-        tbl[i,3] = z[i]
-        tbl[i,4] = error_y[i]
-        tbl[i,5] = error_z[i]
-
-    df = pd.DataFrame(tbl, columns=[
-        "time","x","y","z","error_LT","z error"
-    ])
-
-    # 2) KEEP ONLY THE OUTBOUND SWEEP: drop rows where y dips
-    #    for the very first row, diff() is NaN → fill with True so we keep it
-    # forward_mask = df["y"].diff().fillna(1) > 0
-    # df = df[forward_mask].reset_index(drop=True)
-
-    return df
-
-def _error_LT(y: list, z: list, tow_number)->list:
-    """"This function takes a given tow path
-        and calculates the error between the
-        actual path and the intended path"""
-    
-    error_y = []
-    error_z = []
-
-    if tow_number == 1:
-        y_ref = 125
-    else:
-        y_ref = 125 + 12.5 * (tow_number-2)
-
-    for i in range(len(y)):
-        error_y.append(y[i] - y_ref)
-        error_z.append(z[i] - z_ref)
-
-    return error_y, error_z
-
-################################################################################################################
-"""Functions for Laser Line Scanner"""
-
-def _handle_LLS(time: list, left_edge: list, right_edge: list, width:list) -> pd.DataFrame:
-    """"This function takes the processed data and
-        creates new data points for each time stamp
-        where each point in time has a corresponding
-        width and its the center of the tow"""
-    
-
-    
-    rows = len(time)
-    columns = 4
-    shape = (rows, columns)
-    pandas_table = np.empty(shape)
-    zero_time = time_to_float(time[0])
-
-    for i in range(len(time)):
-        pandas_table[i][0] = time_to_float(time[i]) - zero_time
-        pandas_table[i][1] = width[i] # width
-        pandas_table[i][2] = 0.5*(right_edge[i] + left_edge[i]) # center
-        pandas_table[i][3] = (pandas_table[i][1]-6.35) # error (6.35 is the right width)
-    
-    pandas_table = pd.DataFrame(pandas_table)
-    pandas_table.columns = ["time", "width", "center","width error"]
-
-    return pandas_table
-
-################################################################################################################
-"""Functions for Camera"""
-
-def _handle_camera(time: list, left_edge: list, right_edge: list, width:list) -> pd.DataFrame:
-
-    rows = len(time)
-    columns = 4
-    shape = (rows, columns)
-    pandas_table = np.empty(shape)
-    zero_time = time_to_float(time[0])
-
-    # Sign flipped since camera is flipped
-    for i in range(len(time)):
-        pandas_table[i][0] = time_to_float(time[i]) - zero_time
-        pandas_table[i][1] = width[i] # width
-        pandas_table[i][2] = 0.5*(right_edge[i] + left_edge[i]) # center
-        pandas_table[i][3] = abs(pandas_table[i][1] - (-6.35))
-    
-    pandas_table = pd.DataFrame(pandas_table)
-    pandas_table.columns = ["time", "width", "center","width error"]
-
-    return pandas_table
-
-################################################################################################################
-'''Extra functions that might be needed'''
-
-def time_to_float(date:str)->float:
-    """converts a string into a float of time"""
-    date = date.strip("'").split(" ")[1]
-    hour, minute, second = date.split(":")
-    return float(second) + float(minute) * 60 + float(hour) * 3600
-
-def convert_coordinates(start:tuple,end:tuple, coord:tuple)->tuple:
-    '''This function converts the coordinate into a new
-        coordinate system based on the line between start and end'''
-
-    vector = np.array(end) - np.array(start) # a vector between start and end
-
-    unit = vector / vector.dot(vector) # the unit vector in that direction
-
-    normal = np.rot90(unit)
-
-    proj_tangent = unit.dot(coord) # gets the projection. I.e. the coordinates in the new system
-    proj_normal = normal.dot(coord)
-
-    return proj_tangent, proj_normal 
-
-################################################################################################################
+###################################################################################################################################################################################################
 """Functions for purging, saving and loading data"""
 
-_save_path = "Processed data\\"
+_save_path = "Cached data\\"
 
 def _save_table(data_table:pd.DataFrame, short_name:str)-> None:
     '''This function saves a pandas dataframe as
@@ -216,7 +81,7 @@ def create_processed_cache()->None:
 ################################################################################################################
 """Functions for calling data"""
 
-def get_processed_data(tow:int, sensor_type:str, overwrite=False, helper=False)->pd.DataFrame:
+def get_synced_data(tow:int, sensor_type:str, overwrite=False, helper=False)->pd.DataFrame:
     '''
     This function handles ALL the grabbing and processing of the raw data\n
     call this and it will do all the stuff for you, no other functions needed\n
@@ -272,9 +137,6 @@ def get_processed_data(tow:int, sensor_type:str, overwrite=False, helper=False)-
     if not helper:
         _save_table(processesed_data, name) # save the data
     return processesed_data
-
-def get_synced_data(tow:int, spacesynced:bool = False, overwrite:bool=False)->pd.DataFrame:
-    "work in progress"
 
 def main():
     "Hi"

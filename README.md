@@ -29,5 +29,7 @@ Feel free to join in on any of the tasks. Currently the ones working on them are
 3. CJ
 4. Nobody
 
+More specific tasks are to be added/completed in the TODO file.
+
 If you have any questions, dont hesitate to ask!
 

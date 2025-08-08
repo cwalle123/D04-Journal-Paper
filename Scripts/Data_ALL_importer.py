@@ -1,4 +1,5 @@
-'''This file imports all the data from the excel files and groups them into one array'''
+'''This file imports all the data from the excel files and groups them into one array per sensor
+   Written by: Martijn van der Voort and Clifton-John Walle"""'''
 
 ##############################################################################################################
 
