@@ -1,0 +1,5 @@
+* Data_ALL_importer.py: Ask Siddharth which Tape width columns from the excel files are used for LLSA and LLSB
+* Data_ALL_importer.py: Find out why data cut is happening around row 413 for the LLSs instead of later and if that matters
+* Data_ALL_importer.py: Find out which Gap column to use from the excel files
+* 
+* 
