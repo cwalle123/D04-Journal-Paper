@@ -12,7 +12,7 @@ import shutil
 # Internal imports
 from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, GAP_excel_to_array
 
-###################################################################################################################################################################################################
+##############################################################################################################
 """Functions for saving, loading, and purging data"""
 
 CACHE_FOLDER = "Cached Data"
@@ -51,7 +51,7 @@ def purge_cached_data():
             os.remove(os.path.join(CACHE_FOLDER, file))
         print("[CACHE] All cached data purged.")
 
-###################################################################################################################################################################################################
+##############################################################################################################
 """Functions for calling data"""
 
 def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -> np.ndarray:

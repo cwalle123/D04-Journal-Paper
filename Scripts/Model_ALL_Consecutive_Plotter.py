@@ -1,14 +1,19 @@
-"""A genera data plotter in order to find relations between consecutive steps"""
+"""A genera data plotter in order to see relations between consecutive steps"""
 
+"""This file is currently not being used for anything"""
+
+##############################################################################################################
+
+# External imports
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# import data_handler
+#Internal imports
+from Handling_ALL_Functions import get_synced_data
 
-from Scripts.Handling_ALL_Functions import get_processed_data
+##############################################################################################################
+"""Functions"""
 
-
-########################################################
 def plot_LT(data: pd.DataFrame, name: str):
     '''plots the LT data'''
     time = data["time"]
@@ -120,8 +125,6 @@ def plot_LT(data: pd.DataFrame, name: str):
     plt.tight_layout()
     plt.show()
 
-
-########################################################
 def plot_LLS(data: pd.DataFrame, name: str):
     time = data["time"]
     width = data["width"]
@@ -226,8 +229,6 @@ def plot_LLS(data: pd.DataFrame, name: str):
     plt.tight_layout()
     plt.show()
 
-
-#####################################################
 def plot_camera(data: pd.DataFrame, name: str):
     time = data["time"]
     center = data["center"]
@@ -327,23 +328,11 @@ def plot_camera(data: pd.DataFrame, name: str):
     plt.tight_layout()
     plt.show()
 
+##############################################################################################################
+"""Run this file"""
 
-######################################################
 def main():
-#    CAM_file_path = 'Data\Data Sans Camera\Camera data\Cameradata_Modified.xlsx'
-#    camera_data = CAM_exceltolist()
-#    plot_camera(camera_data, 'camera')
-#
-#    LT_data = get_processed_data(2, "LT")
-#    # print(LT_data)
-#    plot_LT(LT_data, 'Laser Tracker')
+    "hi"
 
-    LLS1_data = get_processed_data(2, "LLS_A")
-    print(LLS1_data)
-    plot_LLS(LLS1_data, 'LLS_A')
-#
-#    LLS2_data = LLS_exceltoarray()
-#    plot_LLS(LLS2_data, 'LLS2')
-
-
-main()
+if __name__ == "__main__":
+    main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

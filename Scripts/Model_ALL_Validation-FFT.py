@@ -2,9 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from mpl_toolkits.mplot3d import Axes3D
-from Scripts.Model_ALL_Simulation import generate_multitow_layout
-from Scripts.Handling_ALL_Functions import get_synced_data
-import Scripts.Model_ALL_Simulation as sim_model
+from Model_ALL_Simulation import generate_multitow_layout
+from Handling_ALL_Functions import get_synced_data
+import Model_ALL_Simulation as sim_model
+
 def compute_fft(signal, sampling_rate):
     n = len(signal)
     fft_result = np.fft.fft(signal)

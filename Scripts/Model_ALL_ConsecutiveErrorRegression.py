@@ -35,7 +35,6 @@ def fit_cubic(data: pd.DataFrame):   #bin_error: np.array, bin_mean: np.array, b
     var_a, var_b, var_c, var_d = get_regression_cubic(bin_error, bin_variance)
     plot_function(var_a, var_b, var_c, var_d, bin_error, bin_variance, 'variance')
 
-
 def get_regression_linear(x_cords: np.array, y_cords: np.array):
     '''This code fits a linear regression and returns the factors of the polynomial.'''
 
@@ -115,18 +114,13 @@ def plot_function(a: float, b: float, c: float, d: float, bin_error: list, bin_m
     # plt.ylim((min(y_list), max(y_list)))
     plt.show()
 
-
-
-
-
 def test():
     '''Just some test data to check the code'''
     bin_error = np.array([-2.2, -0.9, 0, 1, 2.1])
     bin_mean = np.array([-1, -0.5, 0, 0.7, 1.1])
     bin_variance = np.array([5, 1.2, 0, 2, 3.8])
 
-
-import Scripts.Model_ALL_ConsecutiveErrorTheo as Model_ALL_ConsecutiveErrorTheo
+import Model_ALL_ConsecutiveErrorTheo
 
 stats = Model_ALL_ConsecutiveErrorTheo.consecutive_error('LLS_A', '', 0.2)
 

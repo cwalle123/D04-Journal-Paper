@@ -1,11 +1,11 @@
-from Scripts.Model_ALL_ConsecutiveErrorTheo import *
+from Model_ALL_ConsecutiveErrorTheo import *
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
-from Scripts.Handling_ALL_Functions import get_synced_data
+from Handling_ALL_Functions import get_synced_data
 import random
 import pandas as pd
-import Scripts.constants as constants
+import constants
 
 steps_per_mm = 360 / 1000       # Keep consistent with User_Interface
 

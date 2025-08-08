@@ -12,6 +12,7 @@
     correspond to the exact value of x, but only to the values around it
 '''
 
+##############################################################################################################
 
 #ideas for improvement:
 #Find optimum number of bins
@@ -20,19 +21,24 @@
 #increase resolution of predicting curve and taking mean of predicted points around real datapoint: more realistic dynamics, smoother paths
 #use relation between errors to improve model
 
+# EXternal imports
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 from sklearn.model_selection import train_test_split
 from scipy.stats import linregress
-from Scripts.Handling_ALL_Functions import get_processed_data
-from Scripts.Handling_ALL_Functions import get_synced_data
 import math
 from scipy.stats import truncnorm
 import time
 import statsmodels.api as sm
-import Scripts.constants as constants
+
+# Internal imports
+import constants
+from Handling_ALL_Functions import get_synced_data
+
+##############################################################################################################
+"""Functions"""
 
 def weighted_linregress(x, y, weights):
     """
@@ -309,7 +315,6 @@ def consecutive_error(sensor, test_ratio=0.2, num_bins = 20, random_state=None, 
 
     return bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edges, deviations_per_bin
 
-
 def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_edges, deviations_per_bin,use_truncnorm=False):
     np.random.seed()
     error_path = [start_error]
@@ -350,7 +355,6 @@ def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_ed
         x_current = next_error
 
     return np.array(error_path)
-
 
 def generate_simulated_VS_real(n_real_tow=1, rdm_seed=0, test_ratio=0.2, errorCor_show=False, bins_show=False, num_bins=100, peak_plots = False, sim_plot = False):
     # Get binned models from historical data
@@ -700,8 +704,6 @@ def peakMeanRealTows():
     final_real_means.append(float(np.mean(LLS_B_lst)))
 
     return final_real_means
-
-
 
 def peaksVSbins(bins, nb_sim):
     start_time = time.time() # ETA stuff
@@ -1366,10 +1368,10 @@ def plot_blobs():
     plt.tight_layout(rect=[0, 0.04, 1, 1])
     plt.show()
 
+##############################################################################################################
+""""Run this file"""
 
-
-if __name__ == "__main__":
-
+def main():
     #start_time = time.perf_counter()
     #generate_simulated_VS_real(n_real_tow=6, rdm_seed=75, test_ratio=0.2, errorCor_show=False, bins_show=False,
     #                           num_bins=100, peak_plots = False, sim_plot = True)
@@ -1377,4 +1379,7 @@ if __name__ == "__main__":
     #elapsed_time = end_time - start_time
     #print(f"Elapsed time: {round(elapsed_time,2)} seconds")
     plot_blobs()
+
+if __name__ == "__main__":
+    main()
 
