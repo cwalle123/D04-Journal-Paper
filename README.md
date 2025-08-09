@@ -27,7 +27,7 @@ Feel free to join in on any of the tasks. Currently the ones working on them are
 1. Gio
 2. Manuel
 3. CJ
-4. Nobody
+4. Diogo
 
 More specific tasks and updates are to be added/completed in the TODO file.
 
