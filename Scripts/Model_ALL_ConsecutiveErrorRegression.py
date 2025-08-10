@@ -2,12 +2,20 @@
 This code makes regression models for mean and variation of the data bins that were extracted in the ConsecutiveErrorRegressions.
 '''
 
+##############################################################################################################
+
+# External imports
 import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
+# Internal imports
+import Model_ALL_ConsecutiveErrorTheo
+
+##############################################################################################################
+"""Functions"""
 
 def fit_linear(data: pd.DataFrame):   #bin_error: np.array, bin_mean: np.array, bin_variance: np.array
     '''a piece of code to fit and plot a linear regression to the data'''
@@ -120,9 +128,13 @@ def test():
     bin_mean = np.array([-1, -0.5, 0, 0.7, 1.1])
     bin_variance = np.array([5, 1.2, 0, 2, 3.8])
 
-import Model_ALL_ConsecutiveErrorTheo
+##############################################################################################################
+"""Run this file"""
 
-stats = Model_ALL_ConsecutiveErrorTheo.consecutive_error('LLS_A', '', 0.2)
+def main():
+    stats = Model_ALL_ConsecutiveErrorTheo.consecutive_error('LLS_A', '', 0.2)
+    x = fit_linear(stats)    # Model_ALL_functionsErrorPredict.bin_stats_df
+    # x = test()
 
-x = fit_linear(stats)    # Model_ALL_functionsErrorPredict.bin_stats_df
-# x = test()
+if __name__ == "__main__":
+    main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

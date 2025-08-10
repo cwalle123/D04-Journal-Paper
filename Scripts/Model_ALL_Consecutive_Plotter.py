@@ -10,7 +10,7 @@ import numpy as np
 
 #Internal imports
 from Handling_ALL_Functions import get_synced_data
-from constants import BINS, NOMINAL_LLS_A, NOMINAL_LLS_B, NOMINAL_CAM, NOMINAL_LT_Y
+from constants import Consecutive_Error_Bins, NOMINAL_LLS_A, NOMINAL_LLS_B, NOMINAL_CAM, NOMINAL_LT_Y
 
 ##############################################################################################################
 """Functions"""
@@ -23,7 +23,7 @@ def plot_LT_error(tow: int):
     values = data[:, value_column]
     errors = values - NOMINAL_LT_Y
     
-    plt.hist(errors, bins=BINS, density=True, alpha=0.7, edgecolor='black')
+    plt.hist(errors, bins=Consecutive_Error_Bins, density=True, alpha=0.7, edgecolor='black')
     plt.title(f'LT Error Distribution (Tow {tow})')
     plt.xlabel('Error (LT)')
     plt.ylabel('Probability Density')
@@ -38,7 +38,7 @@ def plot_LLS_A_error(tow: int):
     values = data[:, value_column]
     errors = values - NOMINAL_LLS_A
     
-    plt.hist(errors, bins=BINS, density=True, alpha=0.7, edgecolor='black')
+    plt.hist(errors, bins=Consecutive_Error_Bins, density=True, alpha=0.7, edgecolor='black')
     plt.title(f'LLS  A Error Distribution (Tow {tow})')
     plt.xlabel('Error (LLS A)')
     plt.ylabel('Probability Density')
@@ -53,7 +53,7 @@ def plot_LLS_B_error(tow: int):
     values = data[:, value_column]
     errors = values - NOMINAL_LLS_B
     
-    plt.hist(errors, bins=BINS, density=True, alpha=0.7, edgecolor='black')
+    plt.hist(errors, bins=Consecutive_Error_Bins, density=True, alpha=0.7, edgecolor='black')
     plt.title(f'LLS  B Error Distribution (Tow {tow})')
     plt.xlabel('Error (LLS B)')
     plt.ylabel('Probability Density')
@@ -68,7 +68,7 @@ def plot_CAM_error(tow: int):
     values = data[:, value_column]
     errors = values - NOMINAL_CAM
     
-    plt.hist(errors, bins=BINS, density=True, alpha=0.7, edgecolor='black')
+    plt.hist(errors, bins=Consecutive_Error_Bins, density=True, alpha=0.7, edgecolor='black')
     plt.title(f'CAM Error Distribution (Tow {tow})')
     plt.xlabel('Error (CAM)')
     plt.ylabel('Probability Density')
