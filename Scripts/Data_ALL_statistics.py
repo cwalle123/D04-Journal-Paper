@@ -11,8 +11,8 @@ import warnings
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
 
 # Internal imports
-from Scripts.Handling_ALL_Functions import get_synced_data
-import Scripts.constants as constants
+from Handling_ALL_Functions import get_synced_data
+import constants
 
 ##############################################################################################################
 """Functions"""
