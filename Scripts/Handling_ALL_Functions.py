@@ -5,9 +5,7 @@
 # External imports
 import numpy as np
 import pandas as pd
-import glob
 import os
-import shutil
 
 # Internal imports
 from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, GAP_excel_to_array
@@ -180,7 +178,8 @@ def get_joined_data(tow: int, overwrite=False, helper=False) -> np.ndarray:
 """Run this file"""
 
 def main():
-    x = get_synced_data(2, "LT")
+    tow = 2
+    x = get_synced_data(tow, "LT")
     print(np.shape(x))
 
 if __name__ == "__main__":
