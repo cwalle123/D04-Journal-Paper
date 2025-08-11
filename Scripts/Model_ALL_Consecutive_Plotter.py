@@ -66,7 +66,7 @@ def plot_CAM_error(tow: int):
 """Run this file"""
 
 def main():
-    tow = 2
+    tow = 3
     plot_CAM_error(tow)
 
 if __name__ == "__main__":

@@ -26,7 +26,7 @@ def LLS_A_excel_to_array(tow_num):
             - List of column names: ['TapeWidth1', 'Weights'].
     """
     base_path = r"Synced data from Siddharth\ExportedCSVs\Layup data\Distilled\lls a"
-    LLS_A_width = "TapeWidth1"
+    LLS_A_width = "TapeWidth_Arc1"
     LLS_A_weights = "Weights"
 
     smallest_file_length = None
@@ -70,7 +70,7 @@ def LLS_B_excel_to_array(tow_num):
             - List of column names: ['TapeWidthAfterCompaction', 'Weights'].
     """
     base_path = r"Synced data from Siddharth\ExportedCSVs\Layup data\Distilled\lls b"
-    LLS_B_width = "TapeWidthAfterCompaction"
+    LLS_B_width = "TapeWidthAfterCompaction_Rotated"
     LLS_B_weights = "Weights"
 
     smallest_file_length = None
@@ -270,8 +270,8 @@ def GAP_excel_to_array(gap_num):
     
     df_trim = df[gap_col].iloc[:smallest_length].dropna()
     data_array = df_trim.to_numpy().reshape(-1, 1)  # Keep 2D shape for consistency
-    columns = [gap_col]
-    return data_array, columns
+
+    return data_array, [gap_col]
 
 ##############################################################################################################
 """Run this file"""
