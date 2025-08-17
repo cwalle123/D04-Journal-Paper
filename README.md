@@ -12,22 +12,20 @@ This means that many of the syncing and files relates to the syncing is no longe
 and means that we are continuing with the assumptions that there is no correlation between
 different error types.
 
-Right now there are 4 tasks that need to tackled to make our model work:
+Right now there are 3 tasks that need to tackled to make our model work:
 
-1. We need to adapt the Excels Siddharth has provided to adhere to our code conventions
-2. We need to feed the new experimental data into the 4 statistical models
-3. We need to feed the new experimental data into the graphs of the correlation between consective time steps
-4. We need to retrain the model on the new experimental data and validate it
+1. We need to feed the new experimental data into the 4 statistical model.
+2. We need to feed the new experimental data into the graphs of the correlation between consective time steps
+3. We need to retrain the model on the new experimental data and validate it
 
 This might seem like we need to redo a lot of things, but this isnt true. We already have our
 existing code working and these will be copy pasted over from the previous repository within the next 24 hours. All we have to do is make sure that our previous code can handle this new data stream and
 regenerate the result figures.
 
 Feel free to join in on any of the tasks. Currently the ones working on them are:
-1. Gio
-2. Manuel
-3. CJ
-4. Diogo
+1. Manuel
+2. CJ
+3. Diogo
 
 More specific tasks and updates are to be added/completed in the TODO file.
 
