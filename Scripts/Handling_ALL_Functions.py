@@ -137,8 +137,9 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 
 def main():
     for tow in range(1,32):
-        x = get_synced_data(tow, "LLS_B")
+        x = get_synced_data(tow, "CAM")
     print(np.shape(x))
-
+    print("Columns:", x.columns.tolist())
+    print(x[0])
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

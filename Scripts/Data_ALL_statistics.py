@@ -17,26 +17,6 @@ import constants
 ##############################################################################################################
 """Functions"""
 
-def statistical_values(data: pd.DataFrame):
-    '''Get relevant statistical values for each error dataset'''
-
-    errors = [
-        data['error_LLS_A'],
-        data['error_LLS_B'],
-        data['error_LT'],
-        data['error_CAM']]
-    
-
-    stats = {'mean': [], 'median': [], 'std': [], 'min': [], 'max': []}
-
-    for e in errors:
-        stats['mean'].append(round(e.mean(), 4))
-        stats['median'].append(round(e.median(), 4))
-        stats['std'].append(round(e.std(), 4))
-        stats['min'].append(round(e.min(), 4))
-        stats['max'].append(round(e.max(), 4))
-    return stats
-
 def plot_histograms(data: pd.DataFrame, title: str, bin_widths: list[float] = None, run = bool):
     '''Plots all histograms in the same Figure. 
     The x-axis is manually set for each plot for better visualization.'''
@@ -52,8 +32,8 @@ def plot_histograms(data: pd.DataFrame, title: str, bin_widths: list[float] = No
         fig, ax = plt.subplots(2, 2, figsize=(10, 8))
         fig.suptitle(title)
         errors = [
-            data['width error_LLS_A'],
-            data['width error_LLS_B'],
+            data['error_LLS_A'],
+            data['error_LLS_B'],
             data['error_LT'],
             data['center_CAM']]
         
@@ -111,10 +91,12 @@ def plot_histograms(data: pd.DataFrame, title: str, bin_widths: list[float] = No
             ax[row, col].set_xlabel(names[i])
             ax[row, col].set_ylabel('Density')
             ax[row, col].legend()
-            ax[row, col].xticks(np.linspace(-1.2, 1.2, 9))
+            ticks = np.linspace(-1.2, 1.2, 9)
+            ax[row, col].set_xticks(ticks)
 
         plt.tight_layout()
         plt.show()
+
 
 def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None, run = bool):
     '''Plots all histograms in different Figures. 
@@ -127,15 +109,23 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
             'skewnorm': 'Skew-Normal Distribution',
             'genextreme':'Generalized Extreme Value'}
 
+        series = [
+            ('error_LLS_A', 'w_LLS_A', 'Tape Width Before Compaction'),
+            ('error_LLS_B', 'w_LLS_B', 'Tape Width After Compaction'),
+            ('error_LT',    'w_LT',    'Robot Position'),
+            ('center_CAM',  'w_CAM',   'Tape Lateral Movement'),
+        ]
+
+
         errors = [
-            data['width error_LLS_A'],
-            data['width error_LLS_B'],
+            data['error_LLS_A'],
+            data['error_LLS_B'],
             data['error_LT'],
             data['center_CAM']]
 
         names = [
-            'width error_LLS_A',
-            'width error_LLS_B',
+            'error_LLS_A',
+            'error_LLS_B',
             'error_LT',
             'error_CAM']
 
@@ -149,15 +139,24 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
         if bin_widths is None:
             bin_widths = [None] * 4
 
-        for i, vals in enumerate(errors):
-            # Clean up the data: drop NaNs and convert to a NumPy array
-            clean = vals.dropna().to_numpy()
+        for (col, wcol, title), bw in zip(series, bin_widths):
+            s = data[col]
+            if wcol in data.columns:
+                w = data[wcol]
+                mask = s.notna() & w.notna() & (w > 0)
+                clean = s[mask].to_numpy()
+                w_clean = w[mask].to_numpy()
+            else:
+                clean = s.dropna().to_numpy()
+                w_clean = None
+
+            if clean.size == 0:
+                continue
         
             # Find the data range for bin width calculation
             mn, mx = clean.min(), clean.max()
         
             # Determine bin width for this series (None -> default 40 bins)
-            bw = bin_widths[i]
             bins = 40 if bw is None else np.arange(mn, mx + bw, bw)
         
             # Create a new figure for this individual histogram
@@ -165,10 +164,10 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
             #fig.suptitle(f"{titles[i]}")
         
             # Plot the histogram of the cleaned data
-            ax.hist(clean, bins=bins, alpha=0.6, density=True)
+            ax.hist(clean, bins=bins, weights=w_clean, alpha=0.6, density=True)
         
             # Fit the best probability distribution to the data using best_fit_distribution()
-            best = best_fit_distribution(clean, bins=len(bins) - 1)
+            best = best_fit_distribution(clean, bins=len(bins) - 1, weights=w_clean)
             dist, params = best['dist'], best['params']
         
         
@@ -184,10 +183,7 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
         
             # Compute summary statistics for this dataset
             # Can be changed if some other statistic is interesting showing
-            mean_val = clean.mean()
-            std_val  = clean.std()
-
-
+            mean_val, std_val = weighted_mean_std(clean, w_clean)
 
             ax.axvline(mean_val, color='magenta', linestyle='-')
             ax.axvline(0.0, color='black', linestyle='dashed')
@@ -195,7 +191,7 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
 
             # All distributions are shown with this x-axis range
             ax.set_xlim(-1.2, 1.2)
-            ax.set_title(titles[i], fontsize= constants.font_large)
+            ax.set_title(title, fontsize=constants.font_large)
             ax.set_xlabel('Error (mm)',fontsize=constants.font_medium)
             ax.set_ylabel('Density',fontsize=constants.font_medium)
 
@@ -206,8 +202,9 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
         plt.tight_layout()
         plt.show()
 
-def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =None, run = bool):
 
+def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =None, run = bool):
+    '''Plots Tape width before vs after compaction to see the overlap. Not used in this paper.'''
     if run == True:
 
         distribution_labels = {
@@ -216,8 +213,8 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
             'skewnorm': 'Skew-Normal Distribution',
             'genextreme':'Generalized Extreme Value'}
         
-        clean_A = data['width error_LLS_A'].dropna().to_numpy()
-        clean_B = data['width error_LLS_B'].dropna().to_numpy()
+        clean_A = data['error_LLS_A'].dropna().to_numpy()
+        clean_B = data['error_LLS_B'].dropna().to_numpy()
 
     # Common binning based on combined data
         combined = np.concatenate((clean_A, clean_B))
@@ -251,14 +248,17 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.tight_layout()
         plt.show()
 
-def best_fit_distribution(data, bins=40, distributions=None):
-    '''This function fits the best distribution to the four error types automatically'''
+
+def best_fit_distribution(data, bins=40, distributions=None, weights=None):
+    '''This function fits the best probability distribution to the four error types automatically, for the weighted data'''
 
     # Compute the histogram of the data
-    y, bin_edges = np.histogram(data, bins=bins, density=True)
+    y, bin_edges = np.histogram(data, bins=bins, density=True, weights=weights)  
 
     # x_mid is the center of each histogram bin, used for PDF evaluation
     x_mid = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+
+    bw = np.diff(bin_edges)
 
     # If no distribution list given, use a broad default set
     if distributions is None:
@@ -284,7 +284,7 @@ def best_fit_distribution(data, bins=40, distributions=None):
                 # Evaluate its PDF at the bin centers
                 pdf = dist.pdf(x_mid, *params[:-2], loc=params[-2], scale=params[-1])
                 # Compute sum of squared errors between histogram and PDF to check accuracy
-                sse = np.sum((y - pdf) ** 2)
+                sse = np.sum(((y - pdf) ** 2) * bw)
 
                 # If this fit is better (lower SSE), use it
                 if sse < best['sse']:
@@ -296,11 +296,131 @@ def best_fit_distribution(data, bins=40, distributions=None):
     # Return the distribution with the lowest error (SSE)
     return best
 
+
+def build_all_sensors_df(tow_range=range(2, 32), time_key=None):
+    """Returns a dataframe with columns:
+      error_LLS_A, w_LLS_A,
+      error_LLS_B, w_LLS_B,
+      error_LT,    w_LT,
+      center_CAM,  w_CAM,
+      number of tow"""
+    
+    def ensure_col(df: pd.DataFrame, desired: str, fallbacks: list[str]) -> pd.DataFrame:
+        """Make sure df has `desired`; if missing, rename it to first available, else create empty."""
+        for fb in fallbacks:
+            if desired not in df.columns and fb in df.columns:
+                df = df.rename(columns={fb: desired})
+                break
+        if desired not in df.columns:
+            df[desired] = np.nan
+        return df
+
+    def extract_weight(df: pd.DataFrame, new_name: str) -> pd.DataFrame:
+        """Coalesce any duplicated 'Weights' columns into a single numeric Series named `new_name`."""
+        df = df.copy()
+        df.columns = df.columns.astype(str).str.strip()
+        weight_cols = [c for c in df.columns if c.strip().lower() == "weights"]
+        if not weight_cols:
+            return pd.Series(name=new_name, dtype=float).to_frame()
+        wdf = df[weight_cols]
+        if isinstance(wdf, pd.Series):
+            s = pd.to_numeric(wdf, errors="coerce")
+        else:
+            wdf_num = wdf.apply(pd.to_numeric, errors="coerce")
+            # first non-null across duplicate
+            s = wdf_num.bfill(axis=1).iloc[:, 0]
+        return s.reset_index(drop=True).rename(new_name).to_frame()
+
+    dfs = []
+    # Get the data
+    for t in tow_range:
+        lt   = get_synced_data(t, sensor_type="LT").copy()
+        llsa = get_synced_data(t, sensor_type="LLS_A").copy()
+        llsb = get_synced_data(t, sensor_type="LLS_B").copy()
+        cam  = get_synced_data(t, sensor_type="CAM").copy()
+
+        # clean names
+        for f in (lt, llsa, llsb, cam):
+            f.columns = f.columns.astype(str).str.strip()
+
+        # make sure expected error/center columns exist
+        lt   = ensure_col(lt,   "error_LT",    fallbacks=["error"])
+        llsa = ensure_col(llsa, "error_LLS_A", fallbacks=["error"])
+        llsb = ensure_col(llsb, "error_LLS_B", fallbacks=["error"])
+        cam  = ensure_col(cam,  "center_CAM",  fallbacks=["center", "error_CAM", "error"])
+
+        # build the dataframe of 1 tow
+        df_t = pd.concat(
+            [
+                lt[["error_LT"]].reset_index(drop=True),
+                extract_weight(lt, "w_LT"),
+
+                llsa[["error_LLS_A"]].reset_index(drop=True),
+                extract_weight(llsa, "w_LLS_A"),
+
+                llsb[["error_LLS_B"]].reset_index(drop=True),
+                extract_weight(llsb, "w_LLS_B"),
+
+                cam[["center_CAM"]].reset_index(drop=True),
+                extract_weight(cam, "w_CAM"),
+            ],
+            axis=1
+        )
+
+        # Merge all the tows into the same dataframe
+        df_t["tow"] = t
+        dfs.append(df_t)
+
+    df = pd.concat(dfs, ignore_index=True)
+    return df
+
+
+def weighted_mean_std(x, w=None):
+    '''Get the statistical data (mean and std) for the four sensors with weights on the data'''
+
+    x = np.asarray(x, dtype=float)
+    if w is None:
+        return x.mean(), x.std(ddof=0)
+    w = np.asarray(w, dtype=float)
+    m = np.isfinite(x) & np.isfinite(w) & (w > 0)
+    x, w = x[m], w[m]
+    if w.sum() == 0 or x.size == 0:
+        return np.nan, np.nan
+    w = w / w.sum()
+    mu = np.sum(w * x)
+    var = np.sum(w * (x - mu)**2)
+    return mu, np.sqrt(var)
+
+
+def print_weighted_stats_table(df: pd.DataFrame):
+    '''function for printing the statistics fo the weighted data'''
+    rows = []
+    mapping = [('error_LLS_A', 'w_LLS_A'),
+        ('error_LLS_B', 'w_LLS_B'),
+        ('error_LT',    'w_LT'),
+        ('center_CAM',  'w_CAM'),]
+
+    for col, wcol in mapping:
+        s = df[col]
+        w = df[wcol] if wcol in df.columns else None
+        m = s.notna() if w is None else (s.notna() & w.notna() & (w > 0))
+        x = s[m].to_numpy()
+        ww = None if w is None else w[m].to_numpy()
+        mu, sd = weighted_mean_std(x, ww)
+        rows.append((col, len(x), mu, sd, 'weighted' if ww is not None else 'unweighted'))
+    print("Stats:")
+    for col, n, mu, sd, kind in rows:
+        print(f"- {col:<12} n={n:5d}  mean={mu: .4f}  std={sd: .4f}  ({kind})")
+
 ##############################################################################################################
 """Run this file"""
 
 def main():
-    df = pd.concat((get_synced_data(t, spacesynced=True) for t in range(2,32)), ignore_index=True)
+    
+    '''Creates dataframe with sensor data + weights from each sensor'''
+    df = build_all_sensors_df(tow_range=range(2, 32))
+    print(df.columns.tolist())   # just to ensure the dataframe has the correct data
+    print_weighted_stats_table(df)  # prints the statistical values
 
     # To make the plots appear, change run=False to run=True
 
@@ -311,10 +431,11 @@ def main():
         bin_widths=[0.008, 0.008, 0.008, 0.008], 
         run = False)
     
+    '''This is the good one'''
     plot_histograms_separated(
         df,
         bin_widths=[0.005, 0.005, 0.005, 0.008],
-        run = True)
+        run = False)
 
     plot_LLSA_vs_LLSB(df,
         title="Error LLS A vs. Error LLS B (ALL TOWS)",
