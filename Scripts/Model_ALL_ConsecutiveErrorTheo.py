@@ -7,8 +7,7 @@
     
     Note: we cant create a value of the mean or the histogram/normal curve of the devation for a certain data point of x(previous error),
     because we don’t have enough data points at that precise point. This is why bins have been created: 
-    t
-    his works, but will obtain a slight bias, because the deviation normal curve does not
+    this works, but will obtain a slight bias, because the deviation normal curve does not
     correspond to the exact value of x, but only to the values around it
 '''
 
