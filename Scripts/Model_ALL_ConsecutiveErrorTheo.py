@@ -42,7 +42,7 @@ from Handling_ALL_Functions import get_synced_data
 def weighted_linregress(x, y, weights):
     """
     Perform weighted linear regression and return
-    slope, intercept, r_value, p_value, stderr
+    slope, intercept, r_value, p_value, stderr (Standard Error)
     matching scipy.stats.linregress signature.
     """
     x = np.asarray(x)
