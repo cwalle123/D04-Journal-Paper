@@ -383,7 +383,7 @@ def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal:
             plt.plot(x, centerline + 0.5 * width, label="actual tow", linestyle='solid', color='black') #plots the top edge
             plt.plot(x, centerline - 0.5 * width, linestyle='solid', color='black') #plots the bottom edge
         
-        else: #do not assign a label to all other tows as this makes the legend unreadable
+        else: #do not assign a label to all other tows as this would make the legend unreadable
             plt.plot(x, centerline, linestyle='dashed', color='grey') #plots the centerline
             plt.plot(x, centerline + 0.5 * width, linestyle='solid', color='black') #plots the top edge
             plt.plot(x, centerline - 0.5 * width, linestyle='solid', color='black') #plots the bottom edge
