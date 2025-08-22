@@ -280,11 +280,44 @@ def Traverse_LT_excel_to_array(tow_nr):
     Args:
         tow_nr (int): tow number (1 to 31 inclusive)
         
-    Returns:"""
+    Returns:
+        tuple: (numpy.ndarray, list)
+            - Data array with shape (shortest_length, 2) containing columns [x, y, z].
+            - List of column names: ['x', 'y', 'z'].
+    """
 
     path_base = r"Synced data from Siddharth\ExportedCSVs\Traverse\Traverse tracker data"
+    x_col = "X_mm_"
+    y_col = "Y_mm_"
+    z_col = "Z_mm_"
 
-    #return traverse_LT_array
+    smallest_file_length = None
+
+    if tow_nr < 1 or tow_nr > 31:
+        raise ValueError("tow_nr must be between 1 and 31 inclusive.")
+    
+    for tow in range(1,32):
+        file_name = f"TrackerData_{tow:02d}_Traverse.csv"
+        file_path = os.path.join(path_base, file_name)
+        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+    
+        if x_col not in df.columns or y_col not in df.columns or z_col not in df.columns:
+            raise ValueError(f"Missing columns in file: {file_path}")
+        
+        data_sub = df[[x_col, y_col, z_col]]
+        nan_indices = np.where(data_sub.isna().any(axis=1))[0]
+        valid_length = nan_indices[0] if len(nan_indices) > 0 else len(data_sub)
+
+        if smallest_file_length is None or valid_length < smallest_file_length:
+            smallest_file_length = valid_length
+    
+    file_name = f"TrackerData_{tow:02d}_Traverse.csv"
+    file_path = os.path.join(path_base, file_name)
+    df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+
+    tow_traverse_data = df[[x_col, y_col, z_col]].iloc[:smallest_file_length].to_numpy()
+
+    return tow_traverse_data, ['x', 'y', 'z']
 
 ##############################################################################################################
 """Run this file"""
