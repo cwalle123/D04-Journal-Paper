@@ -273,6 +273,19 @@ def GAP_excel_to_array(gap_num):
 
     return data_array, [gap_col]
 
+def Traverse_LT_excel_to_array(tow_nr):
+    """
+    Reads the traverse tracker data for a specified tow number.
+    
+    Args:
+        tow_nr (int): tow number (1 to 31 inclusive)
+        
+    Returns:"""
+
+    path_base = r"Synced data from Siddharth\ExportedCSVs\Traverse\Traverse tracker data"
+
+    #return traverse_LT_array
+
 ##############################################################################################################
 """Run this file"""
 
