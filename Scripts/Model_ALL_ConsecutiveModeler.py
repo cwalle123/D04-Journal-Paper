@@ -12,37 +12,6 @@ from Scripts.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_e
 from Scripts.Data_ALL_statistics import main as real_hist, statistical_values, plot_histograms_separated, best_fit_distribution
 import random
 
-def save_distribution_data():
-    def export_data(data_table: pd.DataFrame, short_name):
-        '''This function saves a pandas dataframe as
-            a .pkl, it will be saved with the short name,
-            use that to access it.
-            It was never used and isn't currently functioning I think'''
-
-        _save_path = "Script\\"
-
-        data_table.to_pickle(_save_path + short_name + ".pkl")
-        # note! this does not save headers or indexes. might need to change that depending on how we do
-        return
-
-# def save_all_distribution_data(_save_path, LT_short_name, CAM_short_name, LLSA_short_name, LLSB_short_name):
-#     '''This function saves all the data of the distributions generated of the consecutive data.
-#         It was never used and isn't currently functioning I think'''
-#     LT_dist = consecutive_error('LT')
-#     CAM_dist = consecutive_error('CAM')
-#     LLSA_dist = consecutive_error('LLS_A')
-#     LLSB_dist = consecutive_error('LLS_B')
-
-#     LT_dist.columns = ["LT_mean", "LT_std"]
-#     #LT_dist.columns = ["LT_mean", "LT_std"]
-#     #LT_dist.columns = ["LT_mean", "LT_std"]
-#     #LT_dist.columns = ["LT_mean", "LT_std"]
-
-#     save_distribution_data(data, LT_short_name)
-#     save_distribution_data(data, CAM_short_name)
-#     save_distribution_data(data, LLSA_short_name)
-#     save_distribution_data(data, LLSB_short_name)
-
 def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_widths: list[float] = None):
     '''This function plots a histogram of real and simulated data
         for each of the sensors separately.'''
