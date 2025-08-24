@@ -87,12 +87,12 @@ def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35,
     overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
 
     # --- Plot cosmetics ---
-    plt.xlabel("Tow length (mm)", fontsize=14)
-    plt.ylabel("Tow position (mm)", fontsize=14)
-    plt.legend(loc="lower center", bbox_to_anchor=(0.5, -0.18), ncol=3, fontsize=10, frameon=True)
-    plt.grid(False)
-    plt.tight_layout()
     if plot:
+        plt.xlabel("Tow length (mm)", fontsize=14)
+        plt.ylabel("Tow position (mm)", fontsize=14)
+        plt.legend(loc="lower center", bbox_to_anchor=(0.5, -0.18), ncol=3, fontsize=10, frameon=True)
+        plt.grid(False)
+        plt.tight_layout()
         plt.show()
 
     # --- Print summary ---
