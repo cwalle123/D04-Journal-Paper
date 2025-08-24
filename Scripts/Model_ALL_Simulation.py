@@ -291,28 +291,31 @@ def simulation_verificatoin(num_simulations):
     print(f"Average Gap Percentage: {avg_gap:.2f}%")
     print(f"Average Overlap Percentage: {avg_overlap:.2f}%")
 
+##############################################################################################################
+
 def main():
-    gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent = generate_multitow_layout(num_tows=2)
+    generate_multitow_layout()
+    # gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent = generate_multitow_layout(num_tows=2)
 
-    # Plot the gap(s) over steps (not time)
-    x_vals_mm = gap_overlap_df.index / steps_per_mm  # convert index (steps) to mm
+    # # Plot the gap(s) over steps (not time)
+    # x_vals_mm = gap_overlap_df.index / steps_per_mm  # convert index (steps) to mm
 
-    plt.figure(figsize=(12, 5))
-    for column in gap_overlap_df.columns:
-        plt.plot(x_vals_mm, gap_overlap_df[column], label=column)
+    # plt.figure(figsize=(12, 5))
+    # for column in gap_overlap_df.columns:
+    #     plt.plot(x_vals_mm, gap_overlap_df[column], label=column)
 
-    plt.xlabel("Position (mm)", fontsize=20)
-    plt.ylabel("Distance between tows (mm)", 
-               fontsize=20)
+    # plt.xlabel("Position (mm)", fontsize=20)
+    # plt.ylabel("Distance between tows (mm)", 
+    #            fontsize=20)
     
-    '''plt.title(f"Vertical Gaps Between Adjacent Tows Over Distance\n"
-            f"Gap Area: {gap_percent:.2f}%      Overlap Area: {overlap_percent:.2f}%",
-            fontsize=constants.font_large)'''
+    # '''plt.title(f"Vertical Gaps Between Adjacent Tows Over Distance\n"
+    #         f"Gap Area: {gap_percent:.2f}%      Overlap Area: {overlap_percent:.2f}%",
+    #         fontsize=constants.font_large)'''
     
-    plt.axhline(0, color='gray', linestyle='--', linewidth=1)
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+    # plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+    # plt.grid(True)
+    # plt.tight_layout()
+    # plt.show()
     
 if __name__ == "__main__":
     main()
