@@ -60,7 +60,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     Adds error column based on nominal value for the sensor type.
     Returns a Pandas DataFrame instead of NumPy array.
     """
-    if sensor_type not in ["LT", "LLS_A", "LLS_B", "CAM"]:
+    if sensor_type not in ["LT", "LLS_A", "LLS_B", "CAM", "TRAVERSE"]:
         raise KeyError(f"The key '{sensor_type}' is invalid")
     if tow not in range(1, 32):
         raise IndexError(f"Tow ID {tow} is out of range")
@@ -121,6 +121,26 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         error_col = arr[:, 0] - NOMINAL_LLS_B
         arrays.append(error_col[:, None])
         col_names.append("error_LLS_B")
+    
+    elif sensor_type == "TRAVERSE":
+        """
+        Toggle options: use True/False to use certain data.
+        This to easily determine what data is best to use for the plot.
+        This can later be removed.
+        """
+        USE_GAP = True
+        USE_TRAVERSE_XYZ = True
+
+        if USE_GAP:
+            arr_gap, cols_gap = GAP_excel_to_array(tow)
+            arrays.append(arr_gap)
+            col_names.extend(cols_gap)
+        
+        if USE_TRAVERSE_XYZ:
+            arr_trav, cols_trav = Traverse_LT_excel_to_array(tow)
+            arrays.append(arr_trav)
+            col_names.append(cols_trav)
+
 
     # Combine horizontally
     processed_data = arrays[0] if len(arrays) == 1 else np.hstack(arrays)
