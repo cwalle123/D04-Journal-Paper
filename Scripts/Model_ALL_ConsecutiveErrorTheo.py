@@ -66,7 +66,33 @@ def weighted_linregress(x, y, weights):
 
     return slope, intercept, r_value, p_value_slope, stderr_slope
 
-def consecutive_error(sensor, test_ratio=0.2, num_bins = 20, random_state=None, bins_show = False, plot_fit=True, fourPlots = False, axs = None, noTitle = True, return_plot_data=False):
+
+def get_data_pairs(sensor: str, tows: list = list(np.arange(1, 32, 1))):
+    """
+    Gets the data for the specified sensors and puts it in the required form for the regression model.
+    [[1st_data_point, 2nd, weight], [2nd, 3rd, weight], ...]
+    """
+    # Wrong sensor error message
+    if not sensor == "LT" and not sensor == "CAM" and not sensor == "LLS_A" and not sensor == "LLS_B":
+        raise ValueError("Invalid sensor type. Possible values are 'LT', 'CAM', 'LLS_A', and 'LLS_B'.")
+
+    total_data = []
+
+    # loops through each tow that is specified and get data
+    for tow_num in tows:
+        tow_data = get_synced_data(tow_num, sensor)
+
+        # put data into correct format (pairs)
+        for i in range(len(tow_data[0, 0:-1])):
+            point_0 = tow_data[0, i]            # x_values in plot
+            point_1 = tow_data[0, i + 1]        # y_values in plot
+            weight = 0.5*tow_data[1, i] + 0.5*tow_data[1, i + 1]
+            total_data.append([point_0, point_1, weight])
+
+    return np.array(total_data)
+
+
+def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bins_show = False, plot_fit=True, fourPlots = False, axs = None, noTitle = True, return_plot_data=False):
     """
         Analyze consecutive error pairs and their distributions from processed sensor data.
 
@@ -83,15 +109,6 @@ def consecutive_error(sensor, test_ratio=0.2, num_bins = 20, random_state=None, 
             Change it to another integer for a different split, or set it to None for random behavior.
 
     """
-    # Wrong sensor error message
-    if not sensor == "LT" and not sensor == "CAM" and not sensor == "LLS_A" and not sensor == "LLS_B":
-        raise ValueError("Invalid sensor type. Possible values are 'LT', 'CAM', 'LLS_A', and 'LLS_B'.")
-
-    # Takes care of which column to use
-    if sensor == "CAM" or sensor == "LT":
-        column = -2
-    else:
-        column = -1
 
 
     # Prepare an empty list to store (x_n, x_{n+1}) pairs for each tow as well as other lists
@@ -100,7 +117,8 @@ def consecutive_error(sensor, test_ratio=0.2, num_bins = 20, random_state=None, 
     # Loop through tow numbers from 1 to 31
     for tow_number in range(2, 32):
         # Get processed data for the current tow and sensor type
-        tow_data_bef = get_synced_data(tow_number,spacesynced=True)
+        tow_data_bef = get_synced_data(tow_number, sensor)
+        print(tow_data_bef)
 
         if sensor == "LT":
             tow_data = tow_data_bef[["time", "x", "y", "z", "error_LT", "z error"]]
@@ -112,7 +130,7 @@ def consecutive_error(sensor, test_ratio=0.2, num_bins = 20, random_state=None, 
             tow_data = tow_data_bef[["time", "width_LLS_B", "center_LLS_B", "width error_LLS_B"]]
             x_lable = "Error tape width after compaction (mm)"
         if sensor == "CAM":
-            tow_data = tow_data_bef[["time", "width_CAM", "center_CAM", "error_CAM"]]
+            tow_data = tow_data_bef[["error_CAM", "Weights"]] #"time", "width_CAM", "center_CAM", "error_CAM"
             x_lable = "Error tape lateral movement (mm)"
         velocity_data = tow_data_bef[["time", "x"]]
 
@@ -158,9 +176,12 @@ def consecutive_error(sensor, test_ratio=0.2, num_bins = 20, random_state=None, 
     # Train-Test Split
 
     # Split into training and testing (test_ratio * 100)% of data is used.
-    x_train, x_test, y_train, y_test, vel_train, vel_test = train_test_split(
-        x_values, y_values, vel, test_size=test_ratio, random_state=random_state
-    )
+    if test_ratio != 0:
+        x_train, x_test, y_train, y_test, vel_train, vel_test = train_test_split(
+            x_values, y_values, vel, test_size=test_ratio, random_state=random_state)
+
+    else: x_train, y_train, vel_train = x_values, y_values, vel
+
     # NOTE: random_state ensures reproducible splits of the data;
     # change it to another integer for a different split, or set it to None for random behavior.
 
@@ -187,29 +208,30 @@ def consecutive_error(sensor, test_ratio=0.2, num_bins = 20, random_state=None, 
     error_labels = {"LT": "y error", "CAM": "position error", "LLS_A": "width error", "LLS_B": "width error"}
     error_label = error_labels[sensor]
 
-    # Plot scatter + binned fit
-    if plot_fit:                    #TODO: fix these plots
-        plt.figure(figsize=(5, 4))    #(6.5, 5)
-        plt.scatter(x_train, y_train, alpha=0.2, marker='o', s=10, edgecolors='k', label="Training Set")
-        plt.scatter(x_binned, y_binned, alpha=1, color='red', marker='s', s=10, label="Binned Averages")
-        plt.plot(x_binned, np.array(x_binned) * slope + intercept, color='red', label='Linear Fit')
+    # Plot scatter + binned fit, ### SHOULD NO LONGER BE NECESSARY AS PLOTS ARE SEPARATE FUNCTION!
+    #if plot_fit:                    #TODO: fix these plots
+    #    plt.figure(figsize=(5, 4))    #(6.5, 5)
+    #    plt.scatter(x_train, y_train, alpha=0.2, marker='o', s=10, edgecolors='k', label="Training Set")
+    #    plt.scatter(x_binned, y_binned, alpha=1, color='red', marker='s', s=10, label="Binned Averages")
+    #    plt.plot(x_binned, np.array(x_binned) * slope + intercept, color='red', label='Linear Fit')
+#
+    #    plt.xlabel(x_lable, fontsize=constants.font_medium)  #"$ε_{i}$ (mm)"
+    #    plt.ylabel("subsequent error (mm)", fontsize=constants.font_medium)    #"$ε_{i+1}$ (mm)"
+#
+    #    if not noTitle:
+    #        plt.title(f"{sensor} {error_label} : Consecutive Error Correlation (Training set)",
+    #                  fontsize=constants.font_small)
+#
+    #    plt.xlim(-1.2, 1.2)
+    #    plt.ylim(-1.2, 1.2)
+    #    plt.xticks(np.linspace(-1.2, 1.2, 9))
+    #    plt.yticks(np.linspace(-1.2, 1.2, 9))
+    #    plt.legend(fontsize=constants.font_small)
+    #    #plt.grid(True)
+    #    plt.tight_layout(rect=[0, 0, 1, 1])
+    #    plt.show()
 
-        plt.xlabel(x_lable, fontsize=constants.font_medium)  #"$ε_{i}$ (mm)"
-        plt.ylabel("subsequent error (mm)", fontsize=constants.font_medium)    #"$ε_{i+1}$ (mm)"
-
-        if not noTitle:
-            plt.title(f"{sensor} {error_label} : Consecutive Error Correlation (Training set)",
-                      fontsize=constants.font_small)
-
-        plt.xlim(-1.2, 1.2)
-        plt.ylim(-1.2, 1.2)
-        plt.xticks(np.linspace(-1.2, 1.2, 9))
-        plt.yticks(np.linspace(-1.2, 1.2, 9))
-        plt.legend(fontsize=constants.font_small)
-        #plt.grid(True)
-        plt.tight_layout(rect=[0, 0, 1, 1])
-        plt.show()
-
+    # This returns the data needed for the 4blobs plot, if True
     if return_plot_data:
         return x_train, y_train, x_binned, y_binned, slope, intercept
 
