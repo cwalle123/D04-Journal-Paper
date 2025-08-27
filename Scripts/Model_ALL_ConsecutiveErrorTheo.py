@@ -81,12 +81,25 @@ def get_data_pairs(sensor: str, tows: list = list(np.arange(1, 32, 1))):
     # loops through each tow that is specified and get data
     for tow_num in tows:
         tow_data = get_synced_data(tow_num, sensor)
+        #print(tow_data)
+
+        if sensor == "LLS_A":
+            tow_data = tow_data[["error_LLS_A", "Weights"]]
+        elif sensor == "LLS_B":
+            tow_data = tow_data[["error_LLS_B", "Weights"]]
+        elif sensor == "CAM":
+            tow_data = tow_data[["error_CAM", "Weights"]]
+        elif sensor == "LT":
+            tow_data = tow_data[["error_LT", "Weights"]]
+
+        tow_data = np.array(tow_data)
+        #print(tow_data)
 
         # put data into correct format (pairs)
-        for i in range(len(tow_data[0, 0:-1])):
-            point_0 = tow_data[0, i]            # x_values in plot
-            point_1 = tow_data[0, i + 1]        # y_values in plot
-            weight = 0.5*tow_data[1, i] + 0.5*tow_data[1, i + 1]
+        for i in range(len(tow_data[:-1, 0])):
+            point_0 = tow_data[i, 0]            # x_values in plot
+            point_1 = tow_data[i + 1, 0]        # y_values in plot
+            weight = 0.5*tow_data[i, 1] + 0.5*tow_data[i + 1, 1]
             total_data.append([point_0, point_1, weight])
 
     return np.array(total_data)
@@ -110,126 +123,44 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
 
     """
 
-
-    # Prepare an empty list to store (x_n, x_{n+1}) pairs for each tow as well as other lists
-    all_pairs, time_pairs, x_pairs, vel = [], [], [], []
-
-    # Loop through tow numbers from 1 to 31
-    for tow_number in range(2, 32):
-        # Get processed data for the current tow and sensor type
-        tow_data_bef = get_synced_data(tow_number, sensor)
-        print(tow_data_bef)
-
-        if sensor == "LT":
-            tow_data = tow_data_bef[["time", "x", "y", "z", "error_LT", "z error"]]
-            x_lable = "Error robot position (mm)"
-        if sensor == "LLS_A":
-            tow_data = tow_data_bef[["time", "width_LLS_A", "center_LLS_A", "width error_LLS_A"]]
-            x_lable = "Error tape width before compaction (mm)"
-        if sensor == "LLS_B":
-            tow_data = tow_data_bef[["time", "width_LLS_B", "center_LLS_B", "width error_LLS_B"]]
-            x_lable = "Error tape width after compaction (mm)"
-        if sensor == "CAM":
-            tow_data = tow_data_bef[["error_CAM", "Weights"]] #"time", "width_CAM", "center_CAM", "error_CAM"
-            x_lable = "Error tape lateral movement (mm)"
-        velocity_data = tow_data_bef[["time", "x"]]
-
-        # Ensure that the returned object is a dataframe
-        if not tow_data.empty and tow_data.shape[1] > 1:  # Ensure there are at least two columns
-            # Extract the last or second-to-last column (based on sensor type)
-            second_to_last_column = tow_data.iloc[:, column].values  # Convert to numpy array
-
-            # Create (x_n, x_{n+1}) pairs for the current tow
-            x_values = second_to_last_column[:-1]
-            y_values = second_to_last_column[1:]
-
-            # Extract x and time and convert to np
-            velocity_data_x = velocity_data.iloc[:, -1].values
-            velocity_data_time = velocity_data.iloc[:, -2].values
-            time_values_i = velocity_data_time[:-1]
-            time_values_i2 = velocity_data_time[1:]
-            x_values_i = velocity_data_x[:-1]
-            x_values_i2 = velocity_data_x[1:]
-
-            # Append pairs as a list of tuples
-            all_pairs.extend(zip(x_values, y_values))
-            time_pairs.extend(zip(time_values_i, time_values_i2))
-            x_pairs.extend(zip(x_values_i, x_values_i2))
-
-        # After processing all tows, convert collected pairs into numpy arrays
-    all_pairs = np.array(all_pairs)
-    x_values = all_pairs[:, 0]
-    y_values = all_pairs[:, 1]
-
-    time_pairs = np.array(time_pairs)
-    time_i = time_pairs[:, 0]
-    time_i2 = time_pairs[:, 1]
-    time_gaps = time_i2 - time_i
-
-    x_pairs = np.array(x_pairs)
-    x_i = x_pairs[:, 0]
-    x_i2 = x_pairs[:, 1]
-    x_gaps = x_i2 - x_i
-
-    vel = x_gaps / time_gaps
-
-    # Train-Test Split
+    # get data
+    data = get_data_pairs(sensor)
+    x_values = data[:, 0]
+    y_values = data[:, 1]
+    weights = data[:, 2]
 
     # Split into training and testing (test_ratio * 100)% of data is used.
     if test_ratio != 0:
-        x_train, x_test, y_train, y_test, vel_train, vel_test = train_test_split(
-            x_values, y_values, vel, test_size=test_ratio, random_state=random_state)
+        x_train, x_test, y_train, y_test, w_train, w_test = train_test_split(
+            x_values, y_values, weights, test_size=test_ratio, random_state=random_state)
 
-    else: x_train, y_train, vel_train = x_values, y_values, vel
-
+    else: x_train, y_train, w_train = x_values, y_values, weights
     # NOTE: random_state ensures reproducible splits of the data;
     # change it to another integer for a different split, or set it to None for random behavior.
 
-    # Sort training x-values and reorder y-values accordingly
+
+    # Sort x-values and reorder y-values and weights accordingly
     sorted_indices = np.argsort(x_train)
     x_sorted = x_train[sorted_indices]
     y_sorted = y_train[sorted_indices]
-    vel_sorted = vel_train[sorted_indices]
+    weights_sorted = w_train[sorted_indices]
 
-    # Equal-count bin edges
+    # Determine the edges of the bins
     bin_edges = np.linspace(0, len(x_sorted), num_bins + 1, dtype=int)
 
-    # Compute bin-wise averages
+    # Put the data into bins sorted by x_value
     x_binned = [np.mean(x_sorted[bin_edges[i]:bin_edges[i + 1]]) for i in range(num_bins)]
     y_binned = [np.mean(y_sorted[bin_edges[i]:bin_edges[i + 1]]) for i in range(num_bins)]
-    vel_binned = [np.mean(vel_sorted[bin_edges[i]:bin_edges[i + 1]]) for i in range(num_bins)]
+    weights_binned = [np.mean(weights_sorted[bin_edges[i]:bin_edges[i + 1]]) for i in range(num_bins)]
 
     # scatter Plot with Binned Averages and regression model
     # slope, intercept, r_value, p_value, std_err = linregress(x_binned, y_binned)
-    slope, intercept, r_value, p_value, std_err = weighted_linregress(x_binned, y_binned, vel_binned)
+    slope, intercept, r_value, p_value, std_err = weighted_linregress(x_binned, y_binned, weights_binned)
     # print(r_value)
 
     # Define error label
     error_labels = {"LT": "y error", "CAM": "position error", "LLS_A": "width error", "LLS_B": "width error"}
     error_label = error_labels[sensor]
-
-    # Plot scatter + binned fit, ### SHOULD NO LONGER BE NECESSARY AS PLOTS ARE SEPARATE FUNCTION!
-    #if plot_fit:                    #TODO: fix these plots
-    #    plt.figure(figsize=(5, 4))    #(6.5, 5)
-    #    plt.scatter(x_train, y_train, alpha=0.2, marker='o', s=10, edgecolors='k', label="Training Set")
-    #    plt.scatter(x_binned, y_binned, alpha=1, color='red', marker='s', s=10, label="Binned Averages")
-    #    plt.plot(x_binned, np.array(x_binned) * slope + intercept, color='red', label='Linear Fit')
-#
-    #    plt.xlabel(x_lable, fontsize=constants.font_medium)  #"$ε_{i}$ (mm)"
-    #    plt.ylabel("subsequent error (mm)", fontsize=constants.font_medium)    #"$ε_{i+1}$ (mm)"
-#
-    #    if not noTitle:
-    #        plt.title(f"{sensor} {error_label} : Consecutive Error Correlation (Training set)",
-    #                  fontsize=constants.font_small)
-#
-    #    plt.xlim(-1.2, 1.2)
-    #    plt.ylim(-1.2, 1.2)
-    #    plt.xticks(np.linspace(-1.2, 1.2, 9))
-    #    plt.yticks(np.linspace(-1.2, 1.2, 9))
-    #    plt.legend(fontsize=constants.font_small)
-    #    #plt.grid(True)
-    #    plt.tight_layout(rect=[0, 0, 1, 1])
-    #    plt.show()
 
     # This returns the data needed for the 4blobs plot, if True
     if return_plot_data:
@@ -237,30 +168,33 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
 
     # Compute Deviations per Bin
 
-    deviations_per_bin, velocities_per_bin = [], []
+    deviations_per_bin, weights_per_bin = [], []
 
     for i in range(num_bins):
         bin_start, bin_end = bin_edges[i], bin_edges[i + 1]
 
-        # Get x and y values in this bin
+        # Get x, y and weight data for this bin
         bin_x_values = x_sorted[bin_start:bin_end]
         bin_y_values = y_sorted[bin_start:bin_end]
-        bin_vel_values = vel_sorted[bin_start:bin_end]
+        bin_weight_values = weights_sorted[bin_start:bin_end]
 
         # Predict y-values using regression model
         predicted_y_values = slope * bin_x_values + intercept
 
-        # Compute deviation (residuals) at each point
+        # Compute deviation (residuals) at each point relative to prediction
         deviations = bin_y_values - predicted_y_values
-        deviations_per_bin.append(deviations)
-        velocities_per_bin.append(bin_vel_values)
 
-    # Paginate histogram grids
+        # create lists with binned deviation and weight data
+        deviations_per_bin.append(deviations)
+        weights_per_bin.append(bin_weight_values)
+
+    # Paginate histogram grids, TODO: figure out wtf this is???
     rows, cols = 4, 5
     plots_per_page = rows * cols
     total_bins = num_bins
     total_pages = math.ceil(total_bins / plots_per_page)
 
+    # plots to visualise the bins, probably???
     if bins_show:
         for page in range(total_pages):
             start = page * plots_per_page
@@ -276,7 +210,7 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
                 ax = axes_flat[idx_plot - start]
                 devs = deviations_per_bin[bin_idx]
                 xs = x_sorted[bin_edges[bin_idx]:bin_edges[bin_idx + 1]]
-                vels = velocities_per_bin[bin_idx]
+                vels = weights_per_bin[bin_idx]
 
                 # Histogram and normal fit
                 counts, bins_hist, _ = ax.hist(devs, bins=30, edgecolor='black', density=True)
@@ -313,7 +247,7 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
 
     for i in range(num_bins):
         bin_devs = deviations_per_bin[i]
-        vels = velocities_per_bin[i]
+        vels = weights_per_bin[i]
         x_mean = x_binned[i]
         y_mean = y_binned[i]
         # mu, std = stats.norm.fit(bin_devs)
@@ -1300,7 +1234,7 @@ def get_delta_x(tow_number):
     delta_t = tow_data_bef["x"].iloc[-1] - tow_data_bef["x"].iloc[0]
     return delta_t
 
-def plot_blobs():
+def plot_blobs(save_PDF = False):
     # some parameters for the plots
     test_ratio = 0.0001
     num_bins = 15
@@ -1331,7 +1265,7 @@ def plot_blobs():
 
     #axs[0, 0].set_xlabel(x_label, fontsize=constants.font_medium, **csfont)  #"$ε_{i}$ (mm)"
     axs[0, 0].set_ylabel(y_label, fontsize=constants.font_medium, **csfont)    #"$ε_{i+1}$ (mm)"
-    axs[0, 0].set_title('Tape lateral movement', fontsize=constants.font_medium, **csfont)
+    axs[0, 0].set_title('Tow lateral movement', fontsize=constants.font_medium, **csfont)
     axs[0, 0].set_xlim(-0.6, 0.9)
     axs[0, 0].set_ylim(-0.6, 0.9)
     axs[0, 0].set_xticks(np.linspace(-0.6, 0.9, 6))
@@ -1359,7 +1293,7 @@ def plot_blobs():
 
     axs[1,0].set_xlabel(x_label, fontsize=constants.font_medium, **csfont)
     axs[1,0].set_ylabel(y_label, fontsize=constants.font_medium, **csfont)
-    axs[1, 0].set_title('Tape width after compaction', fontsize=constants.font_medium, **csfont)
+    axs[1, 0].set_title('Tow width after compaction', fontsize=constants.font_medium, **csfont)
     axs[1,0].set_xlim(-0.6, 0.3)
     axs[1,0].set_ylim(-0.6, 0.3)
     axs[1,0].set_xticks(np.linspace(-0.6, 0.3, 4))
@@ -1372,7 +1306,7 @@ def plot_blobs():
     axs[1, 1].plot(X_LLSA_binned, np.array(X_LLSA_binned) * slope_LLSA + intercept_LLSA, color='red', linewidth=2)
 
     axs[1, 1].set_xlabel(x_label, fontsize=constants.font_medium, **csfont)
-    axs[1, 1].set_title('Tape width before compaction', fontsize=constants.font_medium, **csfont)
+    axs[1, 1].set_title('Tow width before compaction', fontsize=constants.font_medium, **csfont)
     axs[1, 1].set_xlim(-0.6, 0.3)
     axs[1, 1].set_ylim(-0.6, 0.3)
     axs[1, 1].set_xticks(np.linspace(-0.6, 0.3, 4))
@@ -1382,12 +1316,17 @@ def plot_blobs():
 
     #fig.subplots_adjust(bottom=0.2)
     lgd = fig.legend(fontsize=constants.font_small, loc='lower center',
-          fancybox=True, shadow=True, ncol=5)
+          fancybox=True, shadow=False, ncol=5)
     #leg.set_in_layout(True)
     #plt.grid(True)
     #plt.savefig('samplefigure', bbox_extra_artists=(lgd), bbox_inches='tight')
     plt.tight_layout(rect=[0, 0.04, 1, 1])
+
+    if save_PDF ==True:
+        plt.savefig("4_blobs_figure.pdf", format="pdf", bbox_inches="tight")
+
     plt.show()
+
 
 ##############################################################################################################
 """"Run this file"""
@@ -1399,7 +1338,7 @@ def main():
     #end_time = time.perf_counter()
     #elapsed_time = end_time - start_time
     #print(f"Elapsed time: {round(elapsed_time,2)} seconds")
-    plot_blobs()
+    plot_blobs(True)
 
 if __name__ == "__main__":
     main()
