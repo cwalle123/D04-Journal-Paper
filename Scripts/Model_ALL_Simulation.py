@@ -209,7 +209,7 @@ def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35,
     return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
 
 # DONT REMOVE THE NEXT LINE. It is required for generate_multitow_layout_wrapped in User_Interface!
-gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent = generate_multitow_layout(num_tows=15)
+# gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent = generate_multitow_layout(num_tows=15)
 
 #REAL DATA (!deletes a lot of data!, only use as indicator for percentage of gap overlap)
 

@@ -49,7 +49,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Import tow generator
-from Scripts.Model_ALL_Simulation_Test import generate_multitow_layout
+from Model_ALL_Simulation_Test import generate_multitow_layout
 
 # ---------------- Screen Setup ----------------
 root = tk.Tk()
