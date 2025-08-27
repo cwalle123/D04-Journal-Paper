@@ -49,7 +49,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Import tow generator
-from Model_ALL_Simulation_Test import generate_multitow_layout
+from Model_ALL_Simulation import generate_multitow_layout
 
 # ---------------- Screen Setup ----------------
 root = tk.Tk()
@@ -231,7 +231,11 @@ def draw_loading_bar():
     pygame.draw.rect(screen, (70,70,70), (bar_x, bar_y, bar_width, bar_height))
     pygame.draw.rect(screen, (100,200,100), (bar_x, bar_y, int(bar_width*progress), bar_height))
     screen.blit(font.render("Generating simulation...", True, (255,255,255)), (SCREEN_WIDTH//2 - 150, bar_y - 40))
-    screen.blit(font.render(f"Estimated time remaining: {remaining:.1f} s", True, (200,200,200)), (SCREEN_WIDTH//2 - 150, bar_y + bar_height + 30))
+    remaining_text = f"Estimated time remaining: {remaining:.1f} s"
+    remaining_surface = font.render(remaining_text, True, (200,200,200))
+    text_x = SCREEN_WIDTH // 2 - remaining_surface.get_width() // 2
+    text_y = bar_y + bar_height + 30
+    screen.blit(remaining_surface, (text_x, text_y))
     pygame.display.flip()
     if not simulation_thread.is_alive():
         time.sleep(0.5)
@@ -304,7 +308,7 @@ def main():
                             if label=="Simulation":
                                 simulation_result = None
                                 loading_start_time = time.time()
-                                loading_estimated_time = max(5, 1 + 53*(num_tows*tow_length_mm)/(1000*1000))
+                                loading_estimated_time = 0.08*num_tows + 0.006*tow_length_mm - 6
                                 simulation_thread = threading.Thread(target=run_simulation)
                                 simulation_thread.start()
                                 state = LOADING

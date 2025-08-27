@@ -1,39 +1,59 @@
-from Model_ALL_ConsecutiveErrorTheo import *
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.stats as stats
-from Handling_ALL_Functions import get_synced_data
-import random
-import pandas as pd
-import constants
+"""This file deals with generating simulated tows using the model"""
 
-steps_per_mm = 360 / 1000       # Keep consistent with User_Interface
+##############################################################################################################
+
+# External imports
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import random
+import scipy.stats as stats
+
+# Internal imports
+from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
+from Handling_ALL_Functions import get_synced_data
+
+##############################################################################################################
+"""Functions for generating simulated tows"""
 
 #starting error distribution can be found here, but is assumed to be uniform based on these graphs ranges of values
 def fit_starting_error_distribution(sensor: str, plot=True):
+    """
+    Fits a normal distribution to the first non-NaN values of a sensor's error
+    across all tows (2-31). Returns mean, std, and list of first values.
+    """
+    # Map to correct error column in new get_synced_data
     column_map = {
-        "CAM": "center_CAM",
+        "CAM": "error_CAM",
         "LT": "error_LT",
-        "LLS_A": "width error_LLS_A",
-        "LLS_B": "width error_LLS_B"
+        "LLS_A": "error_LLS_A",
+        "LLS_B": "error_LLS_B"
     }
+
+    if sensor not in column_map:
+        raise KeyError(f"Unknown sensor '{sensor}'")
 
     col_name = column_map[sensor]
     first_values = []
 
-    for tow in range(2, 32):
-        df = get_synced_data(tow, spacesynced=True)
+    for tow in range(2, 32):  # tows 2-31
+        df = get_synced_data(tow, sensor_type=sensor, overwrite=False, helper=False)
 
         if col_name in df.columns and not df[col_name].isna().all():
-            value = df[col_name].dropna().values[0]  # get first non-NaN value
+            # Take first non-NaN value
+            value = df[col_name].dropna().values[0]
             first_values.append(value)
- 
 
+    if len(first_values) == 0:
+        raise ValueError(f"No valid first values found for sensor '{sensor}'")
+
+    # Fit normal distribution
     mu, sigma = stats.norm.fit(first_values)
 
     if plot:
         plt.figure(figsize=(8, 5))
-        count, bins, _ = plt.hist(first_values, bins=len(first_values), density=True, edgecolor="black", alpha=0.7, label="Start Values")
+        count, bins, _ = plt.hist(first_values, bins=len(first_values), density=True,
+                                  edgecolor="black", alpha=0.7, label="Start Values")
         x = np.linspace(min(bins), max(bins), 100)
         plt.plot(x, stats.norm.pdf(x, mu, sigma), 'r--', label=f"Fit: μ={mu:.2f}, σ={sigma:.2f}")
         plt.title(f"Start Error Distribution - {sensor}")
@@ -46,172 +66,117 @@ def fit_starting_error_distribution(sensor: str, plot=True):
 
     return mu, sigma, first_values
 
-def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35, n_steps=360, cam_start_range=(-0.6, 0.4), lt_start_range=(-1, -0.8), llsb_start_range=(-0.15, -0.02),plot=True):
-    # Get binned models
+def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35, tow_length_mm=1000, cam_start_range=(-0.6, 0.4), lt_start_range=(-1, -0.8), llsb_start_range=(-0.15, -0.02), plot=False):
+    """
+    Generate a multi-tow layout using real error models (CAM, LT, LLS_B).
+    Returns gap/overlap DataFrames and percentages.
+    """
+
+    n_steps = int(tow_length_mm * 340 / 1000)  # base step count
+
+    # --- Load error model fits ---
     bin_stats_cam, slope_cam, intercept_cam, _, _, _, x_sorted_cam, bin_edges_cam, devs_cam = consecutive_error(
-        "CAM", test_ratio=0.5, num_bins=180, bins_show=False, plot_fit=False, random_state=random.randint(0, 10000))
+        "CAM", test_ratio=0.5, num_bins=180, bins_show=False, plot_fit=False,
+        random_state=random.randint(0, 10000))
     bin_stats_lt, slope_lt, intercept_lt, _, _, _, x_sorted_lt, bin_edges_lt, devs_lt = consecutive_error(
-        "LT", test_ratio=0.5, num_bins=180, bins_show=False, plot_fit=False, random_state=random.randint(0, 10000))
+        "LT", test_ratio=0.5, num_bins=180, bins_show=False, plot_fit=False,
+        random_state=random.randint(0, 10000))
     bin_stats_llsb, slope_llsb, intercept_llsb, _, _, _, x_sorted_llsb, bin_edges_llsb, devs_llsb = consecutive_error(
-        "LLS_B", test_ratio=0.5, num_bins=180, bins_show=False, plot_fit=False, random_state=random.randint(0, 10000))
-    #get perfect offsets
-    offsets = np.linspace(-(num_tows - 1) / 2, (num_tows - 1) / 2, num_tows) * tow_spacing_mm
-    plt.figure(figsize=(12, 8))
-    # plt.axis("equal") # ADDED HERE !!! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    #for coloring properly (chatgpt did the plotting)
-    cmap = plt.get_cmap("tab10")
-    x_vals = np.arange(n_steps) / steps_per_mm  # convert step indices to mm
+        "LLS_B", test_ratio=0.5, num_bins=180, bins_show=False, plot_fit=False,
+        random_state=random.randint(0, 10000))
 
-    top_lines = []
-    bottom_lines = []
+    # --- Perfect offsets for tow centerlines ---
+    tow_offsets = np.linspace(-(num_tows - 1) / 2, (num_tows - 1) / 2, num_tows) * tow_spacing_mm
 
+    top_edge_paths, bottom_edge_paths = [], []
 
-    tow_colors = [
-    '#FFD700',   # gold
-    '#FF8C00',   # darkorange
-    ]   
+    # --- Simulate each tow ---
+    for tow_index, offset in enumerate(tow_offsets):
 
-    for i, offset in enumerate(offsets):
-
-        '''Uncomment this if you want to visualize the 10 virtual tows with different colors, 
-        and comment the line that says:
-        color = tow_colors[i % len(tow_colors)]  
-        which is (circa) line 111'''
-        #color = tow_colors[i % len(tow_colors)]
-        
+        # Pick random start values
         start_cam = random.uniform(*cam_start_range)
         start_lt = random.uniform(*lt_start_range)
         start_llsb = random.uniform(*llsb_start_range)
 
+        # Generate centerline errors
         cam_path = generate_error_path(start_cam, n_steps, slope_cam, intercept_cam,
                                        x_sorted_cam, bin_edges_cam, devs_cam)
         lt_path = generate_error_path(start_lt, n_steps, slope_lt, intercept_lt,
                                       x_sorted_lt, bin_edges_lt, devs_lt)
-        centerline = offset + cam_path + lt_path
+        tow_centerline = offset + cam_path + lt_path
 
+        # Generate width errors
         width_error = generate_error_path(start_llsb, n_steps, slope_llsb, intercept_llsb,
                                           x_sorted_llsb, bin_edges_llsb, devs_llsb)
-        width = width_error + tow_width_mm
+        tow_widths = tow_width_mm + width_error
 
-        top_line = centerline + 0.5 * width
-        bottom_line = centerline - 0.5 * width
+        tow_top_edge = tow_centerline + 0.5 * tow_widths
+        tow_bottom_edge = tow_centerline - 0.5 * tow_widths
 
-        top_lines.append(top_line)
-        bottom_lines.append(bottom_line)
+        top_edge_paths.append(tow_top_edge)
+        bottom_edge_paths.append(tow_bottom_edge)
 
-        # --- Plot ---
+        # --- Align x-values and programmed offsets to path length ---
+        path_len = len(tow_centerline)
+        x_vals = np.linspace(0, tow_length_mm, path_len)
+        offset_array = np.full(path_len, offset)
 
-        # Make titles Times new Roman
-        plt.rcParams['font.family'] = 'serif'
-        plt.rcParams['font.serif']  = ['Times New Roman']
+        # --- Plotting ---
+        if plot:
+            color = plt.get_cmap("tab10")(tow_index % 10)
 
-        # if you use math text and want matching font:
-        plt.rcParams['mathtext.fontset'] = 'custom'
-        plt.rcParams['mathtext.rm']      = 'Times New Roman'
+            # Programmed reference path
+            plt.plot(x_vals, offset_array, ":", color="black",
+                     linewidth=1, label="Programmed paths" if tow_index == 0 else "_nolegend_")
 
-        # Sort the colors for the two tows
-        color = tow_colors[i % len(tow_colors)]
-        
-        '''I did a little tweak, just for the label box below the figure looks nicer'''
-        plt.plot(
-        x_vals,
-        [offset]*n_steps,
-        linestyle=":",
-        color="black",
-        linewidth=1,
-        label="Programmed paths" if i == 0 else "_nolegend_")
+            # Simulated centerline and edges
+            plt.plot(x_vals, tow_centerline, "--", color=color,
+                     linewidth=1.5, label="Tow centerlines" if tow_index == 0 else "_nolegend_")
+            plt.plot(x_vals, tow_top_edge, "-", color=color,
+                     linewidth=2.0, label="Tow edges" if tow_index == 0 else "_nolegend_")
+            plt.plot(x_vals, tow_bottom_edge, "-", color=color,
+                     linewidth=2.0, label="_nolegend_")
 
-        # centrelines — only label once
-        plt.plot(
-        x_vals,
-        centerline[:n_steps],
-        "--",
-        color=color,
-        linewidth=1.5,
-        label="Tow centerlines" if i == 0 else "_nolegend_")
+    # --- Gap/Overlap analysis ---
+    gap_overlap_dict = {
+        f"Gap/overlap_Tow{tow_index+1}_Tow{tow_index+2}": bottom_edge_paths[tow_index+1] - top_edge_paths[tow_index]
+        for tow_index in range(num_tows - 1)
+    }
+    gap_overlap_df = pd.DataFrame(gap_overlap_dict)
 
-        # edges — only label once
-        plt.plot(
-        x_vals,
-        top_line[:n_steps],
-        "-",
-        color=color,
-        linewidth=2.5,
-        label="Tow edges" if i == 0 else "_nolegend_")
-
-        # bottom edge same style, no legend
-        plt.plot(
-        x_vals,
-        bottom_line[:n_steps],
-        "-",
-        color=color,
-        linewidth=2.5,
-        label="_nolegend_")
-
-    plt.legend(loc='lower center',           # centered below the axes
-                    bbox_to_anchor=(0.5, -0.18),  # change the y-coord so it goes underneath the x-axis
-                    ncol=3,                       # three entries side-by-side
-                    frameon=True,                 
-                    fontsize=12)
-        
-    # Set x-axis limits
-    plt.xlim(0, 1000)
-
-
-    if plot == True:
-        plt.xlabel("Tow length (mm)", fontsize=25)
-        plt.ylabel("Tow width (mm)", fontsize=25)
-        #plt.title(f"Simulated {num_tows}-Tow Layout with Random Start Errors", fontsize=20)
-        '''Uncomment the two following lines if you want a legend in the 2 virtual tow figure'''
-        #if num_tows <= 50:
-            #plt.legend(loc="upper right", ncol=2, fontsize=15)
-
-        plt.grid(False)
-        plt.tight_layout()
-        # The next line is commented for User_Interface. If you need to show the graph for a bit, make sure to revert it back after.
-        # plt.show()
-
-    #gaps and overlaps calculation
-    #Compute vertical gaps between adjacent tows
-    gap_overlap_data = {}
-
-    for i in range(num_tows - 1):
-        gap_overlap = bottom_lines[i+1]-top_lines[i]  # vertical space between adjacent tows
-        col_name = f"Gap/overlap_Tow{i+1}_Tow{i+2}"
-        gap_overlap_data[col_name] = gap_overlap  # shape
-
-    gap_overlap_df = pd.DataFrame(gap_overlap_data)
     gap_df = gap_overlap_df.where(gap_overlap_df > 0)
     overlap_df = gap_overlap_df.where(gap_overlap_df < 0)
 
-    #Area Calculations (unitless)
-    topmost_line = top_lines[-1]      # Top edge of highest-numbered tow
-    bottommost_line = bottom_lines[0] # Bottom edge of lowest-numbered tow
-    total_area = np.trapezoid(topmost_line - bottommost_line)
+    # --- Area calculations ---
+    highest_tow_edge = top_edge_paths[-1]
+    lowest_tow_edge = bottom_edge_paths[0]
+    total_layout_area = np.trapezoid(highest_tow_edge - lowest_tow_edge, x_vals)
 
-    total_gap_area = 0.0
-    total_overlap_area = 0.0
+    total_gap_area = sum(np.trapezoid(np.clip(values, 0, None), x_vals) for values in gap_overlap_df.values.T)
+    total_overlap_area = sum(np.trapezoid(np.clip(-values, 0, None), x_vals) for values in gap_overlap_df.values.T)
 
-    for col in gap_overlap_df.columns:
-        gap_vals = gap_overlap_df[col].values
-        gaps = np.where(gap_vals > 0, gap_vals, 0)
-        overlaps = np.where(gap_vals < 0, -gap_vals, 0)  # flip sign for integration
-        total_gap_area += np.trapezoid(gaps)
-        total_overlap_area += np.trapezoid(overlaps)
+    gap_percent = (total_gap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
+    overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
 
-    gap_percent = (total_gap_area / total_area) * 100 
-    overlap_percent = (total_overlap_area / total_area) * 100 
+    # --- Plot cosmetics ---
+    if plot:
+        plt.xlabel("Tow length (mm)", fontsize=14)
+        plt.ylabel("Tow position (mm)", fontsize=14)
+        plt.legend(loc="lower center", bbox_to_anchor=(0.5, -0.18), ncol=3, fontsize=10, frameon=True)
+        plt.grid(False)
+        plt.tight_layout()
+        plt.show()
 
-    print(f"\nTotal layout area (unitless): {total_area:.2f}")
-    print(f"Gap area: {total_gap_area:.2f} ({gap_percent:.2f}%)")
-    print(f"Overlap area: {total_overlap_area:.2f} ({overlap_percent:.2f}%)")
+    # --- Print summary ---
+    print(f"\nTotal layout area: {total_layout_area:.2f} mm²")
+    print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
+    print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
 
     return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
 
-# DONT REMOVE THE NEXT LINE. It is required for generate_multitow_layout_wrapped in User_Interface!
-# gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent = generate_multitow_layout(num_tows=15)
-
-#REAL DATA (!deletes a lot of data!, only use as indicator for percentage of gap overlap)
+##############################################################################################################
+"""Functions for checking values of the experimental data"""
+# (These apperently delete a lot of data!, only use as indicator for percentage of gap overlap)
 
 def calculate_real_gap_overlap_percentages(num_tows=5, tow_spacing_mm=6.35):
     offsets = np.linspace(-(num_tows - 1) / 2, (num_tows - 1) / 2, num_tows) * tow_spacing_mm
@@ -292,30 +257,13 @@ def simulation_verificatoin(num_simulations):
     print(f"Average Overlap Percentage: {avg_overlap:.2f}%")
 
 ##############################################################################################################
+"""Run this file"""
 
 def main():
-    generate_multitow_layout()
-    # gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent = generate_multitow_layout(num_tows=2)
-
-    # # Plot the gap(s) over steps (not time)
-    # x_vals_mm = gap_overlap_df.index / steps_per_mm  # convert index (steps) to mm
-
-    # plt.figure(figsize=(12, 5))
-    # for column in gap_overlap_df.columns:
-    #     plt.plot(x_vals_mm, gap_overlap_df[column], label=column)
-
-    # plt.xlabel("Position (mm)", fontsize=20)
-    # plt.ylabel("Distance between tows (mm)", 
-    #            fontsize=20)
-    
-    # '''plt.title(f"Vertical Gaps Between Adjacent Tows Over Distance\n"
-    #         f"Gap Area: {gap_percent:.2f}%      Overlap Area: {overlap_percent:.2f}%",
-    #         fontsize=constants.font_large)'''
-    
-    # plt.axhline(0, color='gray', linestyle='--', linewidth=1)
-    # plt.grid(True)
-    # plt.tight_layout()
-    # plt.show()
+    generate_multitow_layout(3, plot=True)
+    # mean, std, start_values = fit_starting_error_distribution("CAM")
+    # start_values = np.array(start_values)
+    # print(mean)
     
 if __name__ == "__main__":
     main()

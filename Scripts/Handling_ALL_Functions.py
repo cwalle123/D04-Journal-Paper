@@ -8,7 +8,7 @@ import pandas as pd
 import os
 
 # Internal imports
-from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, GAP_excel_to_array
+from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, GAP_excel_to_array, Traverse_LT_excel_to_array
 from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y
 
 ##############################################################################################################
@@ -140,7 +140,6 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
             arr_trav, cols_trav = Traverse_LT_excel_to_array(tow)
             arrays.append(arr_trav)
             col_names.append(cols_trav)
-
 
     # Combine horizontally
     processed_data = arrays[0] if len(arrays) == 1 else np.hstack(arrays)
