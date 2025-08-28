@@ -66,23 +66,24 @@ def fit_starting_error_distribution(sensor: str, plot=True):
 
     return mu, sigma, first_values
 
-def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35, tow_length_mm=1000, cam_start_range=(-0.6, 0.4), lt_start_range=(-1, -0.8), llsb_start_range=(-0.15, -0.02), plot=False):
+def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35, tow_length_mm=1000, cam_start_range=(-0.75, 0.75), lt_start_range=(-0.9, -0.7), llsb_start_range=(-0.21, -0.02), plot=False):
     """
     Generate a multi-tow layout using real error models (CAM, LT, LLS_B).
     Returns gap/overlap DataFrames and percentages.
     """
 
+    num_bins = 80
     n_steps = int(tow_length_mm * 340 / 1000)  # base step count
 
     # --- Load error model fits ---
     bin_stats_cam, slope_cam, intercept_cam, _, _, _, x_sorted_cam, bin_edges_cam, devs_cam = consecutive_error(
-        "CAM", test_ratio=0.5, num_bins=180, bins_show=False, plot_fit=False,
+        "CAM", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False,
         random_state=random.randint(0, 10000))
     bin_stats_lt, slope_lt, intercept_lt, _, _, _, x_sorted_lt, bin_edges_lt, devs_lt = consecutive_error(
-        "LT", test_ratio=0.5, num_bins=180, bins_show=False, plot_fit=False,
+        "LT", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False,
         random_state=random.randint(0, 10000))
     bin_stats_llsb, slope_llsb, intercept_llsb, _, _, _, x_sorted_llsb, bin_edges_llsb, devs_llsb = consecutive_error(
-        "LLS_B", test_ratio=0.5, num_bins=180, bins_show=False, plot_fit=False,
+        "LLS_B", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False,
         random_state=random.randint(0, 10000))
 
     # --- Perfect offsets for tow centerlines ---
@@ -240,27 +241,72 @@ def calculate_real_gap_overlap_percentages(num_tows=5, tow_spacing_mm=6.35):
 
     return gap_overlap_data, gap_percent, overlap_percent
 
-def simulation_verificatoin(num_simulations):
-    gap_percent_list = []
-    overlap_percent_list = []
+def simulation_verification(num_simulations=100):
+    """
+    Run multiple simulations of the multitow layout and compute average gap/overlap percentages.
+    Also calculates standard deviation and plots normal distributions + histograms.
+    """
+
+    gap_percents = []
+    overlap_percents = []
+
     for i in range(num_simulations):
-        print(f"Running simulation {i+1}/{num_simulations}", end="\r")
-        _, _, _, gap_pct, overlap_pct = generate_multitow_layout(num_tows=25,plot=False)
-        gap_percent_list.append(gap_pct)
-        overlap_percent_list.append(overlap_pct)
+        _, _, _, gap_percent, overlap_percent = generate_multitow_layout(
+            num_tows=5,
+            tow_spacing_mm=6.35,
+            tow_width_mm=6.35,
+            tow_length_mm=1000,
+            cam_start_range=(-0.75, 0.75),
+            lt_start_range=(-0.9, -0.7),
+            llsb_start_range=(-0.21, -0.02),
+            plot=False)
 
-    avg_gap = np.mean(gap_percent_list)
-    avg_overlap = np.mean(overlap_percent_list)
+        gap_percents.append(gap_percent)
+        overlap_percents.append(overlap_percent)
 
-    print(f"\n\nAfter {num_simulations} simulations of x-tow layout:")
-    print(f"Average Gap Percentage: {avg_gap:.2f}%")
-    print(f"Average Overlap Percentage: {avg_overlap:.2f}%")
+    # --- Stats ---
+    avg_gap = np.mean(gap_percents)
+    std_gap = np.std(gap_percents)
+
+    avg_overlap = np.mean(overlap_percents)
+    std_overlap = np.std(overlap_percents)
+
+    # --- Print results ---
+    print(f"\n\nAfter {num_simulations} simulations of 5-tow layout:")
+    print(f"Average Gap Percentage: {avg_gap:.2f}% (std: {std_gap:.2f}%)")
+    print(f"Average Overlap Percentage: {avg_overlap:.2f}% (std: {std_overlap:.2f}%)")
+
+    # --- Plot distributions + histograms ---
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Plot histograms (normalized to probability density)
+    ax.hist(gap_percents, bins=20, density=True, alpha=0.5, color="blue", label="Gap % Histogram")
+    ax.hist(overlap_percents, bins=20, density=True, alpha=0.5, color="red", label="Overlap % Histogram")
+
+    # Range for plotting normal curves
+    if std_gap > 0:
+        x_gap = np.linspace(min(gap_percents), max(gap_percents), 200)
+        ax.plot(x_gap, stats.norm.pdf(x_gap, avg_gap, std_gap), "b-", linewidth=2, label="Gap Normal Fit")
+    if std_overlap > 0:
+        x_overlap = np.linspace(min(overlap_percents), max(overlap_percents), 200)
+        ax.plot(x_overlap, stats.norm.pdf(x_overlap, avg_overlap, std_overlap), "r-", linewidth=2, label="Overlap Normal Fit")
+
+    ax.set_title(f"Gap/Overlap Distributions ({num_simulations} simulations)")
+    ax.set_xlabel("Percentage")
+    ax.set_ylabel("Probability Density")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    plt.show()
+
+    return avg_gap, avg_overlap, std_gap, std_overlap
 
 ##############################################################################################################
 """Run this file"""
 
 def main():
     generate_multitow_layout(3, plot=True)
+    # simulation_verification(5)
     # mean, std, start_values = fit_starting_error_distribution("CAM")
     # start_values = np.array(start_values)
     # print(mean)
