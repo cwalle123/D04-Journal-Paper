@@ -11,7 +11,7 @@ import numpy as np
 #Internal imports
 # from Handling_ALL_Functions import get_synced_data
 # from constants import Consecutive_Error_Bins
-from Model_ALL_Simulation_Test import generate_multitow_layout
+from Model_ALL_Simulation import generate_multitow_layout
 
 ##############################################################################################################
 """Functions"""
