@@ -282,11 +282,12 @@ def Traverse_LT_excel_to_array(tow_nr):
         
     Returns:
         tuple: (numpy.ndarray, list)
-            - Data array with shape (shortest_length, 2) containing columns [x, y, z].
-            - List of column names: ['x', 'y', 'z'].
+            - Data array with shape (shortest_length, 2) containing columns [time, x, y, z].
+            - List of column names: ['time', 'x', 'y', 'z'].
     """
 
     path_base = r"Synced data from Siddharth\ExportedCSVs\Traverse\Traverse tracker data"
+    time_col = "TimeStamp"
     x_col = "X_mm_"
     y_col = "Y_mm_"
     z_col = "Z_mm_"
@@ -301,10 +302,10 @@ def Traverse_LT_excel_to_array(tow_nr):
         file_path = os.path.join(path_base, file_name)
         df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
     
-        if x_col not in df.columns or y_col not in df.columns or z_col not in df.columns:
+        if time_col not in df.columns or x_col not in df.columns or y_col not in df.columns or z_col not in df.columns:
             raise ValueError(f"Missing columns in file: {file_path}")
         
-        data_sub = df[[x_col, y_col, z_col]]
+        data_sub = df[[time_col, x_col, y_col, z_col]]
         nan_indices = np.where(data_sub.isna().any(axis=1))[0]
         valid_length = nan_indices[0] if len(nan_indices) > 0 else len(data_sub)
 
@@ -315,9 +316,57 @@ def Traverse_LT_excel_to_array(tow_nr):
     file_path = os.path.join(path_base, file_name)
     df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
 
-    tow_traverse_data = df[[x_col, y_col, z_col]].iloc[:smallest_file_length].to_numpy()
+    tow_traverse_data = df[[time_col, x_col, y_col, z_col]].iloc[:smallest_file_length].to_numpy()
 
-    return tow_traverse_data, ['x', 'y', 'z']
+    return tow_traverse_data, ['time', 'x', 'y', 'z']
+
+def Traverse_Gap_excel_to_array(tows_nrs):
+    """
+    Reads the traverse gap data for 2 specified tow numbers.
+    
+    Args:
+        tows_nrs (int): nth tow, gap between tow 1 and 2 is numbered "1" (1 to 30 inclusive)
+        
+    Returns:
+        tuple: (numpy.ndarray, list)
+            - Data array with shape (shortest_length, 2) containing columns [time, leftedge, rightedge, gap].
+            - List of column names: ['time', 'leftedge', 'rightedge', 'gap'].
+    """
+    
+    path_base = r"Synced data from Siddharth\ExportedCSVs\Traverse\Traverse Gap Data from LLS"
+    time_col = "Time"
+    left_col = "TapeEdgeLeft"
+    right_col = "TapeEdgeRight"
+    gap_col = "Gap"
+
+    smallest_file_length = None
+
+    if tows_nrs < 1 or tows_nrs > 30:
+        raise ValueError("tows_nrs must be between 1 and 30 inclusive.")
+    
+    for tow in range(1,31):
+        tow2 = tow + 1
+        file_name = f"TraverseData_Gap_{tow:02d}_{tow2:02d}.csv"
+        file_path = os.path.join(path_base, file_name)
+        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+    
+        if time_col not in df.columns or left_col not in df.columns or right_col not in df.columns or gap_col not in df.columns:
+            raise ValueError(f"Missing columns in file: {file_path}")
+        
+        data_sub = df[[time_col, left_col, right_col, gap_col]]
+        nan_indices = np.where(data_sub.isna().any(axis=1))[0]
+        valid_length = nan_indices[0] if len(nan_indices) > 0 else len(data_sub)
+
+        if smallest_file_length is None or valid_length < smallest_file_length:
+            smallest_file_length = valid_length
+    
+    file_name = f"TraverseData_Gap_{tow:02d}_{tow2:02d}.csv"
+    file_path = os.path.join(path_base, file_name)
+    df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+
+    tow_traverse_gap_data = df[[time_col, left_col, right_col, gap_col]].iloc[:smallest_file_length].to_numpy()
+
+    return tow_traverse_gap_data, ['time', 'leftedge', 'rightedge', 'gap']
 
 ##############################################################################################################
 """Run this file"""
