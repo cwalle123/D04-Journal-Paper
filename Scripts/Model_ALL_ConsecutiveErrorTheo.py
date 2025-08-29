@@ -162,7 +162,7 @@ def consecutive_error(sensor, used_tows: list = list(np.arange(2, 32, 1)), test_
     weights_sorted = weights[sorted_indices]
 
     # Determine the edges of the bins
-    bin_edge_indices = np.linspace(0, len(x_sorted), num_bins + 1, dtype=int)
+    bin_edge_indices = np.linspace(0, len(x_sorted) - 1, num_bins + 1, dtype=int)
 
     # Put the data into bins sorted by x_value
     x_mean_bins = [np.mean(x_sorted[bin_edge_indices[i]:bin_edge_indices[i + 1]]) for i in range(num_bins)]
@@ -302,7 +302,7 @@ def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_ed
         for i in range(len(bin_edges) - 1):
             # determining bin edges amd checking if current x is within this bin
             bin_x_min = x_sorted[bin_edges[i]]
-            bin_x_max = x_sorted[bin_edges[i + 1] - 1]
+            bin_x_max = x_sorted[bin_edges[i + 1]]
             if bin_x_min <= x_current <= bin_x_max:
                 bin_index = i
                 break
@@ -1359,9 +1359,11 @@ def main():
     #elapsed_time = end_time - start_time
     #print(f"Elapsed time: {round(elapsed_time,2)} seconds")
 
-    print(generate_starting_error("CAM"))
-    plot_blobs(save_PDF=True)
+    #plot_blobs(save_PDF=True)
     #consecutive_error("LT", bins_show=True, num_bins=20, fourPlots=True)
+    bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edges, deviations_per_bin = consecutive_error("LT")
+    data = generate_error_path(0, 2000, slope, intercept, x_sorted, bin_edges, deviations_per_bin,
+                        use_truncnorm=False)
 
 if __name__ == "__main__":
     main()
