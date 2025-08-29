@@ -31,6 +31,7 @@ import math
 from scipy.stats import truncnorm
 import time
 import statsmodels.api as sm
+import random
 
 # Internal imports
 import constants
@@ -67,7 +68,7 @@ def weighted_linregress(x, y, weights):
     return slope, intercept, r_value, p_value_slope, stderr_slope
 
 
-def get_data_pairs(sensor: str, tows: list = list(np.arange(1, 32, 1))):
+def get_data_pairs(sensor: str, tows: list = list(np.arange(2, 32, 1))):
     """
     Gets the data for the specified sensors and puts it in the required form for the regression model.
     [[1st_data_point, 2nd, weight], [2nd, 3rd, weight], ...]
@@ -104,8 +105,23 @@ def get_data_pairs(sensor: str, tows: list = list(np.arange(1, 32, 1))):
 
     return np.array(total_data)
 
+def generate_starting_error(sensor: str):
+    '''This function generates a random starting error for the specified sensor'''
+    if sensor == "LLS_A":
+        start_range = (-0.41, -0.08)
+    elif sensor == "LLS_B":
+        start_range = (-0.15, -0.02)
+    elif sensor == "CAM":
+        start_range = (-0.6, 0.4)
+    elif sensor == "LT":
+        start_range = (-1, -0.8)
+    else: print("Invalid sensor type.")
 
-def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bins_show = False, plot_fit=True, fourPlots = False, axs = None, noTitle = True, return_plot_data=False):
+    start_error = random.uniform(*start_range)
+    return start_error
+
+
+def consecutive_error(sensor, used_tows: list = list(np.arange(2, 32, 1)), test_ratio: float=0.1, num_bins = 150, random_state=None, bins_show = False, plot_fit=True, fourPlots = False, axs = None, noTitle = True, return_plot_data=False):
     """
         Analyze consecutive error pairs and their distributions from processed sensor data.
 
@@ -124,38 +140,38 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
     """
 
     # get data
-    data = get_data_pairs(sensor)
+    data = get_data_pairs(sensor, tows=used_tows)
     x_values = data[:, 0]
     y_values = data[:, 1]
     weights = data[:, 2]
 
     # Split into training and testing (test_ratio * 100)% of data is used.
-    if test_ratio != 0:
-        x_train, x_test, y_train, y_test, w_train, w_test = train_test_split(
-            x_values, y_values, weights, test_size=test_ratio, random_state=random_state)
+    #if test_ratio != 0:
+    #    x_train, x_test, y_train, y_test, w_train, w_test = train_test_split(
+    #        x_values, y_values, weights, test_size=test_ratio, random_state=random_state)
 
-    else: x_train, y_train, w_train = x_values, y_values, weights
+    #else: x_train, y_train, w_train = x_values, y_values, weights
     # NOTE: random_state ensures reproducible splits of the data;
     # change it to another integer for a different split, or set it to None for random behavior.
 
 
     # Sort x-values and reorder y-values and weights accordingly
-    sorted_indices = np.argsort(x_train)
-    x_sorted = x_train[sorted_indices]
-    y_sorted = y_train[sorted_indices]
-    weights_sorted = w_train[sorted_indices]
+    sorted_indices = np.argsort(x_values)
+    x_sorted = x_values[sorted_indices]
+    y_sorted = y_values[sorted_indices]
+    weights_sorted = weights[sorted_indices]
 
     # Determine the edges of the bins
-    bin_edges = np.linspace(0, len(x_sorted), num_bins + 1, dtype=int)
+    bin_edge_indices = np.linspace(0, len(x_sorted), num_bins + 1, dtype=int)
 
     # Put the data into bins sorted by x_value
-    x_binned = [np.mean(x_sorted[bin_edges[i]:bin_edges[i + 1]]) for i in range(num_bins)]
-    y_binned = [np.mean(y_sorted[bin_edges[i]:bin_edges[i + 1]]) for i in range(num_bins)]
-    weights_binned = [np.mean(weights_sorted[bin_edges[i]:bin_edges[i + 1]]) for i in range(num_bins)]
+    x_mean_bins = [np.mean(x_sorted[bin_edge_indices[i]:bin_edge_indices[i + 1]]) for i in range(num_bins)]
+    y_mean_bins = [np.mean(y_sorted[bin_edge_indices[i]:bin_edge_indices[i + 1]]) for i in range(num_bins)]
+    weights_binned = [np.mean(weights_sorted[bin_edge_indices[i]:bin_edge_indices[i + 1]]) for i in range(num_bins)]
 
     # scatter Plot with Binned Averages and regression model
     # slope, intercept, r_value, p_value, std_err = linregress(x_binned, y_binned)
-    slope, intercept, r_value, p_value, std_err = weighted_linregress(x_binned, y_binned, weights_binned)
+    slope, intercept, r_value, p_value, std_err = weighted_linregress(x_mean_bins, y_mean_bins, weights_binned)
     # print(r_value)
 
     # Define error label
@@ -164,14 +180,14 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
 
     # This returns the data needed for the 4blobs plot, if True
     if return_plot_data:
-        return x_train, y_train, x_binned, y_binned, slope, intercept
+        return x_values, y_values, x_mean_bins, y_mean_bins, slope, intercept
 
     # Compute Deviations per Bin
 
     deviations_per_bin, weights_per_bin = [], []
 
     for i in range(num_bins):
-        bin_start, bin_end = bin_edges[i], bin_edges[i + 1]
+        bin_start, bin_end = bin_edge_indices[i], bin_edge_indices[i + 1]
 
         # Get x, y and weight data for this bin
         bin_x_values = x_sorted[bin_start:bin_end]
@@ -188,14 +204,16 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
         deviations_per_bin.append(deviations)
         weights_per_bin.append(bin_weight_values)
 
-    # Paginate histogram grids, TODO: figure out wtf this is???
-    rows, cols = 4, 5
-    plots_per_page = rows * cols
-    total_bins = num_bins
-    total_pages = math.ceil(total_bins / plots_per_page)
-
-    # plots to visualise the bins, probably???
+    # ------------------------
+    # Plots to show the distributions/histograms within the bins
+    # ------------------------
     if bins_show:
+        # Paginate histogram grids
+        rows, cols = 4, 5                   # 5x4=20 plots per page
+        plots_per_page = rows * cols
+        total_bins = num_bins
+        total_pages = math.ceil(total_bins / plots_per_page)    # number of "pages" with plots
+
         for page in range(total_pages):
             start = page * plots_per_page
             end = min(start + plots_per_page, total_bins)
@@ -209,7 +227,7 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
                 bin_idx = idx_plot
                 ax = axes_flat[idx_plot - start]
                 devs = deviations_per_bin[bin_idx]
-                xs = x_sorted[bin_edges[bin_idx]:bin_edges[bin_idx + 1]]
+                xs = x_sorted[bin_edge_indices[bin_idx]:bin_edge_indices[bin_idx + 1]]
                 vels = weights_per_bin[bin_idx]
 
                 # Histogram and normal fit
@@ -243,16 +261,16 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
     # summarize all data
     # -------------------------
 
-    bin_stats = []
+    bin_stats = [] # list containing necessary data for bin distributions
 
     for i in range(num_bins):
-        bin_devs = deviations_per_bin[i]
-        vels = weights_per_bin[i]
-        x_mean = x_binned[i]
-        y_mean = y_binned[i]
+        bin_deviations = deviations_per_bin[i]
+        bin_weights = weights_per_bin[i]
+        x_mean = x_mean_bins[i]
+        y_mean = y_mean_bins[i]
         # mu, std = stats.norm.fit(bin_devs)
-        mu = np.average(bin_devs, weights=vels)
-        std = math.sqrt(np.average((bin_devs - mu) ** 2, weights=vels))
+        mu = np.average(bin_deviations, weights=bin_weights)    # mean of deviations of bin
+        std = math.sqrt(np.average((bin_deviations - mu) ** 2, weights=bin_weights))    # standard deviation of deviations of bin
         variance = std ** 2
 
         bin_stats.append({
@@ -268,9 +286,9 @@ def consecutive_error(sensor, test_ratio=0, num_bins = 20, random_state=None, bi
     # Display the table
     # print(bin_stats_df)
 
-    return bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edges, deviations_per_bin
+    return bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edge_indices, deviations_per_bin
 
-def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_edges, deviations_per_bin,use_truncnorm=False):
+def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_edges, deviations_per_bin, use_truncnorm=False):
     np.random.seed()
     error_path = [start_error]
     x_current = start_error
@@ -282,20 +300,23 @@ def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_ed
         # Find correct bin
         bin_index = None
         for i in range(len(bin_edges) - 1):
-            bin_start = bin_edges[i]
-            bin_end = bin_edges[i + 1]
-            bin_x_min = x_sorted[bin_start]
-            bin_x_max = x_sorted[bin_end - 1]
+            # determining bin edges amd checking if current x is within this bin
+            bin_x_min = x_sorted[bin_edges[i]]
+            bin_x_max = x_sorted[bin_edges[i + 1] - 1]
             if bin_x_min <= x_current <= bin_x_max:
                 bin_index = i
                 break
         # Use edge bin if out of range
         if bin_index is None:
-            bin_index = 0 if x_current < x_sorted[0] else len(bin_edges) - 2
+            if x_current < x_sorted[0]: bin_index = 0
+            elif x_current > x_sorted[-1]: bin_index = len(bin_edges) - 2
+            else: print("ERROR: X-value outside of bins")
 
         # Get deviation stats and sample a deviation
         deviations = deviations_per_bin[bin_index]
         mu, sigma = stats.norm.fit(deviations)
+
+        # if necessary, truncates the distribution to only sample within 2 std's
         if use_truncnorm:
             # Use truncated normal within ±2σ
             from scipy.stats import truncnorm
@@ -1236,7 +1257,6 @@ def get_delta_x(tow_number):
 
 def plot_blobs(save_PDF = False):
     # some parameters for the plots
-    test_ratio = 0.0001
     num_bins = 15
     bins_show = False
     errorCor_show = True
@@ -1246,13 +1266,13 @@ def plot_blobs(save_PDF = False):
 
     # gathering the data for the plots from the consecutive error function
     X_CAM, Y_CAM, X_CAM_binned, Y_CAM_binned, slope_CAM, intercept_CAM = consecutive_error(
-        "CAM", test_ratio=test_ratio, num_bins=num_bins, bins_show=bins_show, plot_fit=errorCor_show, return_plot_data=True)
+        "CAM", num_bins=num_bins, bins_show=bins_show, plot_fit=errorCor_show, return_plot_data=True)
     X_LT, Y_LT, X_LT_binned, Y_LT_binned, slope_LT, intercept_LT = consecutive_error(
-        "LT", test_ratio=test_ratio, num_bins=num_bins, bins_show=bins_show, plot_fit=errorCor_show, return_plot_data=True)
+        "LT", num_bins=num_bins, bins_show=bins_show, plot_fit=errorCor_show, return_plot_data=True)
     X_LLSB, Y_LLSB, X_LLSB_binned, Y_LLSB_binned, slope_LLSB, intercept_LLSB = consecutive_error(
-        "LLS_B", test_ratio=test_ratio, num_bins=num_bins, bins_show=bins_show, plot_fit=errorCor_show, return_plot_data=True)
+        "LLS_B", num_bins=num_bins, bins_show=bins_show, plot_fit=errorCor_show, return_plot_data=True)
     X_LLSA, Y_LLSA, X_LLSA_binned, Y_LLSA_binned, slope_LLSA, intercept_LLSA = consecutive_error(
-        "LLS_A", test_ratio=test_ratio, num_bins=num_bins, bins_show=bins_show, plot_fit=errorCor_show, return_plot_data=True)
+        "LLS_A", num_bins=num_bins, bins_show=bins_show, plot_fit=errorCor_show, return_plot_data=True)
 
     # --------PLotting----------
     plt.rc('font', family='Times New Roman')
@@ -1338,7 +1358,10 @@ def main():
     #end_time = time.perf_counter()
     #elapsed_time = end_time - start_time
     #print(f"Elapsed time: {round(elapsed_time,2)} seconds")
-    plot_blobs(True)
+
+    print(generate_starting_error("CAM"))
+    plot_blobs(save_PDF=True)
+    #consecutive_error("LT", bins_show=True, num_bins=20, fourPlots=True)
 
 if __name__ == "__main__":
     main()
