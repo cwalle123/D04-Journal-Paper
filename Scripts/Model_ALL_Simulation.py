@@ -305,8 +305,8 @@ def simulation_verification(num_simulations=100):
 """Run this file"""
 
 def main():
-    generate_multitow_layout(3, plot=True)
-    # simulation_verification(5)
+    # generate_multitow_layout(3, plot=True)
+    simulation_verification(100)
     # mean, std, start_values = fit_starting_error_distribution("CAM")
     # start_values = np.array(start_values)
     # print(mean)
