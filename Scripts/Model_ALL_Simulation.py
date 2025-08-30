@@ -178,16 +178,16 @@ def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35,
 ##############################################################################################################
 """Functions to be used in Model_ALL_ConsecutiveModeler.py"""
 
-def generate_single_tow_error(sensor, tow_length_mm=1000, cam_start_range=(-0.75, 0.75), lt_start_range=(-0.9, -0.7), llsb_start_range=(-0.21, -0.02)):
+def generate_single_tow_error(sensor, tow_length_mm=1000, cam_start_range=(-0.75, 0.75), lt_start_range=(-0.9, -0.7), llsb_start_range=(-0.21, -0.02), llsa_start_range=(-0.43, -0.16)):
     """
-    Generate error path for a single tow and a chosen sensor (LT, CAM, LLS_B).
+    Generate error path for a single tow and a chosen sensor (LT, CAM, LLS_A, LLS_B).
 
     Returns:
         np.array: error path values (length ~ tow_length_mm*0.34)
     """
-    assert sensor in ["LT", "CAM", "LLS_B"], "Sensor must be one of: LT, CAM, LLS_B"
+    assert sensor in ["LT", "CAM", "LLS_A", "LLS_B"], "Sensor must be one of: LT, CAM, LLS_A, LLS_B"
 
-    num_bins= 80
+    num_bins = 80
     n_steps = int(tow_length_mm * 340 / 1000)  # base step count
 
     # --- Load error model fits for the chosen sensor ---
@@ -202,6 +202,8 @@ def generate_single_tow_error(sensor, tow_length_mm=1000, cam_start_range=(-0.75
         start_val = random.uniform(*lt_start_range)
     elif sensor == "LLS_B":
         start_val = random.uniform(*llsb_start_range)
+    elif sensor == "LLS_A":
+        start_val = random.uniform(*llsa_start_range)
 
     # --- Generate error path ---
     error_path = generate_error_path(start_val, n_steps, slope, intercept, x_sorted, bin_edges, devs)
@@ -209,8 +211,8 @@ def generate_single_tow_error(sensor, tow_length_mm=1000, cam_start_range=(-0.75
     return error_path
 
 def plot_sensor_error_histograms(num_tows=10, tow_length_mm=1000, bins=50):
-    sensors = ["LT", "CAM", "LLS_B"]
-    plt.figure(figsize=(12, 6))
+    sensors = ["LT", "CAM", "LLS_A", "LLS_B"]
+    plt.figure(figsize=(14, 6))  # wider since we now have 4 subplots
 
     for i, sensor in enumerate(sensors, 1):
         all_errors = []
@@ -223,7 +225,7 @@ def plot_sensor_error_histograms(num_tows=10, tow_length_mm=1000, bins=50):
         all_errors = np.array(all_errors)
 
         # histogram subplot (probability density)
-        plt.subplot(1, 3, i)
+        plt.subplot(1, 4, i)
         plt.hist(all_errors, bins=bins, alpha=0.7, color="tab:blue",
                  edgecolor="black", density=True)
         plt.title(f"{sensor} Error Distribution", fontsize=12)
@@ -367,7 +369,7 @@ def main():
 
     # simulation_verification(20)
 
-    # mean, std, start_values = fit_starting_error_distribution("CAM")
+    # mean, std, start_values = fit_starting_error_distribution("LLS_A")
     # start_values = np.array(start_values)
     # print(mean)
 
