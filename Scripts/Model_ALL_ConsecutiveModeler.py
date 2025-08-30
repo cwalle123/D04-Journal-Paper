@@ -9,7 +9,7 @@ from Scripts.constants import tow_width_specified
 from Scripts.Handling_ALL_Functions import get_synced_data
 
 from Scripts.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
-from Scripts.Data_ALL_statistics import main as real_hist, statistical_values, plot_histograms_separated, best_fit_distribution
+from Scripts.Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
 import random
 
 def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_widths: list[float] = None):
@@ -25,10 +25,10 @@ def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_wid
     #fig, ax = plt.subplots(figsize=(10, 8))
     #fig.suptitle(title)
     errors = [
-        real_data['width error_LLS_A'],
-        real_data['width error_LLS_B'],
-        real_data['error_LT'],
-        real_data['center_CAM']]
+        real_data[0],
+        real_data[1],
+        real_data[2],
+        real_data[3]]
 
     names = ['error_LLS_A', 'error_LLS_B', 'error_LT', 'error_CAM']
 
@@ -126,7 +126,17 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
         histograms for each sensor, including experimental and real.
         This involves first getting the data and then plotting.'''
 
-    real_data = pd.concat((get_synced_data(t, spacesynced=True) for t in range(3, 32, 2)), ignore_index=True)
+    real_LT_data = pd.concat((get_synced_data(t, "LT") for t in range(3, 32, 2)), ignore_index=True)
+    real_CAM_data = pd.concat((get_synced_data(t, "CAM") for t in range(3, 32, 2)), ignore_index=True)
+    real_LLSA_data = pd.concat((get_synced_data(t, "LLS_A") for t in range(3, 32, 2)), ignore_index=True)
+    real_LSSB_data = pd.concat((get_synced_data(t, "LLS_B") for t in range(3, 32, 2)), ignore_index=True)
+
+    real_LT_data = real_LT_data["error_LT"]
+    real_CAM_data = real_CAM_data["error_CAM"]
+    real_LLSA_data = real_LLSA_data["error_LLS_A"]
+    real_LSSB_data = real_LSSB_data["error_LLS_B"]
+    print(real_LT_data)
+    print("what?")
 
     cam_start_range = (-0.4, 0.6)
     lt_start_range = (-1, -0.8)
@@ -199,7 +209,7 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
             #generated_data = pd.DataFrame(generated_data, columns = ['x', 'error'])
 
         plot_histograms(
-            real_data,
+            [real_LLSA_data, real_LSSB_data, real_LT_data, real_CAM_data],
             [total_error[2], total_error[3], total_error[0], total_error[1]],
             title="Sensor Error Histograms (ALL TOWS BUT NOT SPACE SYNCED), num_bins=" + str(num_bins),
             bin_widths=[0.01, 0.01, 0.005, 0.03]
