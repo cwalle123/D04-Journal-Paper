@@ -108,13 +108,13 @@ def get_data_pairs(sensor: str, tows: list = list(np.arange(2, 32, 1))):
 def generate_starting_error(sensor: str):
     '''This function generates a random starting error for the specified sensor'''
     if sensor == "LLS_A":
-        start_range = (-0.41, -0.08)
+        start_range = (-0.43, -0.16)
     elif sensor == "LLS_B":
-        start_range = (-0.15, -0.02)
+        start_range = (-0.21, -0.02)
     elif sensor == "CAM":
-        start_range = (-0.6, 0.4)
+        start_range = (-0.75, 0.75)
     elif sensor == "LT":
-        start_range = (-1, -0.8)
+        start_range = (-0.9, -0.7)
     else: print("Invalid sensor type.")
 
     start_error = random.uniform(*start_range)

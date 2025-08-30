@@ -8,7 +8,7 @@ from Scripts.constants import tow_width_specified
 
 from Scripts.Handling_ALL_Functions import get_synced_data
 
-from Scripts.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
+from Scripts.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Scripts.Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
 import random
 
@@ -135,12 +135,6 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
     real_CAM_data = real_CAM_data["error_CAM"]
     real_LLSA_data = real_LLSA_data["error_LLS_A"]
     real_LSSB_data = real_LSSB_data["error_LLS_B"]
-    print(real_LT_data)
-    print("what?")
-
-    cam_start_range = (-0.4, 0.6)
-    lt_start_range = (-1, -0.8)
-    llsb_start_range = (-0.15, -0.02)
 
     if use_saved:
         _save_path = "Script\\"
@@ -177,16 +171,17 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
         total_error = [[], [], [], []]
         for run in range(n_runs):
             # starting position data
-            start_cam = random.uniform(*cam_start_range)
-            start_lt = random.uniform(*lt_start_range)
-            start_llsb = random.uniform(*llsb_start_range)
+            start_cam = generate_starting_error("CAM")
+            start_lt = generate_starting_error("LT")
+            start_llsa = generate_starting_error("LLS_A")
+            start_llsb = generate_starting_error("LLS_B")
 
             # generating data
             LT_error_list = generate_error_path(start_lt, n_steps, LT_dist[1], LT_dist[2], LT_dist[-3], LT_dist[-2],
                                                 LT_dist[-1])
             CAM_error_list = generate_error_path(start_cam, n_steps, CAM_dist[1], CAM_dist[2], CAM_dist[-3], CAM_dist[-2],
                                                  CAM_dist[-1])
-            LLSA_error_list = generate_error_path(-0.25, n_steps, LLSA_dist[1], LLSA_dist[2], LLSA_dist[-3],
+            LLSA_error_list = generate_error_path(start_llsa, n_steps, LLSA_dist[1], LLSA_dist[2], LLSA_dist[-3],
                                                   LLSA_dist[-2], LLSA_dist[-1])
             LLSB_error_list = generate_error_path(start_llsb, n_steps, LLSB_dist[1], LLSB_dist[2], LLSB_dist[-3],
                                                   LLSB_dist[-2], LLSB_dist[-1])
