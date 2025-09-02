@@ -3,14 +3,17 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from dataclasses import dataclass
-from Scripts.constants import tow_width_specified
-
-from Scripts.Handling_ALL_Functions import get_synced_data
-
-from Scripts.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
-from Scripts.Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
 import random
+from dataclasses import dataclass
+
+
+from constants import tow_width_specified
+
+from Handling_ALL_Functions import get_synced_data
+
+from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
+from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
+
 
 def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_widths: list[float] = None):
     '''This function plots a histogram of real and simulated data

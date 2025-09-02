@@ -2,15 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+
 from dataclasses import dataclass
-from Scripts.constants import tow_width_specified
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
-
-from Scripts.Handling_ALL_Functions import get_synced_data
+from Handling_ALL_Functions import get_synced_data
 import constants
-
-from Scripts.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
-from Scripts.Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
+from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
+from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 
 
 
