@@ -558,18 +558,18 @@ def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_len
 def main():
     generate_multitow_layout(3, plot=True)
 
-    # plot_simulated_vs_real_tow(3)
+    #plot_simulated_vs_real_tow(3)
 
-    # simulation_verification(20)
+    #simulation_verification(20)
 
-    # mean, std, start_values = fit_starting_error_distribution("LLS_A")
+    #mean, std, start_values = fit_starting_error_distribution("LLS_A")
     # start_values = np.array(start_values)
-    # print(mean)
+    #print(mean)
 
-    # plot_sensor_error_histograms(num_tows=10, tow_length_mm=1000, bins=60)
+    #plot_sensor_error_histograms(num_tows=10, tow_length_mm=1000, bins=60)
 
-    # real_df, sim_df = plot_simulated_vs_real_tow(3)
-    # compare_fft_real_vs_sim(real_df, sim_df)
+    #real_df, sim_df = plot_simulated_vs_real_tow(3)
+    #compare_fft_real_vs_sim(real_df, sim_df)
 
     
 if __name__ == "__main__":
