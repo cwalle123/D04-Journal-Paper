@@ -8,7 +8,7 @@ import pandas as pd
 import os
 
 # Internal imports
-from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, GAP_excel_to_array, Traverse_LT_excel_to_array
+from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, Traverse_Gap_excel_to_array, Traverse_LT_excel_to_array
 from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y
 
 ##############################################################################################################
@@ -129,12 +129,25 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         This can later be removed.
         """
         USE_GAP = True
-        USE_TRAVERSE_XYZ = True
+        USE_TRAVERSE_XYZ = False #Martijn thinks this dataset is not necessary
+
+        
+
+        
 
         if USE_GAP:
-            arr_gap, cols_gap = GAP_excel_to_array(tow)
-            arrays.append(arr_gap)
-            col_names.extend(cols_gap)
+            
+            if tow == 1:
+                #Make column tape left edge all zeros as this data does not exist
+            
+            elif tow == 31:
+                #Make column tape right edge all zeros as this data does not exist
+            
+            elif tow in range(2, 30):
+                arr_gap_left, cols_gap_left = Traverse_Gap_excel_to_array(tow)
+                arr_gap_right, cols_gap_right = Traverse_Gap_excel_to_array(tow+1)
+                arrays.append(arr_gap)
+                col_names.extend(cols_gap)
         
         if USE_TRAVERSE_XYZ:
             arr_trav, cols_trav = Traverse_LT_excel_to_array(tow)
