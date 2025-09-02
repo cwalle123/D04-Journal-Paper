@@ -320,53 +320,71 @@ def Traverse_LT_excel_to_array(tow_nr):
 
     return tow_traverse_data, ['time', 'x', 'y', 'z']
 
-def Traverse_Gap_excel_to_array(tows_nrs):
+
+def _first_existing(base: Path, tow_a: int, tow_b: int) -> Path:
+    """Return the first existing path among padded and unpadded variants. Partially created with AI"""
+    candidates = [
+        base / f"TraverseData_Gap_{tow_a:02d}_{tow_b:02d}.csv",
+        base / f"TraverseData_Gap_{tow_a}_{tow_b}.csv",
+        base / f"TraverseData_Gap_{tow_a:02d}_{tow_b:02d}.xlsx",
+        base / f"TraverseData_Gap_{tow_a}_{tow_b}.xlsx",
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    # Just return the first candidate (padded csv) for error messaging
+    return candidates[0]
+
+
+def Traverse_Gap_excel_to_array(tows_nrs: int):
     """
-    Reads the traverse gap data for 2 specified tow numbers.
+    Reads traverse-gap data between tow n and n+1,
     
-    Args:
-        tows_nrs (int): nth tow, gap between tow 1 and 2 is numbered "1" (1 to 30 inclusive)
-        
     Returns:
-        tuple: (numpy.ndarray, list)
-            - Data array with shape (shortest_length, 2) containing columns [time, leftedge, rightedge, gap].
-            - List of column names: ['time', 'leftedge', 'rightedge', 'gap'].
+      np.ndarray [time, leftedge, rightedge, gap], columns names list.
     """
-    
-    path_base = r"Synced data from Siddharth\ExportedCSVs\Traverse\Traverse Gap Data from LLS"
+
+    if not (1 <= tows_nrs <= 30):
+        raise ValueError("tows_nrs must be between 1 and 30 inclusive.")
+
+    path_base = Path("Synced data from Siddharth/ExportedCSVs/Traverse/Traverse Gap Data from LLS")
+
     time_col = "Time"
     left_col = "TapeEdgeLeft"
     right_col = "TapeEdgeRight"
     gap_col = "Gap"
+    wanted_cols = [time_col, left_col, right_col, gap_col]
 
+    # Find global smallest valid length across all files that exist
     smallest_file_length = None
-
-    if tows_nrs < 1 or tows_nrs > 30:
-        raise ValueError("tows_nrs must be between 1 and 30 inclusive.")
-    
-    for tow in range(1,31):
+    for tow in range(1, 31):
         tow2 = tow + 1
-        file_name = f"TraverseData_Gap_{tow:02d}_{tow2:02d}.csv"
-        file_path = os.path.join(path_base, file_name)
-        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
-    
-        if time_col not in df.columns or left_col not in df.columns or right_col not in df.columns or gap_col not in df.columns:
-            raise ValueError(f"Missing columns in file: {file_path}")
-        
-        data_sub = df[[time_col, left_col, right_col, gap_col]]
-        nan_indices = np.where(data_sub.isna().any(axis=1))[0]
-        valid_length = nan_indices[0] if len(nan_indices) > 0 else len(data_sub)
+        path = _first_existing(path_base, tow, tow2)
 
-        if smallest_file_length is None or valid_length < smallest_file_length:
-            smallest_file_length = valid_length
-    
-    file_name = f"TraverseData_Gap_{tow:02d}_{tow2:02d}.csv"
-    file_path = os.path.join(path_base, file_name)
-    df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+        df = pd.read_excel(path) if path.suffix.lower() in (".xlsx", ".xls") else pd.read_csv(path)
 
-    tow_traverse_gap_data = df[[time_col, left_col, right_col, gap_col]].iloc[:smallest_file_length].to_numpy()
+        data_sub = df[wanted_cols]
+        nan_rows = np.where(data_sub.isna().any(axis=1))[0]
+        valid_len = int(nan_rows[0]) if len(nan_rows) else len(data_sub)
 
-    return tow_traverse_gap_data, ['time', 'leftedge', 'rightedge', 'gap']
+        if smallest_file_length is None or valid_len < smallest_file_length:
+            smallest_file_length = valid_len
+
+    # Load the specific pair by `tows_nrs`
+    tow2 = tows_nrs + 1
+    target_path = _first_existing(path_base, tows_nrs, tow2)
+    if not target_path.exists():
+        raise FileNotFoundError(f"File does not exist: {target_path}")
+
+    df = pd.read_excel(target_path) if target_path.suffix.lower() in (".xlsx", ".xls") else pd.read_csv(target_path)
+
+    # Cut off the date of the experiment, unnecessary
+    df[time_col] = df[time_col].astype(str).str[11:]
+
+    # Construct the dataframe
+    arr = df[[time_col, left_col, right_col, gap_col]].iloc[:smallest_file_length].to_numpy()
+
+    return arr, ['time', 'leftedge', 'rightedge', 'gap']
 
 ##############################################################################################################
 """Run this file"""
@@ -376,6 +394,11 @@ def main():
     x, names = LLS_A_excel_to_array(tow)
     print(names)
     print(np.shape(x))
+
+
+    arr, data = Traverse_Gap_excel_to_array(4)
+    print(arr)
+    
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
