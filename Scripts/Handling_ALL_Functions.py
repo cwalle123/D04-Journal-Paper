@@ -1,4 +1,5 @@
-"""This file deals with all of the important functions that are used all throughout the project"""
+"""This file deals with all of the important functions that are used all throughout the project
+    Written by: Manuel Cruz"""
 
 ##############################################################################################################
 
@@ -6,6 +7,7 @@
 import numpy as np
 import pandas as pd
 import os
+from pathlib import Path
 
 # Internal imports
 from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, Traverse_Gap_excel_to_array, Traverse_LT_excel_to_array
@@ -224,10 +226,12 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 """Run this file"""
 
 def main():
+
+    # Just to check if the new data with weights is correct (it is)
     for tow in range(1,32):
         x = get_synced_data(tow, "CAM")
     print(np.shape(x))
     print("Columns:", x.columns.tolist())
-    print(x[0])
+    
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
