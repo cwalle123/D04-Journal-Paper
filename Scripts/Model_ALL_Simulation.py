@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import random
 import scipy.stats as stats
+from scipy.fft import fft, fftfreq
 
 # Internal imports
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
@@ -362,10 +363,202 @@ def simulation_verification(num_simulations=100):
     return avg_gap, avg_overlap, std_gap, std_overlap
 
 ##############################################################################################################
+"""Test functions (NOT TRAVERSE DATA!)"""
+
+def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
+    """
+    Plot a real tow profile using synced data:
+    centerline = LT_y + CAM
+    edges = centerline ± 0.5 * LLS_B_width
+    """
+
+    # --- Load synced data ---
+    lt_df = get_synced_data(tow, "LT")
+    cam_df = get_synced_data(tow, "CAM")
+    llsb_df = get_synced_data(tow, "LLS_B")
+
+    # --- Extract needed columns ---
+    # LT has X, Y, and error_LT → grab just Y normalized
+    lt_y = lt_df.filter(like="y").iloc[:, 0].to_numpy()
+    cam_pos = cam_df.iloc[:, 0].to_numpy()
+    llsb_width = llsb_df.iloc[:, 0].to_numpy()
+
+    # --- Align lengths (truncate to shortest dataset) ---
+    min_len = min(len(lt_y), len(cam_pos), len(llsb_width))
+    lt_y = lt_y[:min_len]
+    cam_pos = cam_pos[:min_len]
+    llsb_width = llsb_width[:min_len]
+
+    # --- Compute real tow geometry ---
+    centerline = lt_y + cam_pos
+    top_edge = centerline + 0.5 * llsb_width
+    bottom_edge = centerline - 0.5 * llsb_width
+
+    # --- X axis (tow length) ---
+    x_vals = np.linspace(0, tow_length_mm, min_len)
+
+    # --- Plot ---
+    if plot == True:
+        plt.figure(figsize=(10, 6))
+        plt.plot(x_vals, centerline, "--", color="blue", linewidth=1.5, label="Centerline")
+        plt.plot(x_vals, top_edge, "-", color="red", linewidth=2.0, label="Top edge")
+        plt.plot(x_vals, bottom_edge, "-", color="red", linewidth=2.0, label="Bottom edge")
+
+        plt.xlabel("Tow length (mm)", fontsize=14)
+        plt.ylabel("Position (mm)", fontsize=14)
+        plt.title(f"Real Tow {tow}", fontsize=16)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    return pd.DataFrame({
+        "x_mm": x_vals,
+        "centerline": centerline,
+        "top_edge": top_edge,
+        "bottom_edge": bottom_edge,
+        "width": llsb_width})
+
+def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000):
+    """
+    Overlay a simulated tow on a real tow.
+    Real tow is built from synced LT_y + CAM ± 0.5*LLS_B.
+    Simulated tow is generated with generate_multitow_layout.
+    """
+
+    # --- Get real tow ---
+    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm)
+
+    # --- Generate one simulated tow (no plot, just data) ---
+    gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent = generate_multitow_layout(
+        num_tows=1, tow_length_mm=tow_length_mm, plot=False
+    )
+
+    # Simulated geometry (from generate_multitow_layout internals)
+    # For a single tow, centerline = (top_edge + bottom_edge) / 2
+    sim_centerline = (gap_overlap_df.index.to_numpy())  # placeholder X
+    sim_top = None
+    sim_bottom = None
+
+    # --- For single tow, we can directly regenerate its geometry like in generate_multitow_layout ---
+    num_bins = 80
+    n_steps = int(tow_length_mm * 340 / 1000)
+
+    # Load error model fits
+    bin_stats_cam, slope_cam, intercept_cam, _, _, _, x_sorted_cam, bin_edges_cam, devs_cam = consecutive_error(
+        "CAM", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False,
+        random_state=random.randint(0, 10000))
+    bin_stats_lt, slope_lt, intercept_lt, _, _, _, x_sorted_lt, bin_edges_lt, devs_lt = consecutive_error(
+        "LT", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False,
+        random_state=random.randint(0, 10000))
+    bin_stats_llsb, slope_llsb, intercept_llsb, _, _, _, x_sorted_llsb, bin_edges_llsb, devs_llsb = consecutive_error(
+        "LLS_B", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False,
+        random_state=random.randint(0, 10000))
+
+    # Generate simulated paths
+    start_cam = random.uniform(-0.75, 0.75)
+    start_lt = random.uniform(-0.9, -0.7)
+    start_llsb = random.uniform(-0.21, -0.02)
+
+    cam_path = generate_error_path(start_cam, n_steps, slope_cam, intercept_cam,
+                                   x_sorted_cam, bin_edges_cam, devs_cam)
+    lt_path = generate_error_path(start_lt, n_steps, slope_lt, intercept_lt,
+                                  x_sorted_lt, bin_edges_lt, devs_lt)
+    tow_centerline_sim = cam_path + lt_path
+
+    width_error = generate_error_path(start_llsb, n_steps, slope_llsb, intercept_llsb,
+                                      x_sorted_llsb, bin_edges_llsb, devs_llsb)
+    tow_widths_sim = 6.35 + width_error  # nominal width + error
+
+    sim_top = tow_centerline_sim + 0.5 * tow_widths_sim
+    sim_bottom = tow_centerline_sim - 0.5 * tow_widths_sim
+    sim_x = np.linspace(0, tow_length_mm, len(tow_centerline_sim))
+
+    # --- Plot both ---
+    plt.figure(figsize=(10, 6))
+
+    # Real tow
+    plt.plot(real_df["x_mm"], real_df["centerline"], "--", color="blue", label="Real centerline")
+    plt.plot(real_df["x_mm"], real_df["top_edge"], "-", color="blue", alpha=0.6, label="Real edges")
+    plt.plot(real_df["x_mm"], real_df["bottom_edge"], "-", color="blue", alpha=0.6)
+
+    # Simulated tow
+    plt.plot(sim_x, tow_centerline_sim, "--", color="red", label="Sim centerline")
+    plt.plot(sim_x, sim_top, "-", color="red", alpha=0.6, label="Sim edges")
+    plt.plot(sim_x, sim_bottom, "-", color="red", alpha=0.6)
+
+    plt.xlabel("Tow length (mm)", fontsize=14)
+    plt.ylabel("Position (mm)", fontsize=14)
+    plt.title(f"Tow {tow}: Real vs Simulated", fontsize=16)
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    return real_df, pd.DataFrame({
+        "x_mm": sim_x,
+        "centerline": tow_centerline_sim,
+        "top_edge": sim_top,
+        "bottom_edge": sim_bottom,
+        "width": tow_widths_sim
+    })
+
+def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_length_mm=1000):
+    """
+    Perform FFT on real vs simulated tow centerlines and compare spectra.
+    
+    Parameters
+    ----------
+    real_df : DataFrame
+        Output from plot_real_tow(...) containing centerline.
+    sim_df : DataFrame
+        Output from plot_simulated_vs_real_tow(...) containing centerline.
+    tow_length_mm : float
+        Length of the tow in mm (default 1000).
+    """
+
+    # --- Extract centerlines ---
+    real = real_df["centerline"].to_numpy()
+    sim = sim_df["centerline"].to_numpy()
+
+    # --- Align lengths (truncate to shortest) ---
+    min_len = min(len(real), len(sim))
+    real = real[:min_len]
+    sim = sim[:min_len]
+
+    # --- Sampling step (assume uniform spacing in mm) ---
+    dx = tow_length_mm / min_len
+
+    # --- FFT ---
+    freqs = fftfreq(min_len, d=dx)[:min_len // 2]  # positive freqs only
+    fft_real = np.abs(fft(real)[:min_len // 2])
+    fft_sim = np.abs(fft(sim)[:min_len // 2])
+
+    # --- Normalize (optional for comparison) ---
+    fft_real /= np.max(fft_real)
+    fft_sim /= np.max(fft_sim)
+
+    # --- Plot ---
+    plt.figure(figsize=(10, 6))
+    plt.plot(freqs, fft_real, label="Real Tow FFT", color="blue")
+    plt.plot(freqs, fft_sim, label="Simulated Tow FFT", color="red", alpha=0.7)
+    plt.xlabel("Spatial frequency (1/mm)", fontsize=14)
+    plt.ylabel("Normalized magnitude", fontsize=14)
+    plt.title("FFT Comparison: Real vs Simulated Tow", fontsize=16)
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    return freqs, fft_real, fft_sim
+
+##############################################################################################################
 """Run this file"""
 
 def main():
-    # generate_multitow_layout(3, plot=True)
+    generate_multitow_layout(3, plot=True)
+
+    # plot_simulated_vs_real_tow(3)
 
     # simulation_verification(20)
 
@@ -373,7 +566,11 @@ def main():
     # start_values = np.array(start_values)
     # print(mean)
 
-    plot_sensor_error_histograms(num_tows=10, tow_length_mm=1000, bins=60)
+    # plot_sensor_error_histograms(num_tows=10, tow_length_mm=1000, bins=60)
+
+    # real_df, sim_df = plot_simulated_vs_real_tow(3)
+    # compare_fft_real_vs_sim(real_df, sim_df)
+
     
 if __name__ == "__main__":
     main()

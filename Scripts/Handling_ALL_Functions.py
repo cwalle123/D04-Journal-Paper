@@ -138,9 +138,11 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         if USE_GAP:
             
             if tow == 1:
+                "hi"
                 #Make column tape left edge all zeros as this data does not exist
             
             elif tow == 31:
+                "hi"
                 #Make column tape right edge all zeros as this data does not exist
             
             elif tow in range(2, 30):
