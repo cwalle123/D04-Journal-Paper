@@ -24,6 +24,15 @@ tow_width_specified = 6.35 #mm
 # programmed y-offset between consecutive tows
 y_increment_programmed = 12.5 #mm
 
+# programmed y-offset for traverse gap data collection
+y_offset_traverse = 118.75 #mm
+
+# programmed increment size for traverse gap data collection
+y_increment_traverse = 12.5 #mm
+
+# used frame width of LLS B for traverse gap data collection
+frame_width_traverse = 12.5 #mm
+
 ##############################################################################################################
 """Figure Formatting"""
 

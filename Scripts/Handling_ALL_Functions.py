@@ -9,7 +9,7 @@ import os
 
 # Internal imports
 from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, Traverse_Gap_excel_to_array, Traverse_LT_excel_to_array
-from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y
+from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse
 
 ##############################################################################################################
 """Functions for saving, loading, and purging data"""
@@ -131,25 +131,79 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         USE_GAP = True
         USE_TRAVERSE_XYZ = False #Martijn thinks this dataset is not necessary
 
-        
-
-        
-
         if USE_GAP:
             
             if tow == 1:
-                "hi"
-                #Make column tape left edge all zeros as this data does not exist
-            
+                arr, cols = Traverse_Gap_excel_to_array(tow)
+                arrays.append(arr)
+                col_names.extend(cols)
+
+                #Calculate x-values from velocity and time and add in column
+                x_col = (1 / arr[-1, 0]) * arr[:, 0]
+                arrays.append(x_col[:, None])
+                col_names.append("x")
+
+                #Take left edge to equal outer edge of LLS B scan window
+                y_col_LE = np.full_like(x_col, 125)
+                arrays.append(y_col_LE[:, None])
+                col_names.append("y_LE")
+
+                #Calculate right edge from data
+                y_col_RE = (y_offset_traverse + tow * y_increment_traverse + 0.5 * frame_width_traverse) - arr[:, 2]
+                arrays.append(y_col_RE[:, None])
+                col_names.append("y_RE")
+
             elif tow == 31:
-                "hi"
-                #Make column tape right edge all zeros as this data does not exist
-            
-            elif tow in range(2, 30):
-                arr_gap_left, cols_gap_left = Traverse_Gap_excel_to_array(tow)
-                arr_gap_right, cols_gap_right = Traverse_Gap_excel_to_array(tow+1)
-                arrays.append(arr_gap)
-                col_names.extend(cols_gap)
+                arr, cols = Traverse_Gap_excel_to_array((tow-1))
+                arrays.append(arr)
+                col_names.extend(cols)
+
+                #Calculate x-values from velocity and time and add in column
+                x_col = (1 / arr[-1, 0]) * arr[:, 0]
+                arrays.append(x_col[:, None])
+                col_names.append("x")
+
+                #Calculate left edge from data
+                y_col_LE = (y_offset_traverse + (tow - 1) * y_increment_traverse + 0.5 * frame_width_traverse) - arr[:, 1]
+                arrays.append(y_col_LE[:, None])
+                col_names.append("y_LE")
+
+                #Take right edge to equal outer edge of LLS B scan window
+                y_col_RE = np.full_like(x_col, 500)
+                arrays.append(y_col_RE[:, None])
+                col_names.append("y_RE")
+
+            else:
+                #Take data for left edge
+                arr_LE, cols_LE = Traverse_Gap_excel_to_array((tow-1))
+                arrays.append(arr_LE)
+                col_names.extend(cols_LE)
+
+                #Calculate the x-positions of the measurements for the left edge
+                x_col_LE = (1 / arr_LE[-1, 0]) * arr_LE[:, 0]
+                arrays.append(x_col_LE)
+                col_names.append("x_LE")
+
+                #Calculate the y-positions of the measurements for the left edge
+                y_col_LE = (y_offset_traverse + (tow - 1) * y_increment_traverse + 0.5 * frame_width_traverse) - arr_LE[:, 1]
+                arrays.append(y_col_LE[:, None])
+                col_names.append("y_LE")
+
+                #Take data for right edge
+                arr_RE, cols_RE = Traverse_Gap_excel_to_array(tow)
+                arrays.append(arr_RE)
+                col_names.extend(cols_RE)
+
+                #Calculate the x-positions of the measurements for the right edge
+                x_col_RE = (1 / arr_RE[-1, 0]) * arr_RE[:, 0]
+                arrays.append(x_col_RE)
+                col_names.append("x_RE")
+
+                #Calculate the y-positions of the measurements for the right edge
+                y_col_RE = (y_offset_traverse + tow * y_increment_traverse + 0.5 * frame_width_traverse) - arr_RE[:, 2]
+                arrays.append(y_col_RE[:, None])
+                col_names.append("y_RE")
+
         
         if USE_TRAVERSE_XYZ:
             arr_trav, cols_trav = Traverse_LT_excel_to_array(tow)
