@@ -379,8 +379,9 @@ def Traverse_Gap_excel_to_array(tows_nrs: int):
 
     df = pd.read_excel(target_path) if target_path.suffix.lower() in (".xlsx", ".xls") else pd.read_csv(target_path)
 
-    # Cut off the date of the experiment, unnecessary
-    df[time_col] = df[time_col].astype(str).str[11:]
+    # Convert to elapsed seconds from start of measurement
+    df[time_col] = pd.to_datetime(df[time_col], errors="coerce")
+    df[time_col] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
 
     # Construct the dataframe
     arr = df[[time_col, left_col, right_col, gap_col]].iloc[:smallest_file_length].to_numpy()

@@ -134,14 +134,15 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         USE_TRAVERSE_XYZ = False #Martijn thinks this dataset is not necessary
 
         if USE_GAP:
-            
+
             if tow == 1:
                 arr, cols = Traverse_Gap_excel_to_array(tow)
+                arr = np.array(arr, dtype=float)
                 arrays.append(arr)
                 col_names.extend(cols)
 
                 #Calculate x-values from velocity and time and add in column
-                x_col = (1 / arr[-1, 0]) * arr[:, 0]
+                x_col = (1.0 / arr[-1, 0]) * arr[:, 0]
                 arrays.append(x_col[:, None])
                 col_names.append("x")
 
@@ -157,11 +158,12 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 
             elif tow == 31:
                 arr, cols = Traverse_Gap_excel_to_array((tow-1))
+                arr = np.array(arr, dtype=float)
                 arrays.append(arr)
                 col_names.extend(cols)
 
                 #Calculate x-values from velocity and time and add in column
-                x_col = (1 / arr[-1, 0]) * arr[:, 0]
+                x_col = (1.0 / arr[-1, 0]) * arr[:, 0]
                 arrays.append(x_col[:, None])
                 col_names.append("x")
 
@@ -178,12 +180,13 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
             else:
                 #Take data for left edge
                 arr_LE, cols_LE = Traverse_Gap_excel_to_array((tow-1))
+                arr_LE = np.array(arr_LE, dtype=float)
                 arrays.append(arr_LE)
                 col_names.extend(cols_LE)
 
                 #Calculate the x-positions of the measurements for the left edge
-                x_col_LE = (1 / arr_LE[-1, 0]) * arr_LE[:, 0]
-                arrays.append(x_col_LE)
+                x_col_LE = (1.0 / arr_LE[-1, 0]) * arr_LE[:, 0]
+                arrays.append(x_col_LE[:, None])
                 col_names.append("x_LE")
 
                 #Calculate the y-positions of the measurements for the left edge
@@ -193,12 +196,13 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 
                 #Take data for right edge
                 arr_RE, cols_RE = Traverse_Gap_excel_to_array(tow)
+                arr_RE = np.array(arr_RE, dtype=float)
                 arrays.append(arr_RE)
                 col_names.extend(cols_RE)
 
                 #Calculate the x-positions of the measurements for the right edge
-                x_col_RE = (1 / arr_RE[-1, 0]) * arr_RE[:, 0]
-                arrays.append(x_col_RE)
+                x_col_RE = (1.0 / arr_RE[-1, 0]) * arr_RE[:, 0]
+                arrays.append(x_col_RE[:, None])
                 col_names.append("x_RE")
 
                 #Calculate the y-positions of the measurements for the right edge
@@ -229,7 +233,7 @@ def main():
 
     # Just to check if the new data with weights is correct (it is)
     for tow in range(1,32):
-        x = get_synced_data(tow, "CAM")
+        x = get_synced_data(tow, "TRAVERSE")
     print(np.shape(x))
     print("Columns:", x.columns.tolist())
     
