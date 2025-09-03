@@ -6,9 +6,10 @@ import random
 from dataclasses import dataclass
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
 from Handling_ALL_Functions import get_synced_data
-import constants
+from constants import tow_width_specified
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
+from Model_ALL_ConsecutiveModeler import tow_visualizer
 
 
 
@@ -59,18 +60,18 @@ def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevi
 
 
 
-def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_histogram: bool=False, plot_path: bool=False, return_path: bool = False):
+def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_histogram: bool=False, plot_path: bool=False):
 
     # setting up the distribution which is being mimicked
     data, weights = get_data(sensor)
 
-    best = best_fit_distribution(       # TODO: write some proper code rather than this bs workaround...
+    best = best_fit_distribution(           # TODO: write some proper code rather than this bs workaround...
         np.array([data, data, data, data]), weights=np.array([weights, weights, weights, weights])
         )
     dist, params = best['dist'], best['params']
     distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
 
-    start_value = -0.9              # TODO: get proper starting values
+    start_value = generate_starting_error(sensor)
     generated_path = [start_value]
     x_current = start_value
     for step in range(n_steps-1):
@@ -88,9 +89,9 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
 
         if alpha >= U:  # we accept the proposed value
             x_next = x_proposal
-            print("accepted")
+            #print("accepted")
         else:           # we reject the proposed value
-            print("rejected")
+            #print("rejected")
             x_next = x_current
 
         generated_path.append(x_next)
@@ -105,21 +106,134 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
         pdf = distribution(x)
         plt.plot(x, pdf, label='probability-distribution')
         plt.hist(generated_path, density=True, bins=50, label='generated path')
+        plt.title("Histogram of generated path w. probability-distribution" + sensor)
         plt.legend()
         plt.show()
 
     if plot_path:
         x = np.linspace(0, n_steps , n_steps)
         plt.plot(x, generated_path, label='generated path')
+        plt.title("plot of generated path" + sensor)
         plt.show()
 
-    if return_path:
-        return generated_path
+    return generated_path
 
+
+def get_actual_Dataframe(tow: int):
+    LT_data = get_synced_data(tow, "LT")
+    y = LT_data["y"]
+    x = LT_data["x"]
+    CAM_data = get_synced_data(tow, "CAM")
+    center = CAM_data["center_CAM"]
+    LLSB_data = get_synced_data(tow, "LLS_B")
+    width = LLSB_data["width_LLS_B"]
+    # putting into dataframe which can be used by the tow visualizer
+    dataframe = pd.DataFrame(
+        {"y": y,
+         "center_CAM": center,
+         "width_LLS_B": width,
+         "x": x})
+
+    print(dataframe)
+    return dataframe
+
+
+
+def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list, ideal: bool):
+    """
+    This function takes a list of dataframes that contains features of a tows and plots the corresponding tows in one figure, as well as the ideal tow.
+    The data it takes from that dataframe are
+    the centerline, width and x-position. It is important that the columns in the dataframe are properly named.
+    For this, check that the centerline column is named "center_CAM", the width after compaction column is named
+    "width_LLS_B" and the x-position columns is called "x".
+
+    Arguments are:
+    tows: list[pd.DataFrame], a list with dataframes of the tows
+    y_intended: list, a list of programmed centerline y-values of the tows, IMPORTANT: tows[i] HAS TO CORRESPOND WITH y_intended[i].
+    name: str, the name of the operation that was done to obtain the dataframes of the tows, will be the title of the graph.
+    ideal: bool, plots one ideal tow if true
+
+    Author: Martijn
+    """
+    # Check if all elements are DataFrames
+    if not all(isinstance(tow, pd.DataFrame) for tow in tows):
+        raise TypeError("All elements in 'tows' must be pandas DataFrames.")
+
+    # set figure size
+    plt.figure(figsize=(15, 2))
+
+    for i in range(len(y_intended)):
+        CAM_centerline = tows[i]["center_CAM"]  # take the centerline from CAM
+        LT_y = tows[i]["y"]  # take the y-position from LT
+        intended_centerline = y_intended[i]  # take the programmed y-value for a straight line
+        centerline = CAM_centerline + LT_y + intended_centerline  # calculate centerline in space by combining datatypes
+        width = tows[i]["width_LLS_B"]  # take the width from LLS B
+        x = tows[i]["x"]  # take the x-position from LT
+        name = labels[i]
+
+        # make the plots
+        plt.plot(x, centerline, label=name+"centerline", linestyle='dashed', color='grey')  # plots the centerline
+        plt.plot(x, centerline + 0.5 * width, label=name+"tow", linestyle='solid',
+                 color='black')  # plots the top edge
+        plt.plot(x, centerline - 0.5 * width, linestyle='solid', color='black')  # plots the bottom edge
+
+        # plots the start end endlines of the tow
+        plt.plot([x.iloc[0], x.iloc[0]],
+                 [centerline.iloc[0] - 0.5 * width.iloc[0], centerline.iloc[0] + 0.5 * width.iloc[0]],
+                 linestyle='solid', color='black')
+        plt.plot([x.iloc[-1], x.iloc[-1]],
+                 [centerline.iloc[-1] - 0.5 * width.iloc[-1], centerline.iloc[-1] + 0.5 * width.iloc[-1]],
+                 linestyle='solid', color='black')
+
+    if ideal == True:
+        # plot the ideal tow (just a rectangle)
+        plt.plot([0, 1000], [tow_width_specified * 0.5, tow_width_specified * 0.5], color='green', label='ideal tow')
+        plt.plot([0, 1000], [-tow_width_specified * 0.5, -tow_width_specified * 0.5], color='green')
+        plt.plot([0, 0], [tow_width_specified * 0.5, -tow_width_specified * 0.5], color='green')
+        plt.plot([1000, 1000], [tow_width_specified * 0.5, -tow_width_specified * 0.5], color='green')
+        plt.plot([0, 1000], [0, 0], color='green', linestyle='dashed', label='ideal centerline')
+
+    # calculate the dimensions of the plots
+    #x_min = min(min(tow["x"].min() for tow in tows) - 50, -50)
+    #x_max = max(max(tow["x"].max() for tow in tows) + 50, 1050)
+    #y_min = min(min(tow["y"].min() for tow in tows) - 100, -50)
+    #y_max = max(max(tow["y"].max() for tow in tows) + 50, 1050)
+
+    # plot info
+    plt.xlabel("x-position [mm]")
+    plt.ylabel("y-position [mm]")
+    #plt.xlim(x_min, x_max)
+    #plt.ylim(y_min, y_max)
+    plt.grid()
+    plt.title("random walk comparison... or something like that")
+    plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_tow_comparison(n_steps: int, step_size: float, proposal_type: str, plot_individual_histograms: bool=False):
+    # getting randomn walk data
+    LT_walk_data = generate_random_walk("LT", n_steps, proposal_type, plot_histogram=plot_individual_histograms)
+    CAM_walk_data = generate_random_walk("CAM", n_steps, proposal_type, plot_histogram=plot_individual_histograms)
+    LLSB_walk_data = generate_random_walk("LLS_B", n_steps, proposal_type, plot_histogram=plot_individual_histograms)
+    LLSB_walk_data = [x + tow_width_specified for x in LLSB_walk_data]
+    x_walk_data = np.linspace(0, n_steps*step_size, n_steps)
+
+    # putting into dataframe which can be used by the tow visualizer
+    walk_dataframe = pd.DataFrame(
+        {"y": LT_walk_data,
+         "center_CAM": CAM_walk_data,
+         "width_LLS_B": LLSB_walk_data,
+         "x": x_walk_data})
+
+    real_data = get_actual_Dataframe(2)
+
+    tow_visualizer_alt([walk_dataframe, real_data], [0, 0], ["random walk", "Real"], False)
 
 
 def main():
-    generate_random_walk(sensor="LT", n_steps=2000, proposal_type="RWM", plot_histogram=True, plot_path=True)
+    #generate_random_walk(sensor="LT", n_steps=2000, proposal_type="RWM", plot_histogram=True, plot_path=True)
+    plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
