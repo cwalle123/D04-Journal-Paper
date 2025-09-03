@@ -210,14 +210,18 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
                 arrays.append(y_col_RE[:, None])
                 col_names.append("y_RE")
 
-        
         if USE_TRAVERSE_XYZ:
             arr_trav, cols_trav = Traverse_LT_excel_to_array(tow)
             arrays.append(arr_trav)
             col_names.append(cols_trav)
+    
 
-    # Combine horizontally
     processed_data = arrays[0] if len(arrays) == 1 else np.hstack(arrays)
+    drop_cols = ["time", "leftedge", "rightedge", "gap"]  # adjust as needed
+    keep_cols = [c for c in col_names if c not in drop_cols]
+    keep_indices = [col_names.index(c) for c in keep_cols]
+    processed_data = processed_data[:, keep_indices]
+    col_names = keep_cols
 
     # Save to cache unless helper
     if not helper:
