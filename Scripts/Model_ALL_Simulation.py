@@ -556,7 +556,7 @@ def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_len
 """Run this file"""
 
 def main():
-    generate_multitow_layout(3, plot=True)
+    #generate_multitow_layout(3, plot=True)
 
     #plot_simulated_vs_real_tow(3)
 
@@ -570,6 +570,8 @@ def main():
 
     #real_df, sim_df = plot_simulated_vs_real_tow(3)
     #compare_fft_real_vs_sim(real_df, sim_df)
+
+    plot_simulated_vs_real_tow(5)
 
     
 if __name__ == "__main__":
