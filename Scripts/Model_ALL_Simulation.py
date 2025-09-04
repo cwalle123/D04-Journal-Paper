@@ -377,22 +377,31 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
     real_df = get_synced_data(tow, "TRAVERSE")
 
     # Extract columns
-    x_pos = real_df.iloc[:, 0].to_numpy()
-    L_edge = real_df.iloc[:, 1].to_numpy()
-    R_edge = real_df.iloc[:, 2].to_numpy()
+    x_pos_lower = real_df.iloc[:, 0].to_numpy()
+    x_pos_upper = real_df.iloc[:,2].to_numpy()
+    upper_edge = real_df.iloc[:, 3].to_numpy()
+    lower_edge = real_df.iloc[:, 1].to_numpy()
+
+    '''x-coordinate will be the average of the measurements for 
+    the bottom edge x-position and  upper edge x-position'''
+
+    x_pos = (x_pos_lower+x_pos_upper)/2 * 1000  # It is currently in meters, we need in mm
+    centerline = (lower_edge + upper_edge)/2
+    width = abs(lower_edge - upper_edge)
+    mean_center = np.mean(centerline)
 
 
-    # Enforce left <= right
-    L_edge, R_edge = np.minimum(L_edge, R_edge), np.maximum(L_edge, R_edge)
-
-    centerline = 0.5 * (L_edge + R_edge)
-    width = R_edge - L_edge
+    # Because the y-position of a tow is not around y=0, we have to 'normalize'
+    # the edges so that the experimental tow is around y=0
+    lower_edge = lower_edge - mean_center
+    upper_edge = upper_edge - mean_center
+    centerline = (lower_edge + upper_edge)/2
 
     if plot:
         plt.figure(figsize=(10, 6))
         plt.plot(x_pos, centerline, "--", linewidth=1.5, label="Centerline")
-        plt.plot(x_pos, L_edge, "-", linewidth=2.0, label="Left edge")
-        plt.plot(x_pos, R_edge, "-", linewidth=2.0, label="Right edge")
+        plt.plot(x_pos, lower_edge, "-", linewidth=2.0, label="Left edge")
+        plt.plot(x_pos, upper_edge, "-", linewidth=2.0, label="Right edge")
         plt.xlabel("Tow length (mm)")
         plt.ylabel("Position (mm)")
         plt.title(f"Real Tow {tow}")
@@ -404,10 +413,9 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
     return pd.DataFrame({
         "x_mm": x_pos,
         "centerline": centerline,
-        "left_edge": L_edge,
-        "right_edge": R_edge,
-        "width": width
-    })
+        "left_edge": upper_edge,
+        "right_edge": lower_edge,
+        "width": width})
 
 
 def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000):
@@ -470,8 +478,8 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000):
 
     # Real tow
     plt.plot(real_df["x_mm"], real_df["centerline"], "--", color="blue", label="Real centerline")
-    plt.plot(real_df["x_mm"], real_df["top_edge"], "-", color="blue", alpha=0.6, label="Real edges")
-    plt.plot(real_df["x_mm"], real_df["bottom_edge"], "-", color="blue", alpha=0.6)
+    plt.plot(real_df["x_mm"], real_df["left_edge"], "-", color="blue", alpha=0.6, label="Real edges")
+    plt.plot(real_df["x_mm"], real_df["right_edge"], "-", color="blue", alpha=0.6)
 
     # Simulated tow
     plt.plot(sim_x, tow_centerline_sim, "--", color="red", label="Sim centerline")
@@ -547,9 +555,11 @@ def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_len
 """Run this file"""
 
 def main():
-    #generate_multitow_layout(3, plot=True)
+    #!ATTENTION: DO NOT USE TOW 1 FOR ANY OF THE FUNCTIONS BELOW
 
-    #plot_simulated_vs_real_tow(3)
+    #generate_multitow_layout(10, plot=True)
+
+    plot_simulated_vs_real_tow(7)
 
     #simulation_verification(20)
 
@@ -562,8 +572,11 @@ def main():
     #real_df, sim_df = plot_simulated_vs_real_tow(3)
     #compare_fft_real_vs_sim(real_df, sim_df)
 
-    plot_real_tow(10, plot=False)
-    get_synced_data(10, "TRAVERSE")
+    #plot_real_tow(10, plot=True)
+
+    #arr = get_synced_data(10, 'TRAVERSE')
+    #print(arr)
+
 
     
 if __name__ == "__main__":
