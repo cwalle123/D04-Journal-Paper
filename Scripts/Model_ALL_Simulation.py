@@ -365,59 +365,61 @@ def simulation_verification(num_simulations=100):
 ##############################################################################################################
 """Test functions (NOT TRAVERSE DATA!)"""
 
+
 def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
+
     """
     Plot a real tow profile using synced data:
     centerline = LT_y + CAM
     edges = centerline ± 0.5 * LLS_B_width
     """
 
-    # --- Load synced data ---
-    lt_df = get_synced_data(tow, "LT")
-    cam_df = get_synced_data(tow, "CAM")
-    llsb_df = get_synced_data(tow, "LLS_B")
+    real_df = get_synced_data(tow, "TRAVERSE")
 
-    # --- Extract needed columns ---
-    # LT has X, Y, and error_LT → grab just Y normalized
-    lt_y = lt_df.filter(like="y").iloc[:, 0].to_numpy()
-    cam_pos = cam_df.iloc[:, 0].to_numpy()
-    llsb_width = llsb_df.iloc[:, 0].to_numpy()
+    # Ensure numeric
+    real_df = real_df.apply(pd.to_numeric, errors="coerce")
 
-    # --- Align lengths (truncate to shortest dataset) ---
-    min_len = min(len(lt_y), len(cam_pos), len(llsb_width))
-    lt_y = lt_y[:min_len]
-    cam_pos = cam_pos[:min_len]
-    llsb_width = llsb_width[:min_len]
+    # Extract columns
+    x_pos = real_df.iloc[:, 0].to_numpy()
+    L_edge = real_df.iloc[:, 1].to_numpy()
+    R_edge = real_df.iloc[:, 2].to_numpy()
 
-    # --- Compute real tow geometry ---
-    centerline = lt_y + cam_pos
-    top_edge = centerline + 0.5 * llsb_width
-    bottom_edge = centerline - 0.5 * llsb_width
+    # Sort by X and drop NaNs
+    mask = ~(
+        np.isnan(x_pos) | np.isnan(L_edge) | np.isnan(R_edge)
+    )
+    x_pos, L_edge, R_edge = x_pos[mask], L_edge[mask], R_edge[mask]
 
-    # --- X axis (tow length) ---
-    x_vals = np.linspace(0, tow_length_mm, min_len)
+    idx = np.argsort(x_pos)
+    x_pos, L_edge, R_edge = x_pos[idx], L_edge[idx], R_edge[idx]
 
-    # --- Plot ---
-    if plot == True:
+    # Enforce left <= right
+    L_edge, R_edge = np.minimum(L_edge, R_edge), np.maximum(L_edge, R_edge)
+
+    centerline = 0.5 * (L_edge + R_edge)
+    width = R_edge - L_edge
+
+    if plot:
         plt.figure(figsize=(10, 6))
-        plt.plot(x_vals, centerline, "--", color="blue", linewidth=1.5, label="Centerline")
-        plt.plot(x_vals, top_edge, "-", color="red", linewidth=2.0, label="Top edge")
-        plt.plot(x_vals, bottom_edge, "-", color="red", linewidth=2.0, label="Bottom edge")
-
-        plt.xlabel("Tow length (mm)", fontsize=14)
-        plt.ylabel("Position (mm)", fontsize=14)
-        plt.title(f"Real Tow {tow}", fontsize=16)
+        plt.plot(x_pos, centerline, "--", linewidth=1.5, label="Centerline")
+        plt.plot(x_pos, L_edge, "-", linewidth=2.0, label="Left edge")
+        plt.plot(x_pos, R_edge, "-", linewidth=2.0, label="Right edge")
+        plt.xlabel("Tow length (mm)")
+        plt.ylabel("Position (mm)")
+        plt.title(f"Real Tow {tow}")
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
         plt.show()
 
     return pd.DataFrame({
-        "x_mm": x_vals,
+        "x_mm": x_pos,
         "centerline": centerline,
-        "top_edge": top_edge,
-        "bottom_edge": bottom_edge,
-        "width": llsb_width})
+        "left_edge": L_edge,
+        "right_edge": R_edge,
+        "width": width
+    })
+
 
 def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000):
     """
@@ -571,7 +573,7 @@ def main():
     #real_df, sim_df = plot_simulated_vs_real_tow(3)
     #compare_fft_real_vs_sim(real_df, sim_df)
 
-    plot_simulated_vs_real_tow(5)
+    plot_real_tow(5, plot=True)
 
     
 if __name__ == "__main__":
