@@ -376,22 +376,11 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
 
     real_df = get_synced_data(tow, "TRAVERSE")
 
-    # Ensure numeric
-    real_df = real_df.apply(pd.to_numeric, errors="coerce")
-
     # Extract columns
     x_pos = real_df.iloc[:, 0].to_numpy()
     L_edge = real_df.iloc[:, 1].to_numpy()
     R_edge = real_df.iloc[:, 2].to_numpy()
 
-    # Sort by X and drop NaNs
-    mask = ~(
-        np.isnan(x_pos) | np.isnan(L_edge) | np.isnan(R_edge)
-    )
-    x_pos, L_edge, R_edge = x_pos[mask], L_edge[mask], R_edge[mask]
-
-    idx = np.argsort(x_pos)
-    x_pos, L_edge, R_edge = x_pos[idx], L_edge[idx], R_edge[idx]
 
     # Enforce left <= right
     L_edge, R_edge = np.minimum(L_edge, R_edge), np.maximum(L_edge, R_edge)
@@ -573,7 +562,8 @@ def main():
     #real_df, sim_df = plot_simulated_vs_real_tow(3)
     #compare_fft_real_vs_sim(real_df, sim_df)
 
-    plot_real_tow(5, plot=True)
+    plot_real_tow(10, plot=False)
+    get_synced_data(10, "TRAVERSE")
 
     
 if __name__ == "__main__":

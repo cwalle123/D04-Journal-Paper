@@ -240,6 +240,8 @@ def main():
         x = get_synced_data(tow, "TRAVERSE")
     print(np.shape(x))
     print("Columns:", x.columns.tolist())
+    print()
+    print(get_synced_data(10, "TRAVERSE"))
     
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
