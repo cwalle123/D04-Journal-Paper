@@ -1,5 +1,6 @@
 """This file is used to generate a figure of a simulated tow vs an experimental tow.
-   This file is currently not being used for anything except plotting"""
+   This file is currently not being used for anything except plotting
+   Written by: Manuel Cruz"""
 
 ##############################################################################################################
 

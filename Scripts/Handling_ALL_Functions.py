@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import os
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 # Internal imports
 from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, Traverse_Gap_excel_to_array, Traverse_LT_excel_to_array
@@ -129,8 +130,8 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         This to easily determine what data is best to use for the plot.
         This can later be removed.
         """
-        USE_GAP = True
-        USE_TRAVERSE_XYZ = False #Martijn thinks this dataset is not necessary
+        USE_GAP = False
+        USE_TRAVERSE_XYZ = True 
 
         if USE_GAP:
 
@@ -229,6 +230,30 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     # Return as DataFrame
     return pd.DataFrame(processed_data, columns=col_names)
 
+def traverse_vs_layup_data(tow: int):
+
+    path_traverse = r'C:\Users\manue\OneDrive\Documents\GitHub\D04-Journal-Paper\Synced data from Siddharth\ExportedCSVs\Traverse\Traverse tracker data\TrackerData_7_Traverse.csv'
+    path_layup = r'C:\Users\manue\OneDrive\Documents\GitHub\D04-Journal-Paper\Synced data from Siddharth\ExportedCSVs\Layup data\Data\Data_Run07_Tracker.csv'
+
+    traverse = pd.read_csv(path_traverse)
+    layup = pd.read_csv(path_layup)
+
+    plt.plot(traverse.iloc[:, 2], traverse.iloc[:, 3], label="Traverse", linestyle='-',linewidth=1.5, color='b')
+
+    # Plot layup dataframe
+    plt.plot(layup.iloc[:, 2], layup.iloc[:, 3], label="Layup", linestyle='-',linewidth=1.5, color='r')
+
+    # Labels and title
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.title("Traverse vs Layup")
+    plt.legend()
+    plt.tight_layout()
+    plt.grid(True)
+    plt.show()
+
+
+
 ##############################################################################################################
 """Run this file"""
 
@@ -239,8 +264,12 @@ def main():
         x = get_synced_data(tow, "TRAVERSE")
     print(np.shape(x))
     print("Columns:", x.columns.tolist())
-    print()
-    print(get_synced_data(1, "TRAVERSE"))
+    #print()
+    #print(get_synced_data(5, "TRAVERSE"))
+    #print()
+    #print(get_synced_data(5, "LT"))
+
+    traverse_vs_layup_data(20)
     
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
