@@ -333,10 +333,11 @@ def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_len
 """Run this file"""
 
 def main():
-    # real_df, sim_df = plot_simulated_vs_real_tow(8)
+    
+    plot_simulated_vs_real_tow(8)
     # compare_fft_real_vs_sim(real_df, sim_df)
 
-    compare_simulated_vs_real_tow(8)
+    #compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
 
 if __name__ == "__main__":
