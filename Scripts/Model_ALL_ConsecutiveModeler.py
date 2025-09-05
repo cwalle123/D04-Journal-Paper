@@ -1,19 +1,22 @@
-'''This is meant to run a large number of simulations at a time.'''
+'''This file is meant to run a large number of simulations at a time.'''
 
+##############################################################################################################
+
+# External imports
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import random
 from dataclasses import dataclass
 
-
+# Internal imports
 from constants import tow_width_specified
-
 from Handling_ALL_Functions import get_synced_data
-
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
 
+##############################################################################################################
+"""Functions"""
 
 def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_widths: list[float] = None):
     '''This function plots a histogram of real and simulated data
@@ -121,8 +124,6 @@ def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_wid
         plt.xticks(np.linspace(-1.2, 1.2, 9))
         plt.tight_layout(rect=[0, 0, 1, 1])
         plt.show()
-
-
 
 def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin_plots: bool=False, return_data: bool=True):
     '''This function executes all steps needed to plot the
@@ -318,10 +319,6 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
     if return_data:
         return total_error
 
-
-
-
-
 def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal: bool):
     """
     This function takes a list of dataframes that contains features of a tows and plots the corresponding tows in one figure, as well as the ideal tow. 
@@ -394,6 +391,9 @@ def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal:
     plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     plt.tight_layout()
     plt.show()
+
+##############################################################################################################
+"""Run this file"""
 
 def main():
     data = run_model()
