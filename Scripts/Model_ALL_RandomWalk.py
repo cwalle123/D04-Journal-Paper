@@ -15,8 +15,7 @@ from Model_ALL_ConsecutiveModeler import tow_visualizer
 
 def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1))):
     """
-    Gets the data for the specified sensors and puts it in the required form for the regression model.
-    [[1st_data_point, 2nd, weight], [2nd, 3rd, weight], ...]
+    Gets the required data for the specified sensors.
     """
     # Wrong sensor error message
     if not sensor == "LT" and not sensor == "CAM" and not sensor == "LLS_A" and not sensor == "LLS_B":
@@ -47,10 +46,15 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1))):
     return data, weights
 
 
-def propose_new_RWM_value(x_current, dist_std):    # random walk metropolis (RWM), using normal dist???
+def propose_new_RWM_value(x_current, dist_std, sensor):    # random walk metropolis (RWM), using normal dist???
     mean = 0
-    std = 0.25
-    proposal = x_current + np.random.normal(mean, dist_std*0.5)
+    # setting the std for each sensor
+    if sensor == "LLS_A": std_factor = 0.7
+    elif sensor == "LLS_B": std_factor = 0.7
+    elif sensor == "CAM": std_factor = 0.15
+    elif sensor == "LT": std_factor = 0.35
+
+    proposal = x_current + np.random.normal(mean, dist_std*std_factor)
     return proposal
 
 def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevian algorithm (MALA)
@@ -60,8 +64,10 @@ def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevi
 
 
 
-def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_histogram: bool=False, plot_path: bool=False):
-
+def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_histogram: bool=False, plot_path: bool=False, comparison: bool=False):
+    '''
+    This function generates a random walk according to the specified sensor.
+    '''
     # setting up the distribution which is being mimicked
     data, weights = get_data(sensor)
 
@@ -77,7 +83,7 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
     for step in range(n_steps-1):
 
         if proposal_type == "RWM":
-            x_proposal = propose_new_RWM_value(x_current, float(params[-1]))
+            x_proposal = propose_new_RWM_value(x_current, float(params[-1]), sensor)
         elif proposal_type == "MALA":
             x_proposal = propose_new_MALA_value(x_current, float(params[-1]))
         else:
@@ -111,17 +117,45 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
         plt.show()
 
     if plot_path:
-        x = np.linspace(0, n_steps , n_steps)
+        # random walk plotting
+        fig, ax = plt.subplots(figsize=(8, 2.5))
+        x = np.linspace(0, 1000, n_steps)
         plt.plot(x, generated_path, label='generated path')
         plt.title("plot of generated path" + sensor)
+
+        #actual data plotting
+        if comparison:
+            real_data_uncut = get_synced_data(2, sensor)
+            if sensor == "LLS_A":   real_data = real_data_uncut["error_LLS_A"]
+            elif sensor == "LLS_B": real_data = real_data_uncut["error_LLS_B"]
+            elif sensor == "CAM":   real_data = real_data_uncut["center_CAM"]
+            elif sensor == "LT":
+                real_data = real_data_uncut["error_LT"]
+                weight_data = np.array(real_data_uncut["Weights"])[:-1, 0]
+            # getting the x-position for the real data
+            if sensor != "LT": weight_data = np.array(real_data_uncut["Weights"])[:-1]
+            velocity_factor = 1/sum(weight_data)
+            real_x, x = [0], 0
+            for i in range(len(real_data)-1):
+                x += velocity_factor*weight_data[i]*1000
+                real_x.append(x)
+            print(real_x)
+
+
+            plt.plot(real_x, real_data, label='real path')
+        plt.tight_layout()
+        plt.legend()
         plt.show()
 
     return generated_path
 
 
 def get_actual_Dataframe(tow: int):
+    '''
+    Gets the tow-data and returns it as a dataframe in the required format for the tow-visualizer.
+    '''
     LT_data = get_synced_data(tow, "LT")
-    y = LT_data["y"]
+    y = LT_data["error_LT"]
     x = LT_data["x"]
     CAM_data = get_synced_data(tow, "CAM")
     center = CAM_data["center_CAM"]
@@ -212,10 +246,13 @@ def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list,
 
 
 def plot_tow_comparison(n_steps: int, step_size: float, proposal_type: str, plot_individual_histograms: bool=False):
+    '''
+    This function is intended to make a comparison of a full tow between random walk and actual data.
+    '''
     # getting randomn walk data
-    LT_walk_data = generate_random_walk("LT", n_steps, proposal_type, plot_histogram=plot_individual_histograms)
-    CAM_walk_data = generate_random_walk("CAM", n_steps, proposal_type, plot_histogram=plot_individual_histograms)
-    LLSB_walk_data = generate_random_walk("LLS_B", n_steps, proposal_type, plot_histogram=plot_individual_histograms)
+    LT_walk_data = generate_random_walk("LT", n_steps, proposal_type, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
+    CAM_walk_data = generate_random_walk("CAM", n_steps, proposal_type, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
+    LLSB_walk_data = generate_random_walk("LLS_B", n_steps, proposal_type, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
     LLSB_walk_data = [x + tow_width_specified for x in LLSB_walk_data]
     x_walk_data = np.linspace(0, n_steps*step_size, n_steps)
 
@@ -229,6 +266,7 @@ def plot_tow_comparison(n_steps: int, step_size: float, proposal_type: str, plot
     real_data = get_actual_Dataframe(2)
 
     tow_visualizer_alt([walk_dataframe, real_data], [0, 0], ["random walk", "Real"], False)
+
 
 
 def main():
