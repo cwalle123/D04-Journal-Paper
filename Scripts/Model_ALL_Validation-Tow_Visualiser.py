@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import random
+from scipy.stats import norm
 from scipy.fft import fft, fftfreq
 
 #Internal imports
@@ -65,7 +66,7 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
         "right_edge": lower_edge,
         "width": width})
 
-def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False):
+def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
     """
     Overlay a simulated tow on a real tow.
     Real tow is built from Traverse Data
@@ -123,30 +124,31 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     sim_x = np.linspace(0, tow_length_mm, len(tow_centerline_sim))
 
     # --- Plot both ---
-    plt.figure(figsize=(10, 6))
+    if plot == True:
+        plt.figure(figsize=(10, 6))
 
-    # Real tow
-    plt.plot(real_df["x_mm"], real_df["centerline"], "--", color="blue", label="Real centerline")
-    plt.plot(real_df["x_mm"], real_df["left_edge"], "-", color="blue", alpha=0.6, label="Real edges")
-    plt.plot(real_df["x_mm"], real_df["right_edge"], "-", color="blue", alpha=0.6)
+        # Real tow
+        plt.plot(real_df["x_mm"], real_df["centerline"], "--", color="blue", label="Real centerline")
+        plt.plot(real_df["x_mm"], real_df["left_edge"], "-", color="blue", alpha=0.6, label="Real edges")
+        plt.plot(real_df["x_mm"], real_df["right_edge"], "-", color="blue", alpha=0.6)
 
-    # Simulated tow
-    plt.plot(sim_x, tow_centerline_sim, "--", color="red", label="Sim centerline")
-    plt.plot(sim_x, sim_top, "-", color="red", alpha=0.6, label="Sim edges")
-    plt.plot(sim_x, sim_bottom, "-", color="red", alpha=0.6)
+        # Simulated tow
+        plt.plot(sim_x, tow_centerline_sim, "--", color="red", label="Sim centerline")
+        plt.plot(sim_x, sim_top, "-", color="red", alpha=0.6, label="Sim edges")
+        plt.plot(sim_x, sim_bottom, "-", color="red", alpha=0.6)
 
-    plt.xlabel("Tow length (mm)", fontsize=14)
-    plt.ylabel("Position (mm)", fontsize=14)
-    plt.title(f"Tow {tow}: Real vs Simulated", fontsize=16)
-    plt.legend()
-    plt.grid(True)
+        plt.xlabel("Tow length (mm)", fontsize=14)
+        plt.ylabel("Position (mm)", fontsize=14)
+        plt.title(f"Tow {tow}: Real vs Simulated", fontsize=16)
+        plt.legend()
+        plt.grid(True)
 
-    # Apply 1:1 scale if requested
-    if scaled:
-        plt.axis("equal")  # ensures X and Y have same scale
+        # Apply 1:1 scale if requested
+        if scaled:
+            plt.axis("equal")  # ensures X and Y have same scale
 
-    plt.tight_layout()
-    plt.show()
+        plt.tight_layout()
+        plt.show()
 
     return real_df, pd.DataFrame({
         "x_mm": sim_x,
@@ -154,6 +156,126 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
         "top_edge": sim_top,
         "bottom_edge": sim_bottom,
         "width": tow_widths_sim})
+
+def compare_simulated_vs_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
+    """
+    Compare simulated and real tow edges by calculating average lateral error.
+
+    Parameters
+    ----------
+    tow : int
+        Tow index.
+    tow_length_mm : int, optional
+        Tow length in mm (default 1000).
+
+    Returns
+    -------
+    errors : dict
+        Dictionary with average errors between real and simulated tow edges.
+        Includes mean absolute error (MAE) and root mean square error (RMSE).
+    """
+
+    # --- Get real tow ---
+    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm)
+
+    # --- Generate one simulated tow (no plot, just data) ---
+    _, sim_df = plot_simulated_vs_real_tow(tow, tow_length_mm=tow_length_mm, scaled=False, plot=plot)
+
+    # --- Interpolate real edges to simulated x positions ---
+    real_left_interp = np.interp(sim_df["x_mm"], real_df["x_mm"], real_df["left_edge"])
+    real_right_interp = np.interp(sim_df["x_mm"], real_df["x_mm"], real_df["right_edge"])
+
+    # --- Compute edge errors (corrected mapping) ---
+    err_top = sim_df["top_edge"] - real_left_interp      # Sim top vs Real left
+    err_bottom = sim_df["bottom_edge"] - real_right_interp  # Sim bottom vs Real right
+
+    # --- Error metrics ---
+    mae_top = float(np.mean(np.abs(err_top)))
+    mae_bottom = float(np.mean(np.abs(err_bottom)))
+    rmse_top = float(np.sqrt(np.mean(err_top**2)))
+    rmse_bottom = float(np.sqrt(np.mean(err_bottom**2)))
+
+    errors = {
+        "MAE_top_edge (SimTop vs RealLeft)": mae_top,
+        "MAE_bottom_edge (SimBottom vs RealRight)": mae_bottom,
+        "RMSE_top_edge (SimTop vs RealLeft)": rmse_top,
+        "RMSE_bottom_edge (SimBottom vs RealRight)": rmse_bottom}
+
+    print("MAE_top_edge (SimTop vs RealLeft)", mae_top, "mm")
+    print("MAE_bottom_edge (SimBottom vs RealRight)", mae_bottom, "mm")
+    print("RMSE_top_edge (SimTop vs RealLeft)", rmse_top, "mm")
+    print("RMSE_bottom_edge (SimBottom vs RealRight)", rmse_bottom, "mm")
+
+    return errors
+
+def compare_multiple_simulations(tow: int, n_simulations: int = 50, tow_length_mm: int = 1000):
+    """
+    Run multiple simulated vs real tow comparisons and return error statistics,
+    plus plot histograms with Gaussian fits of the error distributions.
+
+    Parameters
+    ----------
+    tow : int
+        Tow index.
+    n_simulations : int, optional
+        Number of simulation runs (default = 50).
+    tow_length_mm : int, optional
+        Tow length in mm (default 1000).
+
+    Returns
+    -------
+    stats : dict
+        Dictionary with mean and std deviation of the errors across runs.
+    """
+
+    results = []
+
+    for i in range(n_simulations):
+        errors = compare_simulated_vs_real_tow(tow, tow_length_mm=tow_length_mm, plot=False)
+        results.append(errors)
+
+    # Convert to DataFrame for easier aggregation
+    df = pd.DataFrame(results)
+
+    stats = {}
+    for col in df.columns:
+        stats[col] = {
+            "mean": df[col].mean(),
+            "std": df[col].std()
+        }
+
+    print("\n=== Error Statistics over", n_simulations, "simulations ===")
+    for col in df.columns:
+        print(f"{col}: mean = {stats[col]['mean']:.3f} mm, std = {stats[col]['std']:.3f} mm")
+
+    # --- Plot histograms with Gaussian fit ---
+    num_metrics = len(df.columns)
+    fig, axes = plt.subplots(1, num_metrics, figsize=(5*num_metrics, 4), constrained_layout=True)
+
+    if num_metrics == 1:
+        axes = [axes]
+
+    for ax, col in zip(axes, df.columns):
+        data = df[col].values
+        mu, sigma = stats[col]["mean"], stats[col]["std"]
+
+        # Histogram
+        count, bins, _ = ax.hist(data, bins=50, density=True, alpha=0.6,
+                                 color="steelblue", edgecolor="black")
+
+        # Gaussian curve
+        x = np.linspace(min(bins), max(bins), 200)
+        pdf = norm.pdf(x, mu, sigma)
+        ax.plot(x, pdf, "r--", linewidth=2, label=f"N({mu:.2f}, {sigma:.2f}²)")
+
+        ax.set_title(col, fontsize=12)
+        ax.set_xlabel("Error (mm)")
+        ax.set_ylabel("Density")
+        ax.legend()
+
+    plt.show()
+
+    return stats
 
 ##############################################################################################################
 """TEST functions to check FFT""" # Use Model_ALL_Validation-FFT.py instead of this function!
@@ -211,7 +333,11 @@ def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_len
 """Run this file"""
 
 def main():
-    plot_simulated_vs_real_tow(7, 1000, True)
+    # real_df, sim_df = plot_simulated_vs_real_tow(8)
+    # compare_fft_real_vs_sim(real_df, sim_df)
+
+    compare_simulated_vs_real_tow(8)
+    # compare_multiple_simulations(8, 50)
 
 if __name__ == "__main__":
     main()
