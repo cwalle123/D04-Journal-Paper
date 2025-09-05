@@ -65,11 +65,20 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
         "right_edge": lower_edge,
         "width": width})
 
-def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000):
+def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False):
     """
     Overlay a simulated tow on a real tow.
     Real tow is built from Traverse Data
     Simulated tow is generated with generate_multitow_layout.
+
+    Parameters
+    ----------
+    tow : int
+        Tow index.
+    tow_length_mm : int, optional
+        Tow length in mm (default 1000).
+    scaled : bool, optional
+        If True, plot is shown with 1:1 scale (equal aspect ratio).
     """
 
     # --- Get real tow ---
@@ -79,13 +88,7 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000):
     gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent = generate_multitow_layout(
         num_tows=1, tow_length_mm=tow_length_mm, plot=False)
 
-    # Simulated geometry (from generate_multitow_layout internals)
-    # For a single tow, centerline = (top_edge + bottom_edge) / 2
-    sim_centerline = (gap_overlap_df.index.to_numpy())  # placeholder X
-    sim_top = None
-    sim_bottom = None
-
-    # --- For single tow, we can directly regenerate its geometry like in generate_multitow_layout ---
+    # --- For single tow, regenerate its geometry ---
     num_bins = 80
     n_steps = int(tow_length_mm * 340 / 1000)
 
@@ -137,6 +140,11 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000):
     plt.title(f"Tow {tow}: Real vs Simulated", fontsize=16)
     plt.legend()
     plt.grid(True)
+
+    # Apply 1:1 scale if requested
+    if scaled:
+        plt.axis("equal")  # ensures X and Y have same scale
+
     plt.tight_layout()
     plt.show()
 
@@ -203,7 +211,7 @@ def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_len
 """Run this file"""
 
 def main():
-    plot_simulated_vs_real_tow(7)
+    plot_simulated_vs_real_tow(7, 1000, True)
 
 if __name__ == "__main__":
     main()
