@@ -321,7 +321,6 @@ def Traverse_LT_excel_to_array(tow_nr):
 
     return tow_traverse_data, ['time', 'x', 'y', 'z']
 
-
 def _first_existing(base: Path, tow_a: int, tow_b: int) -> Path:
     """Return the first existing path among padded and unpadded variants. Partially created with AI"""
     candidates = [
@@ -335,7 +334,6 @@ def _first_existing(base: Path, tow_a: int, tow_b: int) -> Path:
             return p
     # Just return the first candidate (padded csv) for error messaging
     return candidates[0]
-
 
 def Traverse_Gap_excel_to_array(tows_nrs: int):
     """
