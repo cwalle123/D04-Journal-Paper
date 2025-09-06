@@ -16,6 +16,7 @@ from scipy.fft import fft, fftfreq
 from Handling_ALL_Functions import get_synced_data
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Model_ALL_Simulation import generate_multitow_layout
+from constants import y_offset_layup, y_increment_programmed, y_offset_traverse, y_increment_traverse
 
 ##############################################################################################################
 """Functions"""
@@ -330,24 +331,34 @@ def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_len
 
     return freqs, fft_real, fft_sim
 
-def calculate_traverse_LLS_B_offset():
+def calculate_traverse_LLS_B_offset(tow: int):
     """Temporary function to calculate actual position of LLS B during the traverse runs. This is necessary as it turns out
     not to be exactly centered around the middle of the theoretical gap."""
+    LT_df = get_synced_data(tow, "LT")
+    CAM_df = get_synced_data(tow, "CAM")
+    LLS_B_df = get_synced_data(tow, "LLS_B")
+    TRAVERSE_df = get_synced_data(tow, "TRAVERSE")
+    GAP_df = get_synced_data((tow-1), "TRAVERSE")
 
     # Calculate y_RE from lay-up data, we know this is true
     # y_RE_actual = theoretical centerline + error LT + error cam + 0.5 * LLS B
+    y_RE_actual = y_offset_layup + tow * y_increment_programmed + LT_df.iloc[:, 4].to_numpy() + CAM_df.iloc[:, 2].to_numpy() + 0.5 * LLS_B_df.iloc[:, 2].to_numpy()
+
+    
+    
+    TRAVERSE_df.iloc[:, 2].to_numpy()
 
     # Calculate traverse y_RE using centerline assumption, which we know is false
     # y_RE_traverse = assumed centerline + 0.5 * gap
+    y_RE_traverse = y_offset_traverse + tow * y_increment_traverse + (TRAVERSE_df.iloc[:, 2].to_numpy() - GAP_df.iloc[:, 1].to_numpy()) * 0.5
 
     # Calculate difference between the two
-    # difference = y_RE_actual - y_RE_traverse
+    difference = np.average(y_RE_actual - y_RE_traverse)
 
     # Implement this to take average of all datapoints to increase accuracy
     # Return average difference and correct y_offset_traverse in constants.py by this number.
     # Check if this solved the issue
 
-    difference = 0
     return difference
 
 ##############################################################################################################
@@ -355,9 +366,9 @@ def calculate_traverse_LLS_B_offset():
 
 def main():
     
-    plot_simulated_vs_real_tow(8)
+    # plot_simulated_vs_real_tow(8)
     # compare_fft_real_vs_sim(real_df, sim_df)
-
+    print(calculate_traverse_LLS_B_offset(3))
     #compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
 

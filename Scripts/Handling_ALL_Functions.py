@@ -130,8 +130,8 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         This to easily determine what data is best to use for the plot.
         This can later be removed.
         """
-        USE_GAP = False
-        USE_TRAVERSE_XYZ = True 
+        USE_GAP = True
+        USE_TRAVERSE_XYZ = False 
 
         if USE_GAP:
 
