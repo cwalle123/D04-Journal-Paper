@@ -330,6 +330,26 @@ def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_len
 
     return freqs, fft_real, fft_sim
 
+def calculate_traverse_LLS_B_offset():
+    """Temporary function to calculate actual position of LLS B during the traverse runs. This is necessary as it turns out
+    not to be exactly centered around the middle of the theoretical gap."""
+
+    # Calculate y_RE from lay-up data, we know this is true
+    # y_RE_actual = theoretical centerline + error LT + error cam + 0.5 * LLS B
+
+    # Calculate traverse y_RE using centerline assumption, which we know is false
+    # y_RE_traverse = assumed centerline + 0.5 * gap
+
+    # Calculate difference between the two
+    # difference = y_RE_actual - y_RE_traverse
+
+    # Implement this to take average of all datapoints to increase accuracy
+    # Return average difference and correct y_offset_traverse in constants.py by this number.
+    # Check if this solved the issue
+
+    difference = 0
+    return difference
+
 ##############################################################################################################
 """Run this file"""
 
