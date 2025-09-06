@@ -299,7 +299,7 @@ def Traverse_LT_excel_to_array(tow_nr):
         raise ValueError("tow_nr must be between 1 and 31 inclusive.")
     
     for tow in range(1,32):
-        file_name = f"TrackerData_{tow:02d}_Traverse.csv"
+        file_name = f"TrackerData_{tow}_Traverse.csv"
         file_path = os.path.join(path_base, file_name)
         df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
     
@@ -313,7 +313,7 @@ def Traverse_LT_excel_to_array(tow_nr):
         if smallest_file_length is None or valid_length < smallest_file_length:
             smallest_file_length = valid_length
     
-    file_name = f"TrackerData_{tow:02d}_Traverse.csv"
+    file_name = f"Traverse_LT_{tow}.csv"
     file_path = os.path.join(path_base, file_name)
     df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
 

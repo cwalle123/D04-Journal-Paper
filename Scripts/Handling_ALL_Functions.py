@@ -252,7 +252,7 @@ def main():
 
     # Just to check if the new data with weights is correct (it is)
     for tow in range(1,32):
-        x = get_synced_data(tow, "TRAVERSE")
+        x = get_synced_data(tow, "TRAVERSE_LT")
     print(np.shape(x))
     print("Columns:", x.columns.tolist())
     #print()
@@ -260,7 +260,7 @@ def main():
     #print()
     #print(get_synced_data(5, "LT"))
 
-    traverse_vs_layup_data(20)
+    # traverse_vs_layup_data(20)
     
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
