@@ -25,7 +25,7 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
     Plot a real tow profile using Traverse data
     """
 
-    real_df = get_synced_data(tow, "TRAVERSE")
+    real_df = get_synced_data(tow, "TRAVERSE_GAP")
 
     # Extract columns
     x_pos_lower = real_df.iloc[:, 0].to_numpy()
