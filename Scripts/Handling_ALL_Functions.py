@@ -252,8 +252,8 @@ def main():
 
     # Just to check if the new data with weights is correct (it is)
     for tow in range(1,32):
-        x = get_synced_data(tow, "TRAVERSE_LT")
-    print(np.shape(x))
+        x = get_synced_data(tow, "TRAVERSE_LT", overwrite=True)
+        print(np.shape(x))
     print("Columns:", x.columns.tolist())
     #print()
     #print(get_synced_data(5, "TRAVERSE"))
