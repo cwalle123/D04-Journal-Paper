@@ -274,7 +274,7 @@ def GAP_excel_to_array(gap_num):
 
     return data_array, [gap_col]
 
-def Traverse_LT_excel_to_array(tow_nr: int):
+def Traverse_LT_excel_to_array(tow_nr):
     """
     Reads the traverse tracker data for a specified tow number.
     
@@ -283,37 +283,41 @@ def Traverse_LT_excel_to_array(tow_nr: int):
         
     Returns:
         tuple: (numpy.ndarray, list)
-            - Data array with shape (valid_length, 4) containing columns [time, x, y, z].
+            - Data array with shape (shortest_length, 2) containing columns [time, x, y, z].
             - List of column names: ['time', 'x', 'y', 'z'].
     """
-    if not (1 <= tow_nr <= 31):
-        raise ValueError("tow_nr must be between 1 and 31 inclusive.")
 
     path_base = r"Synced data from Siddharth\ExportedCSVs\Traverse\Traverse tracker data"
-
     time_col = "TimeStamp"
     x_col = "X_mm_"
     y_col = "Y_mm_"
     z_col = "Z_mm_"
 
-    # Load the specific tow file
-    file_name = f"TrackerData_{tow_nr}_Traverse.csv"
-    file_path = os.path.join(path_base, file_name)
+    smallest_file_length = None
 
+    if tow_nr < 1 or tow_nr > 31:
+        raise ValueError("tow_nr must be between 1 and 31 inclusive.")
+    
+    for tow in range(1,32):
+        file_name = f"TrackerData_{tow}_Traverse.csv"
+        file_path = os.path.join(path_base, file_name)
+        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+    
+        if time_col not in df.columns or x_col not in df.columns or y_col not in df.columns or z_col not in df.columns:
+            raise ValueError(f"Missing columns in file: {file_path}")
+        
+        data_sub = df[[time_col, x_col, y_col, z_col]]
+        nan_indices = np.where(data_sub.isna().any(axis=1))[0]
+        valid_length = nan_indices[0] if len(nan_indices) > 0 else len(data_sub)
+
+        if smallest_file_length is None or valid_length < smallest_file_length:
+            smallest_file_length = valid_length
+    
+    file_name = f"TrackerData_{tow:02d}_Traverse.csv"
+    file_path = os.path.join(path_base, file_name)
     df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
 
-    # Ensure required columns exist
-    for col in [time_col, x_col, y_col, z_col]:
-        if col not in df.columns:
-            raise ValueError(f"Missing column {col} in file: {file_path}")
-
-    # Find valid length for this file only (stop at first NaN)
-    data_sub = df[[time_col, x_col, y_col, z_col]]
-    nan_indices = np.where(data_sub.isna().any(axis=1))[0]
-    valid_length = int(nan_indices[0]) if len(nan_indices) > 0 else len(data_sub)
-
-    # Slice this file’s data to its valid length
-    tow_traverse_data = data_sub.iloc[:valid_length].to_numpy()
+    tow_traverse_data = df[[time_col, x_col, y_col, z_col]].iloc[:smallest_file_length].to_numpy()
 
     return tow_traverse_data, ['time', 'x', 'y', 'z']
 
@@ -351,7 +355,7 @@ def Traverse_Gap_excel_to_array(tows_nrs: int):
     wanted_cols = [time_col, left_col, right_col, gap_col]
 
     # Find global smallest valid length across all files that exist
-    """smallest_file_length = None
+    smallest_file_length = None
     for tow in range(1, 31):
         tow2 = tow + 1
         path = _first_existing(path_base, tow, tow2)
@@ -363,7 +367,7 @@ def Traverse_Gap_excel_to_array(tows_nrs: int):
         valid_len = int(nan_rows[0]) if len(nan_rows) else len(data_sub)
 
         if smallest_file_length is None or valid_len < smallest_file_length:
-            smallest_file_length = valid_len"""
+            smallest_file_length = valid_len
 
     # Load the specific pair by `tows_nrs`
     tow2 = tows_nrs + 1
@@ -378,15 +382,7 @@ def Traverse_Gap_excel_to_array(tows_nrs: int):
     df[time_col] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
 
     # Construct the dataframe
-    """arr = df[[time_col, left_col, right_col, gap_col]].iloc[:smallest_file_length].to_numpy()"""
-
-    # Find valid length for this file only (stop at first NaN, if any)
-    data_sub = df[wanted_cols]
-    nan_rows = np.where(data_sub.isna().any(axis=1))[0]
-    valid_len = int(nan_rows[0]) if len(nan_rows) else len(data_sub)
-
-    # Slice this file’s data to its valid length
-    arr = data_sub.iloc[:valid_len].to_numpy()
+    arr = df[[time_col, left_col, right_col, gap_col]].iloc[:smallest_file_length].to_numpy()
 
     return arr, ['time', 'leftedge', 'rightedge', 'gap']
 
