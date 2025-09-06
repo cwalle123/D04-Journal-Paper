@@ -204,7 +204,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     elif sensor_type == "TRAVERSE_LT":
         arr_trav, cols_trav = Traverse_LT_excel_to_array(tow)
         arrays.append(arr_trav)
-        col_names.append(cols_trav)
+        col_names.extend(cols_trav)
     
 
     processed_data = arrays[0] if len(arrays) == 1 else np.hstack(arrays)
