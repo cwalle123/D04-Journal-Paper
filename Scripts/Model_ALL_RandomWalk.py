@@ -54,7 +54,9 @@ def propose_new_RWM_value(x_current, dist_std, sensor):    # random walk metropo
     elif sensor == "CAM": std_factor = 0.15
     elif sensor == "LT": std_factor = 0.35
 
-    proposal = x_current + np.random.normal(mean, dist_std*std_factor)
+    #std_factor = 2.4  # for optimal exploration of dist -> accepetance rate = 44%, NOT ACCURATE! only CAM & LLS
+
+    proposal = x_current + np.random.normal(mean, dist_std*std_factor)  # this uses std to recreate real tow 'waviness'
     return proposal
 
 def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevian algorithm (MALA)
@@ -80,6 +82,9 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
     start_value = generate_starting_error(sensor)
     generated_path = [start_value]
     x_current = start_value
+
+    print(float(params[-1]))
+    accepted, rejected = 0, 0
     for step in range(n_steps-1):
 
         if proposal_type == "RWM":
@@ -95,16 +100,15 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
 
         if alpha >= U:  # we accept the proposed value
             x_next = x_proposal
-            #print("accepted")
+            accepted += 1
         else:           # we reject the proposed value
-            #print("rejected")
+            rejected += 1
             x_next = x_current
 
         generated_path.append(x_next)
         x_current = x_next
 
-
-
+    print("acceptance rate =", accepted/(accepted + rejected))
 
     if plot_histogram:
         #plotplotplot
@@ -173,7 +177,7 @@ def get_actual_Dataframe(tow: int):
 
 
 
-def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list, ideal: bool):
+def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list, ideal: bool):      # TODO: probably get rid of this.. . :(
     """
     This function takes a list of dataframes that contains features of a tows and plots the corresponding tows in one figure, as well as the ideal tow.
     The data it takes from that dataframe are
@@ -270,7 +274,7 @@ def plot_tow_comparison(n_steps: int, step_size: float, proposal_type: str, plot
 
 
 def main():
-    #generate_random_walk(sensor="LT", n_steps=2000, proposal_type="RWM", plot_histogram=True, plot_path=True)
+    #generate_random_walk(sensor="LT", n_steps=2000, proposal_type="RWM", plot_histogram=True, plot_path=True, comparison=True)
     plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
 
 if __name__ == "__main__":
