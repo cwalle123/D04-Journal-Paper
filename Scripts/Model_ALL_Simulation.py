@@ -12,6 +12,7 @@ import scipy.stats as stats
 # Internal imports
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Handling_ALL_Functions import get_synced_data
+from constants import number_of_steps, Consecutive_Error_Bins
 
 ##############################################################################################################
 """Functions for generating simulated tows"""
@@ -72,8 +73,9 @@ def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35,
     Returns gap/overlap DataFrames and percentages.
     """
 
-    num_bins = 80
+    num_bins = Consecutive_Error_Bins
     n_steps = int(tow_length_mm * 340 / 1000)  # base step count
+    n_steps = number_of_steps
 
     # --- Load error model fits ---
     bin_stats_cam, slope_cam, intercept_cam, _, _, _, x_sorted_cam, bin_edges_cam, devs_cam = consecutive_error(
@@ -307,7 +309,7 @@ def simulation_verification(num_simulations=100):
 def main():
     #!ATTENTION: DO NOT USE TOW 1 FOR ANY OF THE FUNCTIONS BELOW
 
-    generate_multitow_layout(10, plot=True)
+    generate_multitow_layout(5, plot=True)
 
     #simulation_verification(20)
 
