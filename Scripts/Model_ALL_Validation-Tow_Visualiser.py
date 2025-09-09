@@ -1,6 +1,5 @@
 """This file is used to generate a figure of a simulated tow vs an experimental tow.
-   This file is currently not being used for anything except plotting
-   Written by: Manuel Cruz"""
+   This file is currently not being used for anything except plotting"""
 
 ##############################################################################################################
 
@@ -16,6 +15,7 @@ from scipy.fft import fft, fftfreq
 from Handling_ALL_Functions import get_synced_data
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Model_ALL_Simulation import generate_multitow_layout
+from constants import number_of_steps, Consecutive_Error_Bins
 
 ##############################################################################################################
 """Functions"""
@@ -91,8 +91,9 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
         num_tows=1, tow_length_mm=tow_length_mm, plot=False)
 
     # --- For single tow, regenerate its geometry ---
-    num_bins = 80
+    num_bins = Consecutive_Error_Bins
     n_steps = int(tow_length_mm * 340 / 1000)
+    n_steps = number_of_steps
 
     # Load error model fits
     bin_stats_cam, slope_cam, intercept_cam, _, _, _, x_sorted_cam, bin_edges_cam, devs_cam = consecutive_error(
@@ -281,62 +282,121 @@ def compare_multiple_simulations(tow: int, n_simulations: int = 50, tow_length_m
 ##############################################################################################################
 """TEST functions to check FFT""" # Use Model_ALL_Validation-FFT.py instead of this function!
 
-def compare_fft_real_vs_sim(real_df: pd.DataFrame, sim_df: pd.DataFrame, tow_length_mm=1000):
+def compare_fft_real_vs_sim(real_df, sim_df, tow_length_mm=1000, plot=True):
     """
-    Perform FFT on real vs simulated tow centerlines and compare spectra.
-    
-    Parameters
-    ----------
-    real_df : DataFrame
-        Output from plot_real_tow(...) containing centerline.
-    sim_df : DataFrame
-        Output from plot_simulated_vs_real_tow(...) containing centerline.
-    tow_length_mm : float
-        Length of the tow in mm (default 1000).
+    Compare FFT spectra of real vs simulated tow centerlines.
     """
-
     # --- Extract centerlines ---
     real = real_df["centerline"].to_numpy()
     sim = sim_df["centerline"].to_numpy()
 
-    # --- Align lengths (truncate to shortest) ---
-    min_len = min(len(real), len(sim))
-    real = real[:min_len]
-    sim = sim[:min_len]
+    # --- Sampling steps (different lengths -> different dx) ---
+    dx_real = tow_length_mm / len(real)
+    dx_sim = tow_length_mm / len(sim)
 
-    # --- Sampling step (assume uniform spacing in mm) ---
-    dx = tow_length_mm / min_len
-
-    # --- FFT ---
-    freqs = fftfreq(min_len, d=dx)[:min_len // 2]  # positive freqs only
-    fft_real = np.abs(fft(real)[:min_len // 2])
-    fft_sim = np.abs(fft(sim)[:min_len // 2])
-
-    # --- Normalize (optional for comparison) ---
+    # --- FFT for real ---
+    freqs_real = fftfreq(len(real), d=dx_real)[: len(real) // 2]
+    fft_real = np.abs(fft(real)[: len(real) // 2])
     fft_real /= np.max(fft_real)
+
+    # --- FFT for sim ---
+    freqs_sim = fftfreq(len(sim), d=dx_sim)[: len(sim) // 2]
+    fft_sim = np.abs(fft(sim)[: len(sim) // 2])
     fft_sim /= np.max(fft_sim)
 
     # --- Plot ---
-    plt.figure(figsize=(10, 6))
-    plt.plot(freqs, fft_real, label="Real Tow FFT", color="blue")
-    plt.plot(freqs, fft_sim, label="Simulated Tow FFT", color="red", alpha=0.7)
-    plt.xlabel("Spatial frequency (1/mm)", fontsize=14)
-    plt.ylabel("Normalized magnitude", fontsize=14)
-    plt.title("FFT Comparison: Real vs Simulated Tow", fontsize=16)
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+    if plot == True:
+        plt.figure(figsize=(10, 6))
+        plt.plot(freqs_real, fft_real, label="Real Tow FFT", color="blue")
+        plt.plot(freqs_sim, fft_sim, label="Simulated Tow FFT", color="red", alpha=0.7)
+        plt.xlabel("Spatial frequency (1/mm)", fontsize=14)
+        plt.ylabel("Normalized magnitude", fontsize=14)
+        plt.title("FFT Comparison: Real vs Simulated Tow", fontsize=16)
+        plt.xlim(0, 0.75)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
 
-    return freqs, fft_real, fft_sim
+    return freqs_real, fft_real, freqs_sim, fft_sim
+
+def optimize_fft_match(tow: int,
+                       tow_length_mm=1000,
+                       steps_range=(200, 600),      # search range for number_of_steps
+                       bins_range=(5, 20),          # search range for num_bins
+                       n_trials=20,
+                       plot_best=True):
+    """
+    Optimize number_of_steps and Consecutive_Error_Bins so simulated FFT
+    matches the real FFT as closely as possible.
+    """
+
+    best_error = np.inf
+    best_params = None
+    best_result = None
+
+    # Try combinations
+    for _ in range(n_trials):
+        # Random pick in ranges
+        n_steps = random.randint(*steps_range)
+        n_bins = random.randint(*bins_range)
+
+        # Update globals (since generate_multitow_layout depends on them)
+        global number_of_steps, Consecutive_Error_Bins
+        number_of_steps = n_steps
+        Consecutive_Error_Bins = n_bins
+
+        # Run sim vs real tow
+        real_df, sim_df = plot_simulated_vs_real_tow(tow, tow_length_mm, plot=False)
+        freqs_real, fft_real, freqs_sim, fft_sim = compare_fft_real_vs_sim(real_df, sim_df, tow_length_mm, plot=False)
+
+        # Interpolate both FFTs onto a common frequency axis
+        f_common = np.linspace(0, min(freqs_real.max(), freqs_sim.max()), 500)
+        fft_real_interp = np.interp(f_common, freqs_real, fft_real)
+        fft_sim_interp = np.interp(f_common, freqs_sim, fft_sim)
+
+        # Compute error (MSE)
+        error = np.mean((fft_real_interp - fft_sim_interp) ** 2)
+
+        if error < best_error:
+            best_error = error
+            best_params = (n_steps, n_bins)
+            best_result = (f_common, fft_real_interp, fft_sim_interp)
+
+    # Plot best result
+    if plot_best and best_result is not None:
+        f_common, fft_real_best, fft_sim_best = best_result
+        plt.figure(figsize=(10, 6))
+        plt.plot(f_common, fft_real_best, label="Real Tow FFT", color="blue")
+        plt.plot(f_common, fft_sim_best, label="Simulated Tow FFT (best fit)", color="red", alpha=0.7)
+        plt.xlabel("Spatial frequency (1/mm)", fontsize=14)
+        plt.ylabel("Normalized magnitude", fontsize=14)
+        plt.title(f"Best FFT Match: steps={best_params[0]}, bins={best_params[1]}", fontsize=16)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    print(f"Best parameters: steps={best_params[0]}, bins={best_params[1]} (error={best_error:.6f})")
+    return best_params, best_error
 
 ##############################################################################################################
 """Run this file"""
 
 def main():
+<<<<<<< Updated upstream
     
     plot_simulated_vs_real_tow(8)
     # compare_fft_real_vs_sim(real_df, sim_df)
+=======
+    # plot_simulated_vs_real_tow(8)
+
+    real_df, sim_df = plot_simulated_vs_real_tow(8)
+    compare_fft_real_vs_sim(real_df, sim_df)
+
+    # best_params, best_error = optimize_fft_match(tow=8, steps_range=(1700, 2500), bins_range=(100, 140), n_trials=100)
+
+>>>>>>> Stashed changes
     # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
 
