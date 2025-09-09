@@ -288,7 +288,7 @@ def consecutive_error(sensor, used_tows: list = list(np.arange(2, 32, 1)), test_
 
     return bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edge_indices, deviations_per_bin
 
-def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_edges, deviations_per_bin, use_truncnorm=False):
+def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_edges, deviations_per_bin, use_truncnorm= True):
     np.random.seed()
     error_path = [start_error]
     x_current = start_error
@@ -316,11 +316,11 @@ def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_ed
         deviations = deviations_per_bin[bin_index]
         mu, sigma = stats.norm.fit(deviations)
 
-        # if necessary, truncates the distribution to only sample within 2 std's
+        # if necessary, truncates the distribution to only sample within 2 std's or the max/min of the data
         if use_truncnorm:
-            # Use truncated normal within ±2σ
+            # Use truncated normal within ±2σ or max/min of data
             from scipy.stats import truncnorm
-            a, b = -2, 2
+            a, b = (min(deviations) - mu) / sigma , (max(deviations) - mu) / sigma
             sampled_deviation = truncnorm(a, b, loc=mu, scale=sigma).rvs()
         else:
             # Use regular normal distribution
