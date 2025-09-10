@@ -54,14 +54,25 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 
 
     return data, weights
 
+def get_n_steps(sensor):
+    data, weights = get_data(sensor, format='separated')
+    data = np.array(data)
+
+    #if sensor == 'LT': # TODO: check if LT data is 'cut'
+
+    lengths = []
+    for i in range(len(data)):
+        lengths.append(len(data[i, :]))
+
+    return int(np.average(lengths))
 
 def propose_new_RWM_value(x_current, dist_std, sensor):    # random walk metropolis (RWM), using normal dist???
     mean = 0
     # setting the std for each sensor
-    if sensor == "LLS_A": std_factor = 0.7
-    elif sensor == "LLS_B": std_factor = 0.7
-    elif sensor == "CAM": std_factor = 0.15
-    elif sensor == "LT": std_factor = 0.35
+    #if sensor == "LLS_A": std_factor = 0.7
+    #elif sensor == "LLS_B": std_factor = 0.7
+    #elif sensor == "CAM": std_factor = 0.15
+    #elif sensor == "LT": std_factor = 0.35
 
     #std_factor = 2.4  # for optimal exploration of dist -> accepetance rate = 44%, NOT ACCURATE! only CAM & LLS
 
@@ -74,16 +85,18 @@ def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevi
     return proposal
 
 
-def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_histogram: bool=False, plot_path: bool=False, comparison: bool=False):
+def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plot_histogram: bool=False,
+                         plot_path: bool=False, comparison: bool=False, return_pdf: bool=False):
     '''
     This function generates a random walk according to the specified sensor.
     '''
+    if n_steps is None:
+        n_steps = get_n_steps(sensor)
+
     # setting up the distribution which is being mimicked
     data, weights = get_data(sensor)
 
-    best = best_fit_distribution(           # TODO: write some proper code rather than this bs workaround...
-        np.array([data, data, data, data]), weights=np.array([weights, weights, weights, weights])
-        )
+    best = best_fit_distribution(np.array(data), weights=np.array(weights))
     dist, params = best['dist'], best['params']
     distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
 
@@ -92,7 +105,6 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
     x_current = start_value
     sensor_std = get_proposal_distribution(sensor)
 
-    print(float(params[-1]), sensor_std)
     accepted, rejected = 0, 0
     for step in range(n_steps-1):
 
@@ -121,11 +133,13 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
 
     if plot_histogram:
         #plotplotplot
-        x = np.linspace(-1.5, 0.6, 200)
+        x = np.linspace(-1.2, 1.2, 100)
         pdf = distribution(x)
         plt.plot(x, pdf, label='probability-distribution')
-        plt.hist(generated_path, density=True, bins=50, label='generated path')
+        plt.hist(generated_path, density=True, bins=30, label='generated path')
+        plt.hist(data, density=True, bins=50, label='data')
         plt.title("Histogram of generated path w. probability-distribution" + sensor)
+        plt.xlim(-1.2, 1.2)
         plt.legend()
         plt.show()
 
@@ -152,13 +166,14 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
             for i in range(len(real_data)-1):
                 x += velocity_factor*weight_data[i]*1000
                 real_x.append(x)
-            print(real_x)
 
 
             plt.plot(real_x, real_data, label='real path')
         plt.tight_layout()
         plt.legend()
         plt.show()
+
+    if return_pdf: return generated_path, x, pdf
 
     return generated_path
 
@@ -292,9 +307,9 @@ def plot_tow_comparison(n_steps: int, step_size: float, proposal_type: str, plot
     This function is intended to make a comparison of a full tow between random walk and actual data.
     '''
     # getting randomn walk data
-    LT_walk_data = generate_random_walk("LT", n_steps, proposal_type, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
-    CAM_walk_data = generate_random_walk("CAM", n_steps, proposal_type, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
-    LLSB_walk_data = generate_random_walk("LLS_B", n_steps, proposal_type, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
+    LT_walk_data = generate_random_walk("LT", proposal_type, n_steps=n_steps, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
+    CAM_walk_data = generate_random_walk("CAM", proposal_type, n_steps=n_steps, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
+    LLSB_walk_data = generate_random_walk("LLS_B", proposal_type, n_steps=n_steps, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
     LLSB_walk_data = [x + tow_width_specified for x in LLSB_walk_data]
     x_walk_data = np.linspace(0, n_steps*step_size, n_steps)
 
@@ -310,8 +325,11 @@ def plot_tow_comparison(n_steps: int, step_size: float, proposal_type: str, plot
     tow_visualizer_alt([walk_dataframe, real_data], [0, 0], ["random walk", "Real"], False)
 
 
-def plot_animated_walk_hist(sensor: str, n_tows: int, step_size: float, proposal_type: str='RWM', tow_length: float=1000):
-    n_steps = int(tow_length / step_size)
+def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', tow_length: float=1000):
+
+    n_steps = get_n_steps(sensor)
+    step_size = tow_length/n_steps
+
     # Setting up a random number generator with a fixed state for reproducibility.
     rng = np.random.default_rng(seed=19680801)
     # Fixing bin edges.
@@ -345,8 +363,7 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, step_size: float, proposal
     # Output generated via `matplotlib.animation.Animation.to_jshtml`.
 
     fig, ax = plt.subplots()
-    _, _, bar_container = ax.hist(data, HIST_BINS, lw=1,
-                                  ec="yellow", fc="green", alpha=0.5)
+    _, _, bar_container = ax.hist(data, HIST_BINS, lw=1, ec="yellow", fc="green", alpha=0.5)
     ax.set_ylim(top=3)  # set safe limit to ensure that all data is visible.
 
     anim = functools.partial(animate, bar_container=bar_container)
@@ -354,12 +371,12 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, step_size: float, proposal
     plt.show()
 
 
-
 def main():
-    #generate_random_walk(sensor="LT", n_steps=2000, proposal_type="RWM", plot_histogram=False, plot_path=False, comparison=True)
+    #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
     #plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM")
-    plot_animated_walk_hist("CAM", 31, 2.5)
+    plot_animated_walk_hist("CAM", 31)
+    #get_n_steps("CAM")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
