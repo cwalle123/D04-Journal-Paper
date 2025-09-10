@@ -208,11 +208,11 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     
 
     processed_data = arrays[0] if len(arrays) == 1 else np.hstack(arrays)
-    drop_cols = ["time", "leftedge", "rightedge", "gap"]  # adjust as needed
-    keep_cols = [c for c in col_names if c not in drop_cols]
-    keep_indices = [col_names.index(c) for c in keep_cols]
-    processed_data = processed_data[:, keep_indices]
-    col_names = keep_cols
+    #drop_cols = ["time", "leftedge", "rightedge", "gap"]  # adjust as needed
+    #keep_cols = [c for c in col_names if c not in drop_cols]
+    #keep_indices = [col_names.index(c) for c in keep_cols]
+    #processed_data = processed_data[:, keep_indices]
+    #col_names = keep_cols
 
     # Save to cache unless helper
     if not helper:
@@ -260,11 +260,11 @@ def main():
     #    print(np.shape(x))
     #print("Columns:", x.columns.tolist())
     #print()
-    #print(get_synced_data(5, "TRAVERSE"))
+    print(get_synced_data(10, "TRAVERSE_LT", overwrite=True))
     #print()
     #print(get_synced_data(5, "LT"))
 
-    traverse_vs_layup_data(10)
+    #traverse_vs_layup_data(10)
     
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

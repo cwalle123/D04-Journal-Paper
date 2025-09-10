@@ -316,7 +316,10 @@ def Traverse_LT_excel_to_array(tow_nr):
     file_name = f"TrackerData_{tow:02d}_Traverse.csv"
     file_path = os.path.join(path_base, file_name)
     df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
-
+#############################################################################################################################
+    df[time_col] = pd.to_datetime(df[time_col], errors="coerce")
+    df[time_col] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
+##############################################################################################################################
     tow_traverse_data = df[[time_col, x_col, y_col, z_col]].iloc[:smallest_file_length].to_numpy()
 
     return tow_traverse_data, ['time', 'x', 'y', 'z']
