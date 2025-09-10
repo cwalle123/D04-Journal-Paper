@@ -62,7 +62,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     Adds error column based on nominal value for the sensor type.
     Returns a Pandas DataFrame instead of NumPy array.
     """
-    if sensor_type not in ["LT", "LLS_A", "LLS_B", "CAM", "TRAVERSE_GAP", "TRAVERSE_LT"]:
+    if sensor_type not in ["LT", "LLS_A", "LLS_B", "CAM", "TRAVERSE_GAP", "TRAVERSE_LT", "Traverse"]:
         raise KeyError(f"The key '{sensor_type}' is invalid")
     if tow not in range(1, 32):
         raise IndexError(f"Tow ID {tow} is out of range")
@@ -124,7 +124,49 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         arrays.append(error_col[:, None])
         col_names.append("error_LLS_B")
     
-    elif sensor_type == "TRAVERSE_GAP":
+    elif sensor_type == "Traverse":
+        # Load the LT and Gap data arrays
+        LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
+        Gap_arr, Gap_cols = Traverse_Gap_excel_to_array(tow)
+
+        # Guard against empty arrays
+        if LT_arr.shape[0] == 0 or Gap_arr.shape[0] == 0:
+            synced_cols = Gap_cols + ["Gap_x"] + [c for c in LT_cols if c != "LT_x"]
+            arrays.append(np.empty((0, len(synced_cols))))
+            col_names.extend(synced_cols)
+            print("USED GUARD AGAINST EMPTY ARRAYS")
+        else:
+            # Calculate Gap_x (normalized using last Gap time)
+            if Gap_arr[-1, 0] == 0:
+                raise ValueError("Last Gap time is zero, cannot compute Gap_x.")
+            Gap_x_col = (1.0 / Gap_arr[-1, 0]) * Gap_arr[:, 0]
+
+            # Extract LT_x
+            LT_x = LT_arr[:, LT_cols.index("LT_x")]
+
+            # Vectorized nearest-neighbor lookup
+            nearest_idx = np.searchsorted(LT_x, Gap_x_col)
+            nearest_idx = np.clip(nearest_idx, 1, len(LT_x)-1)
+            left_is_better = (np.abs(Gap_x_col - LT_x[nearest_idx-1]) < np.abs(Gap_x_col - LT_x[nearest_idx]))
+            chosen_idx = np.where(left_is_better, nearest_idx-1, nearest_idx)
+
+            # Select matched LT rows and drop LT_x
+            LT_matched = LT_arr[chosen_idx]
+            lt_keep_mask = [c != "LT_x" for c in LT_cols]
+            LT_matched = LT_matched[:, lt_keep_mask]
+            LT_keep_cols = [c for c in LT_cols if c != "LT_x"]
+
+            # Stack Gap + Gap_x + matched LT rows
+            synced = np.hstack([Gap_arr, Gap_x_col[:, None], LT_matched])
+            synced_cols = Gap_cols + ["Gap_x"] + LT_keep_cols
+
+            # Append to arrays for later processing
+            arrays.append(synced)
+            col_names.extend(synced_cols)
+
+
+    
+    """elif sensor_type == "TRAVERSE_GAP":
         
         if tow == 1:
             arr, cols = Traverse_Gap_excel_to_array(tow)
@@ -204,8 +246,10 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     elif sensor_type == "TRAVERSE_LT":
         arr_trav, cols_trav = Traverse_LT_excel_to_array(tow)
         arrays.append(arr_trav)
-        col_names.extend(cols_trav)
+        col_names.extend(cols_trav)"""
     
+    
+        
 
     processed_data = arrays[0] if len(arrays) == 1 else np.hstack(arrays)
     #drop_cols = ["time", "leftedge", "rightedge", "gap"]  # adjust as needed
@@ -256,13 +300,13 @@ def main():
 
     # Just to check if the new data with weights is correct (it is)
     for tow in range(1,32):
-        x = get_synced_data(tow, "TRAVERSE_LT", overwrite=True)
+        x = get_synced_data(tow, "Traverse", overwrite=True)
         print(np.shape(x))
     #print("Columns:", x.columns.tolist())
     #print()
     #print(get_synced_data(10, "TRAVERSE_LT", overwrite=True))
     #print()
-    #print(get_synced_data(5, "LT"))
+    #get_synced_data(5, "Traverse", overwrite=True)
 
     #traverse_vs_layup_data(10)
     

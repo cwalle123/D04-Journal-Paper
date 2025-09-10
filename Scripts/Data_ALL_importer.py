@@ -316,13 +316,14 @@ def Traverse_LT_excel_to_array(tow_nr):
     file_name = f"TrackerData_{tow:02d}_Traverse.csv"
     file_path = os.path.join(path_base, file_name)
     df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
-#############################################################################################################################
-    df[time_col] = pd.to_datetime(df[time_col], errors="coerce")
+
+    #Calculate seconds passed since beginning of measurement
+    df[time_col] = pd.to_datetime(df[time_col], errors="coerce", format='%d/%m/%y %H:%M:%S.%f')
     df[time_col] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
-##############################################################################################################################
+
     tow_traverse_data = df[[time_col, x_col, y_col, z_col]].iloc[:smallest_file_length].to_numpy()
 
-    return tow_traverse_data, ['time', 'x', 'y', 'z']
+    return tow_traverse_data, ['LT_time', 'LT_x', 'LT_y', 'LT_z']
 
 def _first_existing(base: Path, tow_a: int, tow_b: int) -> Path:
     """Return the first existing path among padded and unpadded variants. Partially created with AI"""
@@ -381,26 +382,27 @@ def Traverse_Gap_excel_to_array(tows_nrs: int):
     df = pd.read_excel(target_path) if target_path.suffix.lower() in (".xlsx", ".xls") else pd.read_csv(target_path)
 
     # Convert to elapsed seconds from start of measurement
-    df[time_col] = pd.to_datetime(df[time_col], errors="coerce")
+    df[time_col] = pd.to_datetime(df[time_col], errors="coerce", format='%y/%m/%d %H:%M:%S.%f')
     df[time_col] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
 
     # Construct the dataframe
     arr = df[[time_col, left_col, right_col, gap_col]].iloc[:smallest_file_length].to_numpy()
 
-    return arr, ['time', 'leftedge', 'rightedge', 'gap']
+    return arr, ['Gap_time', 'Gap_leftedge', 'Gap_rightedge', 'Gap_gap']
 
 ##############################################################################################################
 """Run this file"""
 
 def main():
-    tow = 3
-    x, names = LLS_A_excel_to_array(tow)
-    print(names)
-    print(np.shape(x))
+    #tow = 3
+    #x, names = LLS_A_excel_to_array(tow)
+    #print(names)
+    #print(np.shape(x))
 
 
     arr, data = Traverse_Gap_excel_to_array(4)
     print(arr)
+    print(data)
     
 
 if __name__ == "__main__":
