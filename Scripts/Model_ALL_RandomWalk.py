@@ -1,19 +1,21 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import random
+import functools
 
 from dataclasses import dataclass
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
 from Handling_ALL_Functions import get_synced_data
 from constants import tow_width_specified
-from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
+from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 from Model_ALL_ConsecutiveModeler import tow_visualizer
 
 
 
-def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1))):
+def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 'merged'):
     """
     Gets the required data for the specified sensors.
     """
@@ -38,10 +40,17 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1))):
         tow_data = np.array(tow_data)
         #print(tow_data)
 
-        # put data into correct format (pairs)
-        for i in range(len(tow_data[:, 0])):
-            data.append(float(tow_data[i, 0]))
-            weights.append(float(tow_data[i, 1]))
+        if format == 'merged':
+            # put data into correct format (pairs)
+            for i in range(len(tow_data[:, 0])):
+                data.append(float(tow_data[i, 0]))
+                weights.append(float(tow_data[i, 1]))
+
+        elif format == 'separated':
+            data.append(tow_data[:, 0])
+            weights.append(tow_data[:, 1])
+
+        else: print("Invalid format. Possible values are 'merged' and 'separated'.")
 
     return data, weights
 
@@ -56,14 +65,13 @@ def propose_new_RWM_value(x_current, dist_std, sensor):    # random walk metropo
 
     #std_factor = 2.4  # for optimal exploration of dist -> accepetance rate = 44%, NOT ACCURATE! only CAM & LLS
 
-    proposal = x_current + np.random.normal(mean, dist_std*std_factor)  # this uses std to recreate real tow 'waviness'
+    proposal = x_current + np.random.normal(mean, dist_std)  # this uses std to recreate real tow 'waviness'
     return proposal
 
 def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevian algorithm (MALA)
 
     #proposal = ???
     return proposal
-
 
 
 def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_histogram: bool=False, plot_path: bool=False, comparison: bool=False):
@@ -82,13 +90,14 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
     start_value = generate_starting_error(sensor)
     generated_path = [start_value]
     x_current = start_value
+    sensor_std = get_proposal_distribution(sensor)
 
-    print(float(params[-1]))
+    print(float(params[-1]), sensor_std)
     accepted, rejected = 0, 0
     for step in range(n_steps-1):
 
         if proposal_type == "RWM":
-            x_proposal = propose_new_RWM_value(x_current, float(params[-1]), sensor)
+            x_proposal = propose_new_RWM_value(x_current, sensor_std, sensor)
         elif proposal_type == "MALA":
             x_proposal = propose_new_MALA_value(x_current, float(params[-1]))
         else:
@@ -152,6 +161,35 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_type: str, plot_his
         plt.show()
 
     return generated_path
+
+
+
+def get_proposal_distribution(sensor, plot: bool=False):
+    data_pairs = get_data_pairs(sensor)
+    data, weights = [], []
+    for i in range(len(data_pairs)):
+        diff = data_pairs[i, 0] - data_pairs[i, 1]
+        weight = data_pairs[i, 2]
+        data.append(diff)
+        weights.append(weight)
+
+    # determining the normal distribution which fits:   #TODO: check if weights implemented correctly in Theo file??
+    mean = np.average(data, weights= weights)
+    variance = np.average((data-mean)**2, weights=weights)
+    std = np.sqrt(variance)
+
+    if plot:
+        x = np.linspace(min(data), max(data), 200)
+        distribution = lambda x: norm.pdf(x, loc=mean, scale=std)
+
+        # plotting
+        plt.plot(x, distribution(x), label='proposal distribution')
+        plt.hist(data, weights=weights, density=True, label='step-size data', bins=200)
+        plt.title('step size distribution for ' + sensor)
+        plt.legend()
+        plt.show()
+
+    return std
 
 
 def get_actual_Dataframe(tow: int):
@@ -272,10 +310,56 @@ def plot_tow_comparison(n_steps: int, step_size: float, proposal_type: str, plot
     tow_visualizer_alt([walk_dataframe, real_data], [0, 0], ["random walk", "Real"], False)
 
 
+def plot_animated_walk_hist(sensor: str, n_tows: int, step_size: float, proposal_type: str='RWM', tow_length: float=1000):
+    n_steps = int(tow_length / step_size)
+    # Setting up a random number generator with a fixed state for reproducibility.
+    rng = np.random.default_rng(seed=19680801)
+    # Fixing bin edges.
+    HIST_BINS = np.linspace(-1.2, 1.2, 100)
+
+    # Histogram our data with numpy.
+    data = generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type)
+    n, _ = np.histogram(data, HIST_BINS, density=True)
+
+    # %%
+    # To animate the histogram, we need an ``animate`` function, which generates
+    # a random set of numbers and updates the heights of rectangles. The ``animate``
+    # function updates the `.Rectangle` patches on an instance of `.BarContainer`.
+
+    def animate(frame_number, bar_container):
+        nonlocal data
+        # Simulate new data coming in.
+        data += generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type)
+        n, _ = np.histogram(data, HIST_BINS, density=True)
+        for count, rect in zip(n, bar_container.patches):
+            rect.set_height(count)
+
+        return bar_container.patches
+
+    # %%
+    # Using :func:`~matplotlib.pyplot.hist` allows us to get an instance of
+    # `.BarContainer`, which is a collection of `.Rectangle` instances.  Since
+    # `.FuncAnimation` will only pass the frame number parameter to the animation
+    # function, we use `functools.partial` to fix the ``bar_container`` parameter.
+
+    # Output generated via `matplotlib.animation.Animation.to_jshtml`.
+
+    fig, ax = plt.subplots()
+    _, _, bar_container = ax.hist(data, HIST_BINS, lw=1,
+                                  ec="yellow", fc="green", alpha=0.5)
+    ax.set_ylim(top=3)  # set safe limit to ensure that all data is visible.
+
+    anim = functools.partial(animate, bar_container=bar_container)
+    ani = animation.FuncAnimation(fig, anim, n_tows, repeat=False, blit=True)
+    plt.show()
+
+
 
 def main():
-    #generate_random_walk(sensor="LT", n_steps=2000, proposal_type="RWM", plot_histogram=True, plot_path=True, comparison=True)
-    plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
+    #generate_random_walk(sensor="LT", n_steps=2000, proposal_type="RWM", plot_histogram=False, plot_path=False, comparison=True)
+    #plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
+    #std = get_proposal_distribution("CAM")
+    plot_animated_walk_hist("CAM", 31, 2.5)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
