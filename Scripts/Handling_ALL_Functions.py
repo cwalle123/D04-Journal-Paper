@@ -255,12 +255,12 @@ def traverse_vs_layup_data(tow: int):
 def main():
 
     # Just to check if the new data with weights is correct (it is)
-    #for tow in range(1,32):
-    #    x = get_synced_data(tow, "TRAVERSE_GAP")
-    #    print(np.shape(x))
+    for tow in range(1,32):
+        x = get_synced_data(tow, "TRAVERSE_LT", overwrite=True)
+        print(np.shape(x))
     #print("Columns:", x.columns.tolist())
     #print()
-    print(get_synced_data(10, "TRAVERSE_LT", overwrite=True))
+    #print(get_synced_data(10, "TRAVERSE_LT", overwrite=True))
     #print()
     #print(get_synced_data(5, "LT"))
 
