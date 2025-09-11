@@ -35,10 +35,10 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 
         elif sensor == "CAM":
             tow_data = tow_data[["error_CAM", "Weights"]]
         elif sensor == "LT":
+            tow_data = tow_data[(tow_data["x"] >= 0) & (tow_data["x"] <= 1000)]     # TODO: check if this is correct
             tow_data = tow_data[["error_LT", "Weights"]]
 
         tow_data = np.array(tow_data)
-        #print(tow_data)
 
         if format == 'merged':
             # put data into correct format (pairs)
@@ -57,8 +57,6 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 
 def get_n_steps(sensor):
     data, weights = get_data(sensor, format='separated')
     data = np.array(data)
-
-    #if sensor == 'LT': # TODO: check if LT data is 'cut'
 
     lengths = []
     for i in range(len(data)):
@@ -131,11 +129,11 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
 
     print("acceptance rate =", accepted/(accepted + rejected))
 
+    # plot-plot-plot #
+    x_pdf = np.linspace(-1.2, 1.2, 100)
+    y_pdf = distribution(x_pdf)
     if plot_histogram:
-        #plotplotplot
-        x = np.linspace(-1.2, 1.2, 100)
-        pdf = distribution(x)
-        plt.plot(x, pdf, label='probability-distribution')
+        plt.plot(x_pdf, y_pdf, label='probability-distribution')
         plt.hist(generated_path, density=True, bins=30, label='generated path')
         plt.hist(data, density=True, bins=50, label='data')
         plt.title("Histogram of generated path w. probability-distribution" + sensor)
@@ -173,7 +171,7 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
         plt.legend()
         plt.show()
 
-    if return_pdf: return generated_path, x, pdf
+    if return_pdf: return generated_path, x_pdf, y_pdf
 
     return generated_path
 
@@ -188,7 +186,7 @@ def get_proposal_distribution(sensor, plot: bool=False):
         data.append(diff)
         weights.append(weight)
 
-    # determining the normal distribution which fits:   #TODO: check if weights implemented correctly in Theo file??
+    # determining the normal distribution which fits:
     mean = np.average(data, weights= weights)
     variance = np.average((data-mean)**2, weights=weights)
     std = np.sqrt(variance)
@@ -336,7 +334,7 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     HIST_BINS = np.linspace(-1.2, 1.2, 100)
 
     # Histogram our data with numpy.
-    data = generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type)
+    data, x_pdf, y_pdf = generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type, return_pdf=True)
     n, _ = np.histogram(data, HIST_BINS, density=True)
 
     # %%
@@ -364,7 +362,10 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
 
     fig, ax = plt.subplots()
     _, _, bar_container = ax.hist(data, HIST_BINS, lw=1, ec="yellow", fc="green", alpha=0.5)
-    ax.set_ylim(top=3)  # set safe limit to ensure that all data is visible.
+
+    # Plot the static function once (does not change during animation)
+    ax.plot(x_pdf, y_pdf, 'r-', lw=1.5, label="Reference PDF", alpha=0.5)
+    ax.set_ylim(top=max(y_pdf)+1)  # set safe limit to ensure that all data is visible.
 
     anim = functools.partial(animate, bar_container=bar_container)
     ani = animation.FuncAnimation(fig, anim, n_tows, repeat=False, blit=True)
@@ -375,8 +376,10 @@ def main():
     #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
     #plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM")
-    plot_animated_walk_hist("CAM", 31)
+    #plot_animated_walk_hist("LT", 31)
     #get_n_steps("CAM")
+
+    data = get_data("LT", tows=[2])
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

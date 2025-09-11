@@ -91,6 +91,7 @@ def get_data_pairs(sensor: str, tows: list = list(np.arange(2, 32, 1))):
         elif sensor == "CAM":
             tow_data = tow_data[["error_CAM", "Weights"]]
         elif sensor == "LT":
+            tow_data = tow_data[(tow_data["x"] >= 0) & (tow_data["x"] <= 1000)]     # TODO: check if this is correct
             tow_data = tow_data[["error_LT", "Weights"]]
 
         tow_data = np.array(tow_data)
