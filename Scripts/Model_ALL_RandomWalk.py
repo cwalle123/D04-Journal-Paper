@@ -36,9 +36,10 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 
             tow_data = tow_data[["error_CAM", "Weights"]]
         elif sensor == "LT":
             tow_data = tow_data[(tow_data["x"] >= 0) & (tow_data["x"] <= 1000)]     # TODO: check if this is correct
-            tow_data = tow_data[["error_LT", "Weights"]]
 
+            tow_data = tow_data[["error_LT", "Weights"]]
         tow_data = np.array(tow_data)
+
 
         if format == 'merged':
             # put data into correct format (pairs)
@@ -51,16 +52,14 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 
             weights.append(tow_data[:, 1])
 
         else: print("Invalid format. Possible values are 'merged' and 'separated'.")
-
     return data, weights
 
 def get_n_steps(sensor):
     data, weights = get_data(sensor, format='separated')
-    data = np.array(data)
 
     lengths = []
     for i in range(len(data)):
-        lengths.append(len(data[i, :]))
+        lengths.append(len(data[i][:]))
 
     return int(np.average(lengths))
 
@@ -376,10 +375,8 @@ def main():
     #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
     #plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM")
-    #plot_animated_walk_hist("LT", 31)
-    #get_n_steps("CAM")
-
-    data = get_data("LT", tows=[2])
+    plot_animated_walk_hist("LT", 31)
+    #get_n_steps("LT")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
