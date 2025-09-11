@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import random
 import functools
+import matplotlib.colors as mcolors
+from matplotlib import cm
 
 from dataclasses import dataclass
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
@@ -83,12 +85,15 @@ def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevi
 
 
 def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plot_histogram: bool=False,
-                         plot_path: bool=False, comparison: bool=False, return_pdf: bool=False):
+                         plot_path: bool=False, comparison: bool=False, return_pdf: bool=False, burn_in_period: int=5000):
     '''
     This function generates a random walk according to the specified sensor.
     '''
     if n_steps is None:
         n_steps = get_n_steps(sensor)
+
+    # adding the burn in period to the #steps
+    n_steps += burn_in_period
 
     # setting up the distribution which is being mimicked
     data, weights = get_data(sensor)
@@ -98,7 +103,7 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
     distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
 
     start_value = generate_starting_error(sensor)
-    generated_path = [start_value]
+    generated_path = []
     x_current = start_value
     sensor_std = get_proposal_distribution(sensor)
 
@@ -123,8 +128,11 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
             rejected += 1
             x_next = x_current
 
-        generated_path.append(x_next)
+        # only taking samples after the burn-in period is over
+        if step >= burn_in_period:
+            generated_path.append(x_current)
         x_current = x_next
+    generated_path.append(x_next)
 
     print("acceptance rate =", accepted/(accepted + rejected))
 
@@ -368,14 +376,17 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
 
     anim = functools.partial(animate, bar_container=bar_container)
     ani = animation.FuncAnimation(fig, anim, n_tows, repeat=False, blit=True)
-    plt.show()
+    #plt.show()
+
+    FFwriter = animation.HTMLWriter(fps=10)
+    ani.save('animation.html', writer=FFwriter)
 
 
 def main():
     #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
     #plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM")
-    plot_animated_walk_hist("LT", 31)
+    plot_animated_walk_hist("CAM", 31)
     #get_n_steps("LT")
 
 if __name__ == "__main__":
