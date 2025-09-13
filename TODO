@@ -1,6 +1,3 @@
-* Data_ALL_importer.py: Find out why data cut is happening around row 413 for the LLSs instead of later and if that matters
-* Data_ALL_importer.py: Find out which Gap column to use from the excel files
-
 UPDATE: 
 The cache files now hold all the relevant data needed for the project in csv files. Calling get_synced_data now
 requires tow information and sensor information, see Handling_ALL_Functions.py.
