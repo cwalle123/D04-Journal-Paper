@@ -199,12 +199,15 @@ def get_proposal_distribution(sensor, plot: bool=False):
     std = np.sqrt(variance)
 
     if plot:
-        x = np.linspace(min(data), max(data), 200)
+        #x = np.linspace(min(data), max(data), 200)
+        x = np.linspace(mean-3*std, mean+3*std, 200)
+
         distribution = lambda x: norm.pdf(x, loc=mean, scale=std)
 
         # plotting
         plt.plot(x, distribution(x), label='proposal distribution')
-        plt.hist(data, weights=weights, density=True, label='step-size data', bins=40)
+        plt.hist(data, weights=weights, density=True, label='step-size data', bins=1000)
+        plt.xlim(mean-3*std, mean+3*std)
         plt.title('step size distribution for ' + sensor)
         plt.legend()
         plt.show()
@@ -217,12 +220,19 @@ def get_actual_Dataframe(tow: int):
     Gets the tow-data and returns it as a dataframe in the required format for the tow-visualizer.
     '''
     LT_data = get_synced_data(tow, "LT")
+    LT_data = LT_data[(LT_data["x"] >= 0) & (LT_data["x"] <= 1000)]
     y = LT_data["error_LT"]
     x = LT_data["x"]
     CAM_data = get_synced_data(tow, "CAM")
     center = CAM_data["center_CAM"]
     LLSB_data = get_synced_data(tow, "LLS_B")
     width = LLSB_data["width_LLS_B"]
+
+    # interpolate CAM and LLS to match the length of the LT x-data so we can plot it
+    length = len(x)
+    center = interpolate(center, length)
+    width = interpolate(width, length)
+
     # putting into dataframe which can be used by the tow visualizer
     dataframe = pd.DataFrame(
         {"y": y,
@@ -268,10 +278,9 @@ def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list,
         name = labels[i]
 
         # make the plots
-        plt.plot(x, centerline, label=name+"centerline", linestyle='dashed', color='grey')  # plots the centerline
-        plt.plot(x, centerline + 0.5 * width, label=name+"tow", linestyle='solid',
-                 color='black')  # plots the top edge
-        plt.plot(x, centerline - 0.5 * width, linestyle='solid', color='black')  # plots the bottom edge
+        plt.plot(x, centerline, label=name+"centerline", linestyle='dashed')  # plots the centerline
+        plt.plot(x, centerline + 0.5 * width, label=name+"tow top", linestyle='solid')  # plots the top edge
+        plt.plot(x, centerline - 0.5 * width, label=name+"tow bottom", linestyle='solid')  # plots the bottom edge
 
         # plots the start end endlines of the tow
         plt.plot([x.iloc[0], x.iloc[0]],
@@ -324,8 +333,14 @@ def plot_tow_comparison(proposal_type: str, plot_individual_histograms: bool=Fal
     LLSB_walk_data = [x + tow_width_specified for x in LLSB_walk_data]
 
     # determine what the smallest number of steps is for the errors and use this is the global number of steps
-    n_steps = min(LT_steps, CAM_steps, LLS_B_steps)
+    n_steps = CAM_steps
+    if CAM_steps != min(LT_steps, CAM_steps, LLS_B_steps): print('Error, shortest data length was NOT used!')
     x_walk_data = np.linspace(0, tow_length, n_steps)
+
+    # interpolate the data with more steps to have the sam, shorter, length
+    LT_walk_data = interpolate(LT_walk_data, n_steps)
+    LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
+    print(len(LT_walk_data), len(CAM_walk_data), len(LLSB_walk_data))
 
     # putting into dataframe which can be used by the tow visualizer
     walk_dataframe = pd.DataFrame(
@@ -358,7 +373,6 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     data, x_pdf, y_pdf = generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type, return_pdf=True)
     n, _ = np.histogram(data, HIST_BINS, density=True)
 
-    # %%
     # To animate the histogram, we need an ``animate`` function, which generates
     # a random set of numbers and updates the heights of rectangles. The ``animate``
     # function updates the `.Rectangle` patches on an instance of `.BarContainer`.
@@ -373,7 +387,6 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
 
         return bar_container.patches
 
-    # %%
     # Using :func:`~matplotlib.pyplot.hist` allows us to get an instance of
     # `.BarContainer`, which is a collection of `.Rectangle` instances.  Since
     # `.FuncAnimation` will only pass the frame number parameter to the animation
@@ -396,12 +409,21 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     ani.save('animation.html', writer=FFwriter)
 
 
+def plot_LLS_hist():
+    data, weights = get_data('LLS_B', format='merged')
+    print(data)
+    print(max(data))
+    plt.hist(data, bins=200, density=True)
+    plt.show()
+
+
 def main():
     #generate_random_walk(sensor="LT", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
-    #plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
-    #std = get_proposal_distribution("LLS_B", plot=True)
+    #plot_tow_comparison(proposal_type="RWM", plot_individual_histograms=True)
+    std = get_proposal_distribution("LLS_B", plot=True)
     #plot_animated_walk_hist("CAM", 31)
     #print(get_n_steps("CAM"))
+    #plot_LLS_hist()
 
 
 if __name__ == "__main__":
