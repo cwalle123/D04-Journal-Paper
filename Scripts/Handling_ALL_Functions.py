@@ -126,6 +126,9 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         col_names.append("error_LLS_B")
     
     elif sensor_type == "Traverse":
+        #This branch synchronizes the data of the LT and LLS B by connecting nearest in space points of the LT to the LLS B data.
+        #It moves datapoints around, which is incorrect and can have problematic results.
+        #Synchronization with interpolation might be a better idea, see next branch.
         if tow in range(1,31):
         # Load the LT and Gap data arrays
             LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
