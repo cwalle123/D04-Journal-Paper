@@ -93,7 +93,7 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
         n_steps = get_n_steps(sensor)
 
     # adding the burn in period to the #steps
-    n_steps += burn_in_period
+    actual_steps = n_steps + burn_in_period
 
     # setting up the distribution which is being mimicked
     data, weights = get_data(sensor)
@@ -108,7 +108,7 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
     sensor_std = get_proposal_distribution(sensor)
 
     accepted, rejected = 0, 0
-    for step in range(n_steps-1):
+    for step in range(actual_steps-1):
 
         if proposal_type == "RWM":
             x_proposal = propose_new_RWM_value(x_current, sensor_std, sensor)
@@ -142,7 +142,7 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
     if plot_histogram:
         plt.plot(x_pdf, y_pdf, label='probability-distribution')
         plt.hist(generated_path, density=True, bins=30, label='generated path')
-        plt.hist(data, density=True, bins=50, label='data')
+        #plt.hist(data, density=True, bins=50, label='data')
         plt.title("Histogram of generated path w. probability-distribution" + sensor)
         plt.xlim(-1.2, 1.2)
         plt.legend()
@@ -157,7 +157,7 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
 
         #actual data plotting
         if comparison:
-            real_data_uncut = get_synced_data(2, sensor)
+            real_data_uncut = get_synced_data(5, sensor)
             if sensor == "LLS_A":   real_data = real_data_uncut["error_LLS_A"]
             elif sensor == "LLS_B": real_data = real_data_uncut["error_LLS_B"]
             elif sensor == "CAM":   real_data = real_data_uncut["center_CAM"]
@@ -204,7 +204,7 @@ def get_proposal_distribution(sensor, plot: bool=False):
 
         # plotting
         plt.plot(x, distribution(x), label='proposal distribution')
-        plt.hist(data, weights=weights, density=True, label='step-size data', bins=200)
+        plt.hist(data, weights=weights, density=True, label='step-size data', bins=40)
         plt.title('step size distribution for ' + sensor)
         plt.legend()
         plt.show()
@@ -307,16 +307,25 @@ def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list,
     plt.show()
 
 
-def plot_tow_comparison(n_steps: int, step_size: float, proposal_type: str, plot_individual_histograms: bool=False):
+def plot_tow_comparison(proposal_type: str, plot_individual_histograms: bool=False):
     '''
     This function is intended to make a comparison of a full tow between random walk and actual data.
     '''
+    tow_length = 1000   # [mm]
+    LT_steps = get_n_steps("LT")
+    CAM_steps = get_n_steps("CAM")
+    LLS_B_steps = get_n_steps("LLS_B")
+    print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
+
     # getting randomn walk data
-    LT_walk_data = generate_random_walk("LT", proposal_type, n_steps=n_steps, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
-    CAM_walk_data = generate_random_walk("CAM", proposal_type, n_steps=n_steps, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
-    LLSB_walk_data = generate_random_walk("LLS_B", proposal_type, n_steps=n_steps, plot_histogram=plot_individual_histograms, plot_path=True, comparison=True)
+    LT_walk_data = generate_random_walk("LT", proposal_type=proposal_type, n_steps=LT_steps, plot_histogram=plot_individual_histograms)
+    CAM_walk_data = generate_random_walk("CAM", proposal_type=proposal_type, n_steps=CAM_steps, plot_histogram=plot_individual_histograms)
+    LLSB_walk_data = generate_random_walk("LLS_B", proposal_type=proposal_type, n_steps=LLS_B_steps, plot_histogram=plot_individual_histograms)
     LLSB_walk_data = [x + tow_width_specified for x in LLSB_walk_data]
-    x_walk_data = np.linspace(0, n_steps*step_size, n_steps)
+
+    # determine what the smallest number of steps is for the errors and use this is the global number of steps
+    n_steps = min(LT_steps, CAM_steps, LLS_B_steps)
+    x_walk_data = np.linspace(0, tow_length, n_steps)
 
     # putting into dataframe which can be used by the tow visualizer
     walk_dataframe = pd.DataFrame(
@@ -329,6 +338,11 @@ def plot_tow_comparison(n_steps: int, step_size: float, proposal_type: str, plot
 
     tow_visualizer_alt([walk_dataframe, real_data], [0, 0], ["random walk", "Real"], False)
 
+def interpolate(data, new_steps):
+    data = np.array(data)
+    old_indices = np.linspace(0, 1, num=len(data))
+    new_indices = np.linspace(0, 1, num=new_steps)
+    return np.interp(new_indices, old_indices, data)
 
 def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', tow_length: float=1000):
 
@@ -383,11 +397,12 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
 
 
 def main():
-    #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
+    #generate_random_walk(sensor="LT", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
     #plot_tow_comparison(n_steps=400, step_size=2.5, proposal_type="RWM", plot_individual_histograms=True)
-    #std = get_proposal_distribution("CAM")
-    plot_animated_walk_hist("CAM", 31)
-    #get_n_steps("LT")
+    #std = get_proposal_distribution("LLS_B", plot=True)
+    #plot_animated_walk_hist("CAM", 31)
+    #print(get_n_steps("CAM"))
+
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
