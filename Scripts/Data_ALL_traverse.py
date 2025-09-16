@@ -51,12 +51,12 @@ def traverse_tow_constructor(tow: int):
         # Calculate y-positions of the left edge (upper side)
         y_left = LT_y_left + 0.5 * frame_width_traverse - edge_left
 
-        # Pad shortest arrays with zeroes
+        # Pad shortest columns with zeroes
         arrays = [x_right, y_right, x_left, y_left]
         max_len = max(map(len, arrays))
         x_right, y_right, x_left, y_left = [np.pad(arr, (0, max_len - len(arr)), mode="constant") for arr in arrays]
 
-        # Construct final data array
+        # Construct final dataframe
         traverse_tow = pd.DataFrame({"x_right": x_right, "y_right": y_right, "x_left": x_left, "y_left": y_left})
 
     return traverse_tow
