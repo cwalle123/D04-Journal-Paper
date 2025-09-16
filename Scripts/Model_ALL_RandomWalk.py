@@ -85,7 +85,8 @@ def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevi
 
 
 def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plot_histogram: bool=False,
-                         plot_path: bool=False, comparison: bool=False, return_pdf: bool=False, burn_in_period: int=5000):
+                         plot_path: bool=False, comparison: bool=False, return_pdf: bool=False, burn_in_period: int=5000,
+                         plot_covergence_params: bool=False):
     '''
     This function generates a random walk according to the specified sensor.
     '''
@@ -132,6 +133,11 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
         if step >= burn_in_period:
             generated_path.append(x_current)
         x_current = x_next
+
+        if plot_covergence_params == True and len(generated_path)%10 == 0:
+            mean_list = np.average(generated_path)
+            std_list = np.std(generated_path)
+
     generated_path.append(x_next)
 
     print("acceptance rate =", accepted/(accepted + rejected))
@@ -139,6 +145,7 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
     # plot-plot-plot #
     x_pdf = np.linspace(-1.2, 1.2, 100)
     y_pdf = distribution(x_pdf)
+
     if plot_histogram:
         plt.plot(x_pdf, y_pdf, label='probability-distribution')
         plt.hist(generated_path, density=True, bins=30, label='generated path')
@@ -147,6 +154,38 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
         plt.xlim(-1.2, 1.2)
         plt.legend()
         plt.show()
+
+
+    if plot_covergence_params:
+        # making the parameter data that we need to plot
+        mean_list, std_list, step_list = [], [], []
+        for i in range(len(generated_path)):
+            if i !=0:
+                mean_list.append(np.average(generated_path[:i]))
+                std_list.append(np.std(generated_path[:i]))
+                step_list.append(len(generated_path[:i]))
+
+        break_mean, break_std = False, False
+        for i in range(len(generated_path)):
+            if i != 0:
+                if abs(mean_list[-i]) >= abs(mean_list[-1])+abs(std_list[-1]*0.05):
+                    mean_convergence = step_list[-i]
+                    break_mean = True
+                if abs(std_list[-i]) >= abs(std_list[-1])+abs(std_list[-1]*0.05):
+                    std_convergence = step_list[-i]
+                    break_std = True
+                if break_mean == True and break_std == True:
+                    break
+
+        print("Mean has converged within 5% of final STD after" + str(mean_convergence) + "steps")
+        print("STD has converged within 5% of final STD after" + str(std_convergence) + "steps")
+
+        plt.plot(mean_list, step_list, label='Mean')
+        plt.plot(std_list, step_list, label='STD')
+        plt.legend()
+        plt.show()
+
+
 
     if plot_path:
         # random walk plotting
@@ -409,6 +448,8 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     ani.save('animation.html', writer=FFwriter)
 
 
+
+# --- some functions to check different things --------------------
 def plot_LLS_hist():
     data, weights = get_data('LLS_B', format='merged')
     print(data)
@@ -416,14 +457,22 @@ def plot_LLS_hist():
     plt.hist(data, bins=200, density=True)
     plt.show()
 
+def check_burn_in(sensor, steps, n_hists):
+    for i in range(n_hists):
+        generate_random_walk(sensor, "RWM", n_steps=steps, burn_in_period=0, plot_histogram=True)
+
+    # LT=17200 ,CAM=, LLSA= , LLSB=
+
 
 def main():
     #generate_random_walk(sensor="LT", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
     #plot_tow_comparison(proposal_type="RWM", plot_individual_histograms=True)
-    std = get_proposal_distribution("LLS_B", plot=True)
+    #std = get_proposal_distribution("LLS_B", plot=True)
     #plot_animated_walk_hist("CAM", 31)
     #print(get_n_steps("CAM"))
     #plot_LLS_hist()
+    #check_burn_in("CAM", 23200, 5)
+    generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
 
 
 if __name__ == "__main__":
