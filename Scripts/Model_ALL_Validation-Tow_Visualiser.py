@@ -21,9 +21,9 @@ from constants import number_of_steps, Consecutive_Error_Bins
 ##############################################################################################################
 """Functions"""
 
-def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
+def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     """
-    Plot a real tow profile using Traverse data
+    Plot a real tow profile using Traverse interpolated data
     """
 
     real_df = traverse_tow_constructor(tow)
@@ -32,26 +32,8 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
     x_left = real_df["x_left"].to_numpy()
     y_left = real_df["y_left"].to_numpy()
 
-    # Extract columns explicitly by name
-    #x_pos = real_df["Gap_x"].to_numpy() * 1000  # convert to mm
-    #left_edge = real_df["Gap_leftedge"].to_numpy()
-    #right_edge = real_df["Gap_rightedge"].to_numpy()
-
-    # Compute centerline and width
-    #centerline = (left_edge + right_edge) / 2
-    #width = np.abs(left_edge - right_edge)
-    #mean_center = np.mean(centerline)
-
-    # Normalize to make the tow centered around y=0
-    #left_edge = left_edge - mean_center
-    #right_edge = right_edge - mean_center
-    #centerline = (left_edge + right_edge) / 2
-
     if plot:
-        plt.figure(figsize=(10, 6))
-        #plt.plot(x_pos, centerline, "--", linewidth=1.5, label="Centerline")
-        #plt.plot(x_pos, left_edge, "-", linewidth=2.0, label="Left edge")
-        #plt.plot(x_pos, right_edge, "-", linewidth=2.0, label="Right edge")
+        plt.figure(figsize=(10, 3))
         plt.plot(x_right, y_right, "-", linewidth=2.0, label="Right edge")
         plt.plot(x_left, y_left, "-", linewidth=2.0, label="Left edge")
         plt.xlabel("X (mm)")
@@ -63,6 +45,9 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot=False):
         plt.show()
 
     return real_df
+
+def plot_Layup_vs_Traverse_tow(tow: int, tow_length_mm=1000, plot: bool = True):
+    return NotImplementedError
 
 def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
     """

@@ -26,7 +26,7 @@ def traverse_tow_constructor(tow: int):
         Note: Currently assumes 2 things:
                 1) Frame width (frame_width_traverse) of LLS B, resulting in incorrect gap size, but correct shape of tow edges
                 2) Frame center (y_offset_traverse, y_increment_traverse) of LLS B, resulting in incorrect
-                    absolute y-coordinates of tow edges, but correct shape (correct relative y-coordinates) of tow edges
+                    absolute y-coordinates of tow edges, but correct shape of tow edges
     """
     # Check for valid tow number
     if tow == 1 or tow == 31:
@@ -71,7 +71,7 @@ def traverse_tow_constructor(tow: int):
 """Run this file"""
 
 def main():
-    print(traverse_tow_constructor(2))
+    print(traverse_tow_constructor(31))
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
