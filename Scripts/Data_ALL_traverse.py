@@ -67,6 +67,11 @@ def traverse_tow_constructor(tow: int):
 
     return traverse_tow
 
+def raw_vs_interpolated_comparison(tow: int):
+    """Plot raw data from Siddharth vs interpolated data from get_synced_data to compare.
+    Visualize whether interpolation happens correctly"""
+    #raw_data = 
+    return NotImplementedError
 ##############################################################################################################
 """Run this file"""
 

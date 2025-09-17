@@ -10,8 +10,10 @@ import pandas as pd
 import random
 from scipy.stats import norm
 from scipy.fft import fft, fftfreq
+import os
 
 #Internal imports
+from Data_ALL_importer import LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array
 from Handling_ALL_Functions import get_synced_data
 from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
@@ -47,6 +49,27 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     return real_df
 
 def plot_Layup_vs_Traverse_tow(tow: int, tow_length_mm=1000, plot: bool = True):
+    # Load layup data
+    base_path = r"Cached Data"
+    file_name = f"LAYUP_{tow}.csv"
+    file_path = os.path.join(base_path, file_name)
+    
+    Layup_CAM = "center_CAM"
+    Layup_LT_x = "x"
+    Layup_LT_y = "y"
+    Layup_LLS_B = "width_LLS_B"
+    
+    df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+    layup_data = df[[Layup_CAM, Layup_LT_x, Layup_LT_y, Layup_LLS_B]].to_numpy()
+
+    # Load traverse data
+    traverse_df = traverse_tow_constructor(tow)
+    Traverse_x_right = traverse_df["x_right"].to_numpy()
+    Traverse_y_right = traverse_df["y_right"].to_numpy()
+    Traverse_x_left = traverse_df["x_left"].to_numpy()
+    Traverse_y_left = traverse_df["y_left"].to_numpy()
+
+    # Calculate 
     return NotImplementedError
 
 def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
@@ -366,7 +389,8 @@ def optimize_fft_match(tow: int,
 """Run this file"""
 
 def main():
-    plot_real_tow(8, plot=True)
+    #plot_real_tow(5, plot=True)
+    plot_Layup_vs_Traverse_tow(4)
 
     # real_df, sim_df = plot_simulated_vs_real_tow(8)
     # compare_fft_real_vs_sim(real_df, sim_df)
