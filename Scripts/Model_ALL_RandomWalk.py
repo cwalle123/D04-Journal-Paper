@@ -85,7 +85,7 @@ def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevi
 
 
 def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plot_histogram: bool=False,
-                         plot_path: bool=False, comparison: bool=False, return_pdf: bool=False, burn_in_period: int=5000,
+                         plot_path: bool=False, comparison: bool=False, return_pdf: bool=False, burn_in_period: int=0,
                          plot_covergence_params: bool=False):
     '''
     This function generates a random walk according to the specified sensor.
@@ -103,7 +103,8 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
     dist, params = best['dist'], best['params']
     distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
 
-    start_value = generate_starting_error(sensor)
+    start_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
+    #start_value = generate_starting_error(sensor)
     generated_path = []
     x_current = start_value
     sensor_std = get_proposal_distribution(sensor)
@@ -158,20 +159,24 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
 
     if plot_covergence_params:
         # making the parameter data that we need to plot
+        real_mean = np.average(generated_path[(int(n_steps*(3/4))):])
+        real_std = np.std(generated_path[(int(n_steps*(3/4))):])
+        print(real_mean, real_std)
+
         mean_list, std_list, step_list = [], [], []
         for i in range(len(generated_path)):
-            if i !=0:
+            if i !=0 and i%10 == 0:
                 mean_list.append(np.average(generated_path[:i]))
                 std_list.append(np.std(generated_path[:i]))
                 step_list.append(len(generated_path[:i]))
 
         break_mean, break_std = False, False
-        for i in range(len(generated_path)):
+        for i in range(len(step_list)):
             if i != 0:
-                if abs(mean_list[-i]) >= abs(mean_list[-1])+abs(std_list[-1]*0.05):
+                if abs(mean_list[-i]) >= abs(real_mean)+abs(real_std*0.05):
                     mean_convergence = step_list[-i]
                     break_mean = True
-                if abs(std_list[-i]) >= abs(std_list[-1])+abs(std_list[-1]*0.05):
+                if abs(std_list[-i]) >= abs(real_std)+abs(real_std*0.05):
                     std_convergence = step_list[-i]
                     break_std = True
                 if break_mean == True and break_std == True:
@@ -409,7 +414,7 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     HIST_BINS = np.linspace(-1.2, 1.2, 100)
 
     # Histogram our data with numpy.
-    data, x_pdf, y_pdf = generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type, return_pdf=True)
+    data, x_pdf, y_pdf = generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type, return_pdf=True, burn_in_period=0)
     n, _ = np.histogram(data, HIST_BINS, density=True)
 
     # To animate the histogram, we need an ``animate`` function, which generates
@@ -419,7 +424,7 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     def animate(frame_number, bar_container):
         nonlocal data
         # Simulate new data coming in.
-        data += generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type)
+        data += generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type, burn_in_period=0)
         n, _ = np.histogram(data, HIST_BINS, density=True)
         for count, rect in zip(n, bar_container.patches):
             rect.set_height(count)
@@ -465,14 +470,14 @@ def check_burn_in(sensor, steps, n_hists):
 
 
 def main():
-    #generate_random_walk(sensor="LT", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
+    #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
     #plot_tow_comparison(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("LLS_B", plot=True)
-    #plot_animated_walk_hist("CAM", 31)
+    plot_animated_walk_hist("CAM", 31)
     #print(get_n_steps("CAM"))
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)
-    generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
+    #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
 
 
 if __name__ == "__main__":
