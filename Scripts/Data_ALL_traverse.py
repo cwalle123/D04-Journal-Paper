@@ -35,15 +35,21 @@ def traverse_tow_constructor(tow: int):
         return None
     
     elif tow in range(2,31): 
-        # Load synced and interpolated data of both gaps adjacent to tow, drop first row containing the headers
-        gap_right_data = get_synced_data((tow-1), "Traverse_Interpolated").iloc[1:]
-        gap_left_data = get_synced_data(tow, "Traverse_Interpolated").iloc[1:]
+        # Load synced and interpolated data of both gaps adjacent to tow, set rows outside range of tow (0-1000 mm) equal to NaN
+        gap_right_data_full = get_synced_data((tow-1), "Traverse_Interpolated")
+        gap_left_data_full = get_synced_data(tow, "Traverse_Interpolated")
+        gap_right_data = gap_right_data_full.where((gap_right_data_full["LT_x"] > 0) & (gap_right_data_full["LT_x"] < 1000))
+        gap_left_data = gap_left_data_full.where((gap_left_data_full["LT_x"] > 0) & (gap_left_data_full["LT_x"] < 1000))
 
         # Extract relevant data for right edge (lower side)
-        x_right, LT_y_right, edge_right = gap_right_data.iloc[:, [4, 5, 1]].to_numpy().T #Note: Gap_leftedge is intentionally selected
-
+        x_right = gap_right_data["LT_x"].to_numpy()
+        LT_y_right = gap_right_data["LT_y"].to_numpy()
+        edge_right = gap_right_data["Gap_leftedge"].to_numpy() #Note: Gap_leftedge is intentionally selected
+        
         # Extract relevant data for left edge (upper side)
-        x_left, LT_y_left, edge_left = gap_left_data.iloc[:, [4, 5, 2]].to_numpy().T #Note: Gap_rightedge is intentionally selected
+        x_left = gap_left_data["LT_x"].to_numpy()
+        LT_y_left = gap_left_data["LT_y"].to_numpy()
+        edge_left = gap_left_data["Gap_rightedge"].to_numpy() #Note: Gap_rightedge is intentionally selected
 
         # Calculate y-positions of the right edge (lower side)
         y_right = LT_y_right + 0.5 * frame_width_traverse - edge_right
