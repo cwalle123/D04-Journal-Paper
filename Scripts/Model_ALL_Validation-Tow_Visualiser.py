@@ -68,7 +68,7 @@ def plot_Layup_vs_Traverse_tow(tow: int, tow_length_mm=1000):
     Traverse_y_left = Traverse_df["y_left"].to_numpy()
 
     # Calculate lay-up tows
-    Layup_centerline = Layup_data[:, 0] + Layup_data[:, 2]
+    Layup_centerline = Layup_data[:, 0] + Layup_data[:, 2] + 5.5 # Plus 5.5 to place traverse and layup on top of each other
     Layup_width = Layup_data[:, 3]
     Layup_x_right = Layup_data[:, 1]
     Layup_y_right = Layup_centerline - 0.5 * Layup_width
@@ -409,7 +409,7 @@ def optimize_fft_match(tow: int,
 
 def main():
     #plot_real_tow(8)
-    plot_Layup_vs_Traverse_tow(30)
+    plot_Layup_vs_Traverse_tow(15)
 
     # real_df, sim_df = plot_simulated_vs_real_tow(8)
     # compare_fft_real_vs_sim(real_df, sim_df)

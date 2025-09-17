@@ -196,7 +196,10 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
                 
                 # Step 4: Build common time axis
                 # Use the union of all unique time points from Gap and LT
-                common_time = np.union1d(gap_time, lt_time)
+                start = max(gap_time.min(), lt_time.min())
+                end   = min(gap_time.max(), lt_time.max())
+                common_time = common_time[(common_time >= start) & (common_time <= end)]
+                #common_time = np.union1d(gap_time, lt_time)
 
                 # Step 5: Interpolate Gap data onto common_time
                 gap_interp_values = []
