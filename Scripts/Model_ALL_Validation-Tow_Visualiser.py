@@ -408,8 +408,8 @@ def optimize_fft_match(tow: int,
 """Run this file"""
 
 def main():
-    #plot_real_tow(8)
-    plot_Layup_vs_Traverse_tow(15)
+    plot_real_tow(15)
+    #plot_Layup_vs_Traverse_tow(15)
 
     # real_df, sim_df = plot_simulated_vs_real_tow(8)
     # compare_fft_real_vs_sim(real_df, sim_df)

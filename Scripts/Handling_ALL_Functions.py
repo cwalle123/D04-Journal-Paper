@@ -202,7 +202,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
                 gap_interp_values = []
                 for col_index in range(Gap_arr.shape[1]):
                     # Build a linear interpolator for each column in Gap
-                    f_gap = interp1d(gap_time, Gap_arr[:, col_index], kind="linear", bounds_error=False, fill_value=np.nan)
+                    f_gap = interp1d(gap_time, Gap_arr[:, col_index], kind="linear", fill_value="extrapolate")
                     # Evaluate on the common time grid
                     gap_interp_values.append(f_gap(common_time))
                 gap_interp = np.column_stack(gap_interp_values)
@@ -212,7 +212,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
                 LT_keep_cols = [c for c in LT_cols if c != "LT_time"]  # ignore raw time col
                 for col_name in LT_keep_cols:
                     col_index = LT_cols.index(col_name)
-                    f_lt = interp1d(lt_time, LT_arr[:, col_index], kind="linear", bounds_error=False, fill_value=np.nan)
+                    f_lt = interp1d(lt_time, LT_arr[:, col_index], kind="linear", fill_value="extrapolate")
                     lt_interp_values.append(f_lt(common_time))
                 lt_interp = np.column_stack(lt_interp_values)
 
