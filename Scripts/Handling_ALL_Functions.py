@@ -361,13 +361,13 @@ def main():
     # x = get_synced_data(2, "Traverse_Interpolated", overwrite=True)
 
     # Just to check if the new data with weights is correct (it is)
-    # for tow in range(1,32):
-    #     x = get_synced_data(tow, "Traverse_Interpolated", overwrite=True)
-    #     print(np.shape(x))
+    for tow in range(1,32):
+        x = get_synced_data(tow, "Traverse_Interpolated", overwrite=True)
+        print(np.shape(x))
 
     #print("Columns:", x.columns.tolist())
 
-    print(get_synced_data(10, "TRAVERSE_LT"))
+    #print(get_synced_data(10, "TRAVERSE_LT"))
 
     #get_synced_data(5, "Traverse", overwrite=True)
 
