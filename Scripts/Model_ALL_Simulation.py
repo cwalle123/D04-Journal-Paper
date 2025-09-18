@@ -51,6 +51,16 @@ def fit_starting_error_distribution(sensor: str, plot=True):
     # Fit normal distribution
     mu, sigma = stats.norm.fit(first_values)
 
+    # Fit uniform distributrion - dy
+    a, b = stats.uniform.fit(first_values)
+
+    # KS test
+    ks_norm = stats.kstest(first_values, "norm", args=(mu, sigma))
+    ks_uniform = stats.kstest(first_values, "uniform", args=(a, b-a))
+
+    print("Normal KS:", ks_norm)
+    print("Uniform KS:", ks_uniform)
+
     if plot:
         plt.figure(figsize=(8, 5))
         count, bins, _ = plt.hist(first_values, bins=len(first_values), density=True,
@@ -65,7 +75,7 @@ def fit_starting_error_distribution(sensor: str, plot=True):
         plt.tight_layout()
         plt.show()
 
-    return mu, sigma, first_values
+    return mu, sigma, a, b, first_values
 
 def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35, tow_length_mm=1000, cam_start_range=(-0.75, 0.75), lt_start_range=(-0.9, -0.7), llsb_start_range=(-0.21, -0.02), plot=False):
     """
