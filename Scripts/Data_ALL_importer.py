@@ -318,7 +318,7 @@ def Traverse_LT_excel_to_array(tow_nr):
     df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
 
     # Cut off data that is outside 1000 mm tow range
-    df = df[(df["x"] >= 0) & (df["x"] <= 1000)]
+    df = df[(df["X_mm_"] >= 0) & (df["X_mm_"] <= 1000)]
 
     #Calculate seconds passed since beginning of measurement
     df[time_col] = pd.to_datetime(df[time_col], errors="raise", format="%d.%m.%Y %H:%M:%S.%f")
