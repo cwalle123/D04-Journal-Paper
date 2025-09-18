@@ -29,7 +29,7 @@ def traverse_tow_constructor(tow: int):
                     absolute y-coordinates of tow edges, but correct shape of tow edges
     """
     # Check for valid tow number
-    if tow == 1 or tow == 31:
+    if tow not in range(2, 31):
         print(f'Tow 1 or 31 can not be recreated from traverse data.')
         print(f'Provide a tow number between 2 and 30 inclusive')
         return None

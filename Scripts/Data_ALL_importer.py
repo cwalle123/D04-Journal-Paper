@@ -317,6 +317,9 @@ def Traverse_LT_excel_to_array(tow_nr):
     file_path = os.path.join(path_base, file_name)
     df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
 
+    # Cut off data that is outside 1000 mm tow range
+    df = df[(df["x"] >= 0) & (df["x"] <= 1000)]
+
     #Calculate seconds passed since beginning of measurement
     df[time_col] = pd.to_datetime(df[time_col], errors="raise", format="%d.%m.%Y %H:%M:%S.%f")
     df[time_col] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
@@ -400,7 +403,7 @@ def main():
     #print(np.shape(x))
 
 
-    arr, data = Traverse_Gap_excel_to_array(4)
+    arr, data = Traverse_LT_excel_to_array(4)
     print(arr)
     print(data)
     

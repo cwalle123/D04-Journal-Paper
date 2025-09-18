@@ -49,46 +49,52 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     return real_df
 
 def plot_Layup_vs_Traverse_tow(tow: int, tow_length_mm=1000):
-    # Load layup data
-    base_path = r"Cached Data"
-    file_name = f"LAYUP_{tow}.csv"
-    file_path = os.path.join(base_path, file_name)
-    Layup_CAM = "center_CAM"
-    Layup_LT_x = "x"
-    Layup_LT_y = "y"
-    Layup_LLS_B = "width_LLS_B"
-    df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
-    Layup_data = df[[Layup_CAM, Layup_LT_x, Layup_LT_y, Layup_LLS_B]].to_numpy()
+    # Check for validity of tow
+    if tow not in range(2, 31):
+        print(f'Tow 1 or 31 can not be recreated from traverse data.')
+        print(f'Provide a tow number between 2 and 30 inclusive')
+        return None
 
-    # Load traverse data
-    Traverse_df = traverse_tow_constructor(tow)
-    Traverse_x_right = Traverse_df["x_right"].to_numpy()
-    Traverse_y_right = Traverse_df["y_right"].to_numpy()
-    Traverse_x_left = Traverse_df["x_left"].to_numpy()
-    Traverse_y_left = Traverse_df["y_left"].to_numpy()
+    else:   
+        # Load layup data
+        base_path = r"Cached Data"
+        file_name = f"LAYUP_{tow}.csv"
+        file_path = os.path.join(base_path, file_name)
+        Layup_CAM = "center_CAM"
+        Layup_LT_x = "x"
+        Layup_LT_y = "y"
+        Layup_LLS_B = "width_LLS_B"
+        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+        Layup_data = df[[Layup_CAM, Layup_LT_x, Layup_LT_y, Layup_LLS_B]].to_numpy()
 
-    # Calculate lay-up tows
-    Layup_centerline = Layup_data[:, 0] + Layup_data[:, 2] + 5.5 # Plus 5.5 to place traverse and layup on top of each other
-    Layup_width = Layup_data[:, 3]
-    Layup_x_right = Layup_data[:, 1]
-    Layup_y_right = Layup_centerline - 0.5 * Layup_width
-    Layup_x_left = Layup_data[:, 1]
-    Layup_y_left = Layup_centerline + 0.5 * Layup_width
+        # Load traverse data
+        Traverse_df = traverse_tow_constructor(tow)
+        Traverse_x_right = Traverse_df["x_right"].to_numpy()
+        Traverse_y_right = Traverse_df["y_right"].to_numpy()
+        Traverse_x_left = Traverse_df["x_left"].to_numpy()
+        Traverse_y_left = Traverse_df["y_left"].to_numpy()
 
-    # Make plot
-    plt.figure(figsize=(10, 3))
-    plt.plot(Traverse_x_right, Traverse_y_right, "-", color = "r", linewidth=2.0, label="Traverse right edge")
-    plt.plot(Traverse_x_left, Traverse_y_left, "-", color = "b", linewidth=2.0, label="Traverse left edge")
-    plt.plot(Layup_x_right, Layup_y_right, "-", color = "g", linewidth=2.0, label="Layup right edge")
-    plt.plot(Layup_x_left, Layup_y_left, "-", color = "y", linewidth=2.0, label="Layup left edge")
-    plt.xlabel("X (mm)")
-    plt.ylabel("Y (mm)")
-    plt.title(f"Real tow {tow} from traverse interpolated data and layup data")
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+        # Calculate lay-up tows
+        Layup_centerline = Layup_data[:, 0] + Layup_data[:, 2] + 5.5 # Plus 5.5 to place traverse and layup on top of each other
+        Layup_width = Layup_data[:, 3]
+        Layup_x_right = Layup_data[:, 1]
+        Layup_y_right = Layup_centerline - 0.5 * Layup_width
+        Layup_x_left = Layup_data[:, 1]
+        Layup_y_left = Layup_centerline + 0.5 * Layup_width
 
+        # Make plot
+        plt.figure(figsize=(10, 3))
+        plt.plot(Traverse_x_right, Traverse_y_right, "-", color = "r", linewidth=2.0, label="Traverse right edge")
+        plt.plot(Traverse_x_left, Traverse_y_left, "-", color = "b", linewidth=2.0, label="Traverse left edge")
+        plt.plot(Layup_x_right, Layup_y_right, "-", color = "g", linewidth=2.0, label="Layup right edge")
+        plt.plot(Layup_x_left, Layup_y_left, "-", color = "y", linewidth=2.0, label="Layup left edge")
+        plt.xlabel("X (mm)")
+        plt.ylabel("Y (mm)")
+        plt.title(f"Real tow {tow} from traverse interpolated data and layup data")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
     return
 
 def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
@@ -408,8 +414,9 @@ def optimize_fft_match(tow: int,
 """Run this file"""
 
 def main():
-    plot_real_tow(15)
-    #plot_Layup_vs_Traverse_tow(15)
+    #plot_real_tow(15)
+    for tow in range(32):
+        plot_Layup_vs_Traverse_tow(tow)
 
     # real_df, sim_df = plot_simulated_vs_real_tow(8)
     # compare_fft_real_vs_sim(real_df, sim_df)
