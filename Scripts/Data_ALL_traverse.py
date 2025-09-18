@@ -83,7 +83,7 @@ def velocity_check(tow: int):
     z_data = LT_arr[:, 3]   # z (not used here)
 
     # --- Find first continuous segment where 0 <= x <= 1000 ---
-    mask = (x_data >= 0) & (x_data <= 999)
+    mask = (x_data >= 0) & (x_data <= 999.5)
     if not np.any(mask):
         raise ValueError("No x values between 0 and 1000 mm in this dataset.")
 
@@ -130,12 +130,112 @@ def velocity_check(tow: int):
 
     return t_trim, x_trim, z_trim, v_inst, v_const
 
+def z_check(tow: int):
+    # --- Load data ---
+    LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
+    t_data = LT_arr[:, 0]   # time
+    x_data = LT_arr[:, 1]   # x
+    z_data = LT_arr[:, 3]   # z
+
+    # --- Find first continuous segment where 0 <= x <= 1000 ---
+    mask = (x_data >= 0) & (x_data <= 999.5)
+    if not np.any(mask):
+        raise ValueError("No x values between 0 and 1000 mm in this dataset.")
+
+    start_idx = np.argmax(mask)  # first True
+    end_idx = start_idx
+    while end_idx < len(mask) and mask[end_idx]:
+        end_idx += 1
+
+    # --- Trim data ---
+    t_trim = t_data[start_idx:end_idx]
+    x_trim = x_data[start_idx:end_idx]
+    z_trim = z_data[start_idx:end_idx]
+
+    # --- Plot ---
+    plt.figure(figsize=(10, 8))
+
+    # z over x
+    plt.subplot(2, 1, 1)
+    plt.plot(x_trim, z_trim, label="z(x)", color="purple")
+    plt.xlabel("X Position (mm)")
+    plt.ylabel("Z Position (mm)")
+    plt.title(f"Tow {tow} Z over X (trimmed 0–1000 mm)")
+    plt.grid(True, linestyle="--", alpha=0.6)
+    plt.legend()
+
+    # z over time
+    plt.subplot(2, 1, 2)
+    plt.plot(t_trim, z_trim, label="z(t)", color="purple")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Z Position (mm)")
+    plt.title(f"Tow {tow} Z over Time (trimmed 0–1000 mm)")
+    plt.grid(True, linestyle="--", alpha=0.6)
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+    return t_trim, x_trim, z_trim
+
+def plot_all_tows_trimmed():
+    tow_numbers = range(1, 32)
+    all_data = []
+    last_indices = []
+
+    # --- Load all tows and find last index where z < -0.03 ---
+    for tow in tow_numbers:
+        LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
+        t_data = LT_arr[:, 0]
+        x_data = LT_arr[:, 1]
+        z_data = LT_arr[:, 3]
+
+        # Find all indices where z < -0.03
+        mask = z_data < -0.03
+        if not np.any(mask):
+            raise ValueError(f"Tow {tow} has no z < -0.03")
+
+        last_idx = np.max(np.where(mask)[0])  # last index where condition is True
+        last_indices.append(last_idx)
+        all_data.append((t_data, x_data, z_data))
+
+    # --- Determine shortest length to trim all tows ---
+    trim_index = min(last_indices)
+
+    plt.figure(figsize=(12, 10))
+
+    # z vs x
+    plt.subplot(2, 1, 1)
+    for tow, (t_data, x_data, z_data) in zip(tow_numbers, all_data):
+        plt.plot(x_data[:trim_index+1], z_data[:trim_index+1], label=f"Tow {tow}")
+    plt.xlabel("X Position (mm)")
+    plt.ylabel("Z Position (mm)")
+    plt.title(f"Z vs X for all tows trimmed to shortest last z<-0.03")
+    plt.grid(True, linestyle="--", alpha=0.6)
+    plt.legend()
+
+    # z vs time
+    plt.subplot(2, 1, 2)
+    for tow, (t_data, x_data, z_data) in zip(tow_numbers, all_data):
+        plt.plot(t_data[:trim_index+1], z_data[:trim_index+1], label=f"Tow {tow}")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Z Position (mm)")
+    plt.title(f"Z vs Time for all tows trimmed to shortest last z<-0.03")
+    plt.grid(True, linestyle="--", alpha=0.6)
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+    return all_data, trim_index
+
 ##############################################################################################################
 """Run this file"""
 
 def main():
-    velocity_check(5)
-    # print(traverse_tow_constructor(31))
+    z_check(5)
+    # plot_all_tows_trimmed()
+    print(traverse_tow_constructor(2))
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

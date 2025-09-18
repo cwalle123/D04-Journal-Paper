@@ -175,60 +175,66 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
             col_names.extend(LT_cols)
 
     elif sensor_type == "Traverse_Interpolated":
-        if tow in range(1, 31):
-            # Step 1: Load LT and Gap arrays from Excel
-            LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
-            Gap_arr, Gap_cols = Traverse_Gap_excel_to_array(tow)
+        """
+        Load all 31 tows, trim to the shortest last z < -0.03,
+        interpolate Gap onto LT time, and return only selected columns.
+        """
 
-            # Step 2: Guard against empty arrays
-            if LT_arr.size == 0 or Gap_arr.size == 0:
-                # If one dataset is missing, return an empty placeholder
-                synced_cols = Gap_cols + LT_cols
-                arrays.append(np.empty((0, len(synced_cols))))
-                col_names.extend(synced_cols)
-                print(f"Tow {tow}: one of the arrays was empty, skipping.")
-            
-            else:
-                # Step 3: Extract raw time axes
-                gap_time = Gap_arr[:, 0]                   
-                lt_time  = LT_arr[:, 0]
+        # --- Step 1: Load all LT arrays and find last z < -0.03 ---
+        LT_data_list = []
+        Gap_data_list = []
+        last_z_indices = []
 
-                
-                # Step 4: Build common time axis
-                # Use the union of all unique time points from Gap and LT
-                common_time = np.union1d(gap_time, lt_time)
+        for tow_iter in range(1, 32):
+            LT_arr, LT_cols = Traverse_LT_excel_to_array(tow_iter)
+            Gap_arr, Gap_cols = Traverse_Gap_excel_to_array(tow_iter) if tow_iter < 31 else (None, None)
 
-                # Step 5: Interpolate Gap data onto common_time
-                gap_interp_values = []
-                for col_index in range(Gap_arr.shape[1]):
-                    # Build a linear interpolator for each column in Gap
-                    f_gap = interp1d(gap_time, Gap_arr[:, col_index], kind="linear", fill_value="extrapolate")
-                    # Evaluate on the common time grid
-                    gap_interp_values.append(f_gap(common_time))
-                gap_interp = np.column_stack(gap_interp_values)
+            if LT_arr.size == 0:
+                print(f"Tow {tow_iter}: LT array empty, skipping.")
+                continue
 
-                # Step 6: Interpolate LT data onto common_time
-                lt_interp_values = []
-                LT_keep_cols = [c for c in LT_cols if c != "LT_time"]  # ignore raw time col
-                for col_name in LT_keep_cols:
-                    col_index = LT_cols.index(col_name)
-                    f_lt = interp1d(lt_time, LT_arr[:, col_index], kind="linear", fill_value="extrapolate")
-                    lt_interp_values.append(f_lt(common_time))
-                lt_interp = np.column_stack(lt_interp_values)
+            # Last row where z < -0.03
+            z_col = LT_arr[:, 3]  # z column
+            last_idx = np.max(np.where(z_col < -0.03)[0]) if np.any(z_col < -0.03) else LT_arr.shape[0]-1
 
-                # Step 7: Combine everything into one array
-                # Format: [time, Gap columns..., LT columns...]
-                synced = np.column_stack([common_time, gap_interp[:, 1:], lt_interp])
-                synced_cols = ["time"] + Gap_cols[1:] + LT_keep_cols
+            last_z_indices.append(last_idx)
+            LT_data_list.append(LT_arr)
+            Gap_data_list.append(Gap_arr)
 
-                arrays.append(synced)
-                col_names.extend(synced_cols)
+        if len(last_z_indices) == 0:
+            raise ValueError("No valid LT data found for interpolation.")
 
-        elif tow == 31:
-            # Special case: just keep LT data as-is
-            LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
-            arrays.append(LT_arr)
-            col_names.extend(LT_cols)
+        # --- Step 2: Trim all arrays to the shortest last z index ---
+        trim_index = min(last_z_indices)
+
+        # --- Step 3: Interpolate Gap onto LT time for the requested tow ---
+        LT_arr = LT_data_list[tow-1][:trim_index+1, :]
+        Gap_arr = Gap_data_list[tow-1]
+        lt_time = LT_arr[:, 0]
+
+        # Interpolate Gap data if available
+        if Gap_arr is not None:
+            gap_interp_values = []
+            for col_idx in range(Gap_arr.shape[1]):
+                f_gap = interp1d(Gap_arr[:, 0], Gap_arr[:, col_idx],
+                                kind="linear", fill_value="extrapolate")
+                gap_interp_values.append(f_gap(lt_time))
+            gap_interp = np.column_stack(gap_interp_values)
+            # Use only columns 1,2,3 of Gap (leftedge, rightedge, gap)
+            gap_interp = gap_interp[:, 1:4]
+
+        else:
+            gap_interp = np.zeros((len(lt_time), 3))  # placeholder
+
+        # Extract LT columns: x, y, z (columns 1,2,3 assuming column 0 is time)
+        lt_values = LT_arr[:, 1:4]
+
+        # --- Step 4: Combine into final array ---
+        synced = np.column_stack([lt_time, gap_interp, lt_values])
+        synced_cols = ["time", "Gap_leftedge", "Gap_rightedge", "Gap_gap", "LT_x", "LT_y", "LT_z"]
+
+        arrays = [synced]
+        col_names = synced_cols
     
     """elif sensor_type == "TRAVERSE_GAP":
         
@@ -358,12 +364,12 @@ def traverse_vs_layup_data(tow: int):
 """Run this file"""
 
 def main():
-    # x = get_synced_data(2, "Traverse_Interpolated", overwrite=True)
+    x = get_synced_data(1, "Traverse_Interpolated", overwrite=True)
 
     # Just to check if the new data with weights is correct (it is)
-    for tow in range(1,32):
-        x = get_synced_data(tow, "Traverse_Interpolated", overwrite=True)
-        print(np.shape(x))
+    # for tow in range(1,32):
+    #     x = get_synced_data(tow, "Traverse_Interpolated", overwrite=True)
+    #     print(np.shape(x))
 
     #print("Columns:", x.columns.tolist())
 
