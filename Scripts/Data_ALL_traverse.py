@@ -10,9 +10,11 @@ import matplotlib.pyplot as plt
 # Internal imports
 from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse
 from Handling_ALL_Functions import get_synced_data
+from Data_ALL_importer import Traverse_LT_excel_to_array
 
 ##############################################################################################################
 """Functions"""
+
 def traverse_tow_constructor(tow: int):
     """Function to construct edge lines of tows from traverse data.
         Edge lines can be plotted and used in FFT validation.
@@ -72,11 +74,68 @@ def raw_vs_interpolated_comparison(tow: int):
     Visualize whether interpolation happens correctly"""
     #raw_data = 
     return NotImplementedError
+
+def velocity_check(tow: int):
+    # --- Load data ---
+    LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
+    t_data = LT_arr[:, 0]   # time
+    x_data = LT_arr[:, 1]   # x
+    z_data = LT_arr[:, 3]   # z (not used here)
+
+    # --- Find first continuous segment where 0 <= x <= 1000 ---
+    mask = (x_data >= 0) & (x_data <= 999)
+    if not np.any(mask):
+        raise ValueError("No x values between 0 and 1000 mm in this dataset.")
+
+    start_idx = np.argmax(mask)  # first True
+    end_idx = start_idx
+    while end_idx < len(mask) and mask[end_idx]:
+        end_idx += 1
+
+    # --- Trim data ---
+    t_trim = t_data[start_idx:end_idx]
+    x_trim = x_data[start_idx:end_idx]
+    z_trim = z_data[start_idx:end_idx]
+
+    # --- Compute velocities ---
+    v_inst = np.gradient(x_trim, t_trim)  # instantaneous velocity
+    v_const = (x_trim[-1] - x_trim[0]) / (t_trim[-1] - t_trim[0])  # constant
+    v_const_line = np.full_like(t_trim, v_const)
+
+    # --- Plot ---
+    plt.figure(figsize=(10, 6))
+
+    # Position
+    plt.subplot(2, 1, 1)
+    plt.plot(t_trim, x_trim, label="x(t)", color="steelblue")
+    plt.axhline(0, color="black", linestyle="--", alpha=0.6, label="0 mm cutoff")
+    plt.axhline(1000, color="red", linestyle="--", alpha=0.6, label="1000 mm cutoff")
+    plt.xlabel("Time (s)")
+    plt.ylabel("X Position (mm)")
+    plt.title(f"Tow {tow} Position and Velocity (trimmed 0–1000 mm)")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
+
+    # Velocity
+    plt.subplot(2, 1, 2)
+    plt.plot(t_trim, v_inst, label="Instantaneous Velocity", color="darkorange")
+    plt.plot(t_trim, v_const_line, "--", label=f"Constant Velocity = {v_const:.3f}", color="green")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Velocity (mm/s)")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
+
+    plt.tight_layout()
+    plt.show()
+
+    return t_trim, x_trim, z_trim, v_inst, v_const
+
 ##############################################################################################################
 """Run this file"""
 
 def main():
-    print(traverse_tow_constructor(31))
+    velocity_check(5)
+    # print(traverse_tow_constructor(31))
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
