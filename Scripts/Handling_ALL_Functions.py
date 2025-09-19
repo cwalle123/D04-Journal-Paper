@@ -144,7 +144,8 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 
         # --- Trim LT to first continuous 107 <= x <= 1107 ---
         x_col = LT_arr[:, 1]
-        mask = (x_col >= 107) & (x_col <= 1107)
+        TCP_to_LLS_B = 107
+        mask = (x_col >= TCP_to_LLS_B) & (x_col <= (1000 + TCP_to_LLS_B))
         if not np.any(mask):
             raise ValueError(f"Tow {tow}: no x values between 107 and 1107.")
 
@@ -182,25 +183,21 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
             ])
             synced_cols = ["time", "Gap_leftedge", "Gap_rightedge", "Gap_gap", "LT_x", "LT_y", "LT_z"]
 
-            # --- Remove spikes in Gap edges ---
-            spike_threshold = 0.3  # mm, max allowed jump
+            # --- Remove spike rows but keep NaNs ---
+            spike_threshold = 0.3  # mm
             left_diff = np.diff(synced[:, 1], prepend=synced[0, 1])
             right_diff = np.diff(synced[:, 2], prepend=synced[0, 2])
-            spike_mask = (np.abs(left_diff) <= spike_threshold) & (np.abs(right_diff) <= spike_threshold)
-            spikes_removed = np.where(~spike_mask)[0]
+            keep_mask = np.ones(synced.shape[0], dtype=bool)
 
-            if spikes_removed.size > 0:
-                for idx in spikes_removed:
-                    msgs = []
-                    if not np.isnan(left_diff[idx]) and np.abs(left_diff[idx]) > spike_threshold:
-                        msgs.append(f"Gap_left jump = {left_diff[idx]:.2f} mm")
-                    if not np.isnan(right_diff[idx]) and np.abs(right_diff[idx]) > spike_threshold:
-                        msgs.append(f"Gap_right jump = {right_diff[idx]:.2f} mm")
-                    if msgs:  # only print if there's at least one jump
-                        print(f"Tow {tow}: removed spike at x = {synced[idx, 4]:.2f} mm, " + ", ".join(msgs))
+            for idx in range(synced.shape[0]):
+                if not np.isnan(left_diff[idx]) and np.abs(left_diff[idx]) > spike_threshold:
+                    keep_mask[idx] = False
+                    print(f"Tow {tow}: removed spike at x = {synced[idx, 4]:.2f} mm, Gap_left jump = {left_diff[idx]:.2f} mm")
+                if not np.isnan(right_diff[idx]) and np.abs(right_diff[idx]) > spike_threshold:
+                    keep_mask[idx] = False
+                    print(f"Tow {tow}: removed spike at x = {synced[idx, 4]:.2f} mm, Gap_right jump = {right_diff[idx]:.2f} mm")
 
-            # Apply mask to remove spikes
-            synced = synced[spike_mask, :]
+            synced = synced[keep_mask, :]
 
             # --- Remove rows with NaN ---
             # valid_rows = ~np.isnan(synced).any(axis=1)
@@ -341,7 +338,7 @@ def traverse_vs_layup_data(tow: int):
 """Run this file"""
 
 def main():
-    x = get_synced_data(25, "Traverse", overwrite=True)
+    x = get_synced_data(1, "Traverse", overwrite=True)
 
     # Just to check if the new data with weights is correct (it is)
     # for tow in range(1,32):
