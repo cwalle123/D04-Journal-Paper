@@ -40,6 +40,8 @@ def traverse_tow_constructor(tow: int):
         # Load synced and interpolated data of both gaps adjacent to tow, set rows outside range of tow (0-1000 mm) equal to NaN
         gap_right_data_full = get_synced_data((tow-1), "Traverse_Interpolated")
         gap_left_data_full = get_synced_data(tow, "Traverse_Interpolated")
+        gap_right_data_full = get_synced_data((tow-1), "Traverse_Interpolated_Z_Sync") # Temporarily overwrites the previous calls of get_synced_data to see the Z synced data
+        gap_left_data_full = get_synced_data(tow, "Traverse_Interpolated_Z_Sync") # Temporarily overwrites the previous calls of get_synced_data to see the Z synced data
         gap_right_data = gap_right_data_full.where((gap_right_data_full["LT_x"] > 0) & (gap_right_data_full["LT_x"] < 1000))
         gap_left_data = gap_left_data_full.where((gap_left_data_full["LT_x"] > 0) & (gap_left_data_full["LT_x"] < 1000))
 

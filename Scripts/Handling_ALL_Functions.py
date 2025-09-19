@@ -63,7 +63,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     Adds error column based on nominal value for the sensor type.
     Returns a Pandas DataFrame instead of NumPy array.
     """
-    if sensor_type not in ["LT", "LLS_A", "LLS_B", "CAM", "TRAVERSE_GAP", "TRAVERSE_LT", "Traverse", "Traverse_Interpolated"]:
+    if sensor_type not in ["LT", "LLS_A", "LLS_B", "CAM", "TRAVERSE_GAP", "TRAVERSE_LT", "Traverse", "Traverse_Interpolated", "Traverse_Interpolated_Z_Sync"]:
         raise KeyError(f"The key '{sensor_type}' is invalid")
     if tow not in range(1, 32):
         raise IndexError(f"Tow ID {tow} is out of range")
@@ -175,6 +175,62 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
             col_names.extend(LT_cols)
 
     elif sensor_type == "Traverse_Interpolated":
+        if tow in range(1, 31):
+            # Step 1: Load LT and Gap arrays from Excel
+            LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
+            Gap_arr, Gap_cols = Traverse_Gap_excel_to_array(tow)
+
+            # Step 2: Guard against empty arrays
+            if LT_arr.size == 0 or Gap_arr.size == 0:
+                # If one dataset is missing, return an empty placeholder
+                synced_cols = Gap_cols + LT_cols
+                arrays.append(np.empty((0, len(synced_cols))))
+                col_names.extend(synced_cols)
+                print(f"Tow {tow}: one of the arrays was empty, skipping.")
+            
+            else:
+                # Step 3: Extract raw time axes
+                gap_time = Gap_arr[:, 0]                   
+                lt_time  = LT_arr[:, 0]
+
+                
+                # Step 4: Build common time axis
+                # Use the union of all unique time points from Gap and LT
+                common_time = np.union1d(gap_time, lt_time)
+
+                # Step 5: Interpolate Gap data onto common_time
+                gap_interp_values = []
+                for col_index in range(Gap_arr.shape[1]):
+                    # Build a linear interpolator for each column in Gap
+                    f_gap = interp1d(gap_time, Gap_arr[:, col_index], kind="linear", fill_value="extrapolate")
+                    # Evaluate on the common time grid
+                    gap_interp_values.append(f_gap(common_time))
+                gap_interp = np.column_stack(gap_interp_values)
+
+                # Step 6: Interpolate LT data onto common_time
+                lt_interp_values = []
+                LT_keep_cols = [c for c in LT_cols if c != "LT_time"]  # ignore raw time col
+                for col_name in LT_keep_cols:
+                    col_index = LT_cols.index(col_name)
+                    f_lt = interp1d(lt_time, LT_arr[:, col_index], kind="linear", fill_value="extrapolate")
+                    lt_interp_values.append(f_lt(common_time))
+                lt_interp = np.column_stack(lt_interp_values)
+
+                # Step 7: Combine everything into one array
+                # Format: [time, Gap columns..., LT columns...]
+                synced = np.column_stack([common_time, gap_interp[:, 1:], lt_interp])
+                synced_cols = ["time"] + Gap_cols[1:] + LT_keep_cols
+
+                arrays.append(synced)
+                col_names.extend(synced_cols)
+
+        elif tow == 31:
+            # Special case: just keep LT data as-is
+            LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
+            arrays.append(LT_arr)
+            col_names.extend(LT_cols)
+
+    elif sensor_type == "Traverse_Interpolated_Z_Sync":
         """
         Load all 31 tows, trim to the shortest last z < -0.03,
         interpolate Gap onto LT time, and return only selected columns.
@@ -364,11 +420,11 @@ def traverse_vs_layup_data(tow: int):
 """Run this file"""
 
 def main():
-    x = get_synced_data(1, "Traverse_Interpolated", overwrite=True)
+    x = get_synced_data(1, "Traverse_Interpolated_Z_Sync", overwrite=True)
 
     # Just to check if the new data with weights is correct (it is)
     # for tow in range(1,32):
-    #     x = get_synced_data(tow, "Traverse_Interpolated", overwrite=True)
+    #     x = get_synced_data(tow, "Traverse_Interpolated_Z_Sync", overwrite=True) # Takes a long time as it needs to load all tow data
     #     print(np.shape(x))
 
     #print("Columns:", x.columns.tolist())
