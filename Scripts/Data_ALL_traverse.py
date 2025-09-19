@@ -21,8 +21,8 @@ def traverse_LT_viewer(tow: int):
     Shows left and right edges of the tow.
     """
     # --- Load trimmed traverse data ---
-    gap_right_data = get_synced_data(tow - 1, "Traverse_Interpolated", overwrite=True) 
-    gap_left_data = get_synced_data(tow, "Traverse_Interpolated", overwrite=True)
+    gap_right_data = get_synced_data(tow - 1, "Traverse", overwrite=True) 
+    gap_left_data = get_synced_data(tow, "Traverse", overwrite=True)
 
     # --- Extract data for right edge ---
     x_right = gap_right_data["LT_x"].to_numpy()
@@ -53,7 +53,7 @@ def traverse_LT_viewer(tow: int):
     plt.show()
 
 def traverse_tow_constructor(tow: int):
-    """Construct edge lines of a tow from traverse data with outlier removal."""
+    """Construct edge lines of a tow from traverse data (outliers already removed in get_synced_data)."""
     
     if tow not in range(2, 31):
         print("Tow 1 or 31 cannot be recreated from traverse data.")
@@ -81,13 +81,6 @@ def traverse_tow_constructor(tow: int):
     x_left = x_left[:min_len]
     y_left = y_left[:min_len]
     edge_left = edge_left[:min_len]
-
-    # --- Remove Gap edge outliers (left and right separately) ---
-    left_mean = np.nanmean(edge_left)
-    right_mean = np.nanmean(edge_right)
-    mask = (np.abs(edge_left - left_mean) <= 2.0) & (np.abs(edge_right - right_mean) <= 2.0)
-
-    x_right, y_right, x_left, y_left, edge_right, edge_left = [arr[mask] for arr in [x_right, y_right, x_left, y_left, edge_right, edge_left]]
 
     # --- Calculate y positions using frame width ---
     y_offset = 0.5 * frame_width_traverse
@@ -172,7 +165,7 @@ def z_check(tow: int):
     z_data = LT_arr[:, 3]   # z
 
     # --- Find first continuous segment where 0 <= x <= 1000 ---
-    mask = (x_data >= 0) & (x_data <= 1000)
+    mask = (x_data >= -1000) & (x_data <= 2000)
     if not np.any(mask):
         raise ValueError("No x values between 0 and 1000 mm in this dataset.")
 
@@ -274,10 +267,11 @@ def plot_all_tows_trimmed():
 """Run this file"""
 
 def main():
-    # traverse_LT_viewer(2)
+    traverse_LT_viewer(2)
+    # z_check(5)
     # velocity_check(5)
     # plot_all_tows_trimmed()
-    print(traverse_tow_constructor(27))
+    # print(traverse_tow_constructor(27))
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

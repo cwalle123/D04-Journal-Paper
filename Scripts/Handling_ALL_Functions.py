@@ -63,7 +63,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     Adds error column based on nominal value for the sensor type.
     Returns a Pandas DataFrame instead of NumPy array.
     """
-    if sensor_type not in ["LT", "LLS_A", "LLS_B", "CAM", "TRAVERSE_GAP", "TRAVERSE_LT", "Traverse", "Traverse_Interpolated"]:
+    if sensor_type not in ["LT", "LLS_A", "LLS_B", "CAM", "TRAVERSE_GAP", "TRAVERSE_LT", "Traverse"]:
         raise KeyError(f"The key '{sensor_type}' is invalid")
     if tow not in range(1, 32):
         raise IndexError(f"Tow ID {tow} is out of range")
@@ -124,12 +124,15 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         error_col = arr[:, 0] - NOMINAL_LLS_B
         arrays.append(error_col[:, None])
         col_names.append("error_LLS_B")
-    
+
     elif sensor_type == "Traverse":
         """
-        Load one tow, trim LT to 0 <= x <= 1000, reset LT time,
-        scale Gap data to a common time axis matching LT,
-        remove rows with NaN, remove Gap edge outliers.
+        Load one tow, trim LT to first continuous region where 107 <= x <= 1107,
+        reset LT time (start at 0),
+        compute Gap x-position from time (velocity = 50 mm/s),
+        interpolate Gap data onto LT_x using linear splines,
+        horizontally stack, remove rows with outliers,
+        and print info when outliers are removed.
         """
 
         # --- Load LT and Gap data ---
@@ -139,11 +142,11 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
         if LT_arr.size == 0:
             raise ValueError(f"Tow {tow}: LT array empty.")
 
-        # --- Trim LT to first continuous 0 <= x <= 1000 ---
+        # --- Trim LT to first continuous 107 <= x <= 1107 ---
         x_col = LT_arr[:, 1]
-        mask = (x_col >= 0) & (x_col <= 1000)
+        mask = (x_col >= 107) & (x_col <= 1107)
         if not np.any(mask):
-            raise ValueError(f"Tow {tow}: no x values between 0 and 1000.")
+            raise ValueError(f"Tow {tow}: no x values between 107 and 1107.")
 
         start_idx = np.argmax(mask)
         end_idx = start_idx
@@ -151,108 +154,64 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
             end_idx += 1
         LT_arr = LT_arr[start_idx:end_idx, :]
 
-        # --- Reset LT time to start at 0 ---
+        # --- Reset LT time and x to start at 0 ---
         LT_arr[:, 0] -= LT_arr[0, 0]
+        LT_arr[:, 1] -= LT_arr[0, 1]
+        LT_x = LT_arr[:, 1]
 
         # --- Process Gap data ---
         if Gap_arr is not None:
-            Gap_scaled = Gap_arr.copy()
-            gap_start = Gap_scaled[0, 0]
-            gap_end = Gap_scaled[-1, 0]
-            if gap_end == gap_start:
-                raise ValueError(f"Tow {tow}: Gap start and end times are equal, cannot scale.")
+            # Compute Gap x from velocity
+            gap_time = Gap_arr[:, 0] - Gap_arr[0, 0]
+            gap_x = gap_time * 50.0  # mm/s
 
-            # --- Create common time axis from LT ---
-            common_time = LT_arr[:, 0]
+            # Interpolate Gap columns onto LT_x axis
+            Gap_interp = np.zeros((LT_x.shape[0], 3))
+            interp_kind = "linear"
 
-            # --- Linearly scale each Gap column to the common_time axis ---
-            scaled_gap_cols = np.zeros((common_time.shape[0], 3))  # assuming 3 Gap columns: leftedge, rightedge, gap
             for i in range(1, 4):  # skip Gap time column
-                scaled_gap_cols[:, i - 1] = np.interp(
-                    common_time,
-                    (Gap_scaled[:, 0] - gap_start) / (gap_end - gap_start) * common_time[-1],
-                    Gap_scaled[:, i]
-                )
+                f = interp1d(gap_x, Gap_arr[:, i], kind=interp_kind, bounds_error=False, fill_value=np.nan)
+                Gap_interp[:, i - 1] = f(LT_x)
 
-            # --- Combine LT and scaled Gap data ---
+            # --- Combine LT and Gap data ---
             synced = np.column_stack([
-                common_time,       # time
-                scaled_gap_cols,   # Gap data (leftedge, rightedge, gap)
-                LT_arr[:, 1:4]     # LT data (x, y, z)
+                LT_arr[:, 0],   # time
+                Gap_interp,     # Gap_leftedge, Gap_rightedge, Gap_gap
+                LT_x,           # LT_x
+                LT_arr[:, 2:4]  # LT_y, LT_z
             ])
             synced_cols = ["time", "Gap_leftedge", "Gap_rightedge", "Gap_gap", "LT_x", "LT_y", "LT_z"]
 
+            # --- Remove spikes in Gap edges ---
+            spike_threshold = 0.3  # mm, max allowed jump
+            left_diff = np.diff(synced[:, 1], prepend=synced[0, 1])
+            right_diff = np.diff(synced[:, 2], prepend=synced[0, 2])
+            spike_mask = (np.abs(left_diff) <= spike_threshold) & (np.abs(right_diff) <= spike_threshold)
+            spikes_removed = np.where(~spike_mask)[0]
+
+            if spikes_removed.size > 0:
+                for idx in spikes_removed:
+                    msgs = []
+                    if not np.isnan(left_diff[idx]) and np.abs(left_diff[idx]) > spike_threshold:
+                        msgs.append(f"Gap_left jump = {left_diff[idx]:.2f} mm")
+                    if not np.isnan(right_diff[idx]) and np.abs(right_diff[idx]) > spike_threshold:
+                        msgs.append(f"Gap_right jump = {right_diff[idx]:.2f} mm")
+                    if msgs:  # only print if there's at least one jump
+                        print(f"Tow {tow}: removed spike at x = {synced[idx, 4]:.2f} mm, " + ", ".join(msgs))
+
+            # Apply mask to remove spikes
+            synced = synced[spike_mask, :]
+
             # --- Remove rows with NaN ---
-            valid_rows = ~np.isnan(synced).any(axis=1)
-            synced = synced[valid_rows, :]
+            # valid_rows = ~np.isnan(synced).any(axis=1)
+            # synced = synced[valid_rows, :]
 
         else:
-            # If no Gap, just use LT
             synced = LT_arr
             synced_cols = LT_cols
 
         arrays.append(synced)
         col_names.extend(synced_cols)
-
-    elif sensor_type == "Traverse_Interpolated":
-        """
-        Load one tow, trim to first continuous region where 0 <= x <= 1000,
-        interpolate LT along its own LT_x, interpolate Gap onto LT_x,
-        horizontally stack, and remove rows with NaN.
-        """
-
-        # --- Load LT and Gap data ---
-        LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
-        Gap_arr, Gap_cols = Traverse_Gap_excel_to_array(tow) if tow < 31 else (None, None)
-
-        if LT_arr.size == 0:
-            raise ValueError(f"Tow {tow}: LT array empty.")
-
-        # --- Trim LT to first continuous 0 <= x <= 1000 ---
-        x_col = LT_arr[:, 1]
-        mask = (x_col >= 0) & (x_col <= 1000)
-        if not np.any(mask):
-            raise ValueError(f"Tow {tow}: no x values between 0 and 1000.")
-
-        start_idx = np.argmax(mask)
-        end_idx = start_idx
-        while end_idx < len(mask) and mask[end_idx]:
-            end_idx += 1
-        LT_arr = LT_arr[start_idx:end_idx, :]
-
-        # --- Reset LT time to start at 0 ---
-        LT_arr[:, 0] -= LT_arr[0, 0]
-
-        # --- Interpolate LT along its own LT_x ---
-        LT_x = LT_arr[:, 1]
-        LT_interp = np.zeros_like(LT_arr)
-        for col_idx in range(LT_arr.shape[1]):
-            f = interp1d(LT_x, LT_arr[:, col_idx], kind="linear", bounds_error=False, fill_value=np.nan)
-            LT_interp[:, col_idx] = f(LT_x)
-
-        # --- Interpolate Gap onto LT_x ---
-        if Gap_arr is not None:
-            if Gap_arr[-1, 0] == 0:
-                raise ValueError(f"Tow {tow}: last Gap time is zero, cannot compute Gap_x.")
-            Gap_x = Gap_arr[:, 0] / Gap_arr[-1, 0]  # normalized Gap_x
-
-            Gap_interp = np.zeros((LT_x.shape[0], Gap_arr.shape[1]))
-            for i, col_idx in enumerate(range(Gap_arr.shape[1])):
-                f = interp1d(Gap_x, Gap_arr[:, col_idx], kind="linear", bounds_error=False, fill_value=np.nan)
-                Gap_interp[:, i] = f(LT_x / LT_x[-1])  # scale LT_x to 0..1 for matching Gap_x
-        else:
-            Gap_interp = np.zeros((LT_x.shape[0], 3))  # placeholder
-
-        # --- Horizontally stack Gap and LT ---
-        synced = np.hstack([LT_arr[:, [0]], Gap_interp[:, 1:4], LT_interp[:, 1:4]])
-        synced_cols = ["time", "Gap_leftedge", "Gap_rightedge", "Gap_gap", "LT_x", "LT_y", "LT_z"]
-
-        # --- Remove rows with NaN ---
-        valid_rows = ~np.isnan(synced).any(axis=1)
-        synced = synced[valid_rows, :]
-
-        arrays = [synced]
-        col_names = synced_cols
     
     """elif sensor_type == "TRAVERSE_GAP":
         
@@ -382,11 +341,11 @@ def traverse_vs_layup_data(tow: int):
 """Run this file"""
 
 def main():
-    x = get_synced_data(26, "Traverse", overwrite=True)
+    x = get_synced_data(25, "Traverse", overwrite=True)
 
     # Just to check if the new data with weights is correct (it is)
     # for tow in range(1,32):
-    #     x = get_synced_data(tow, "Traverse_Interpolated", overwrite=True)
+    #     x = get_synced_data(tow, "Traverse", overwrite=True)
     #     print(np.shape(x))
 
     #print("Columns:", x.columns.tolist())
