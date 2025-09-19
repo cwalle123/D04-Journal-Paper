@@ -277,14 +277,14 @@ def GAP_excel_to_array(gap_num):
 def Traverse_LT_excel_to_array(tow_nr):
     """
     Reads the traverse tracker data for a specified tow number.
-    
+
     Args:
         tow_nr (int): tow number (1 to 31 inclusive)
-        
+
     Returns:
         tuple: (numpy.ndarray, list)
-            - Data array with shape (shortest_length, 2) containing columns [time, x, y, z].
-            - List of column names: ['time', 'x', 'y', 'z'].
+            - Data array with shape (n, 4) containing columns [time, x, y, z].
+            - List of column names: ['LT_time', 'LT_x', 'LT_y', 'LT_z'].
     """
 
     path_base = r"Synced data from Siddharth\ExportedCSVs\Traverse\Traverse tracker data"
@@ -293,38 +293,27 @@ def Traverse_LT_excel_to_array(tow_nr):
     y_col = "Y_mm_"
     z_col = "Z_mm_"
 
-    smallest_file_length = None
-
     if tow_nr < 1 or tow_nr > 31:
         raise ValueError("tow_nr must be between 1 and 31 inclusive.")
     
-    for tow in range(1,32):
-        file_name = f"TrackerData_{tow}_Traverse.csv"
-        file_path = os.path.join(path_base, file_name)
-        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
-    
-        if time_col not in df.columns or x_col not in df.columns or y_col not in df.columns or z_col not in df.columns:
-            raise ValueError(f"Missing columns in file: {file_path}")
-        
-        data_sub = df[[time_col, x_col, y_col, z_col]]
-        nan_indices = np.where(data_sub.isna().any(axis=1))[0]
-        valid_length = nan_indices[0] if len(nan_indices) > 0 else len(data_sub)
-
-        if smallest_file_length is None or valid_length < smallest_file_length:
-            smallest_file_length = valid_length
-    
+    # Load the requested tow file
     file_name = f"TrackerData_{tow_nr}_Traverse.csv"
     file_path = os.path.join(path_base, file_name)
     df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
 
-    # Cut off data that is outside 1000 mm tow range
-    df = df[(df["X_mm_"] >= 0) & (df["X_mm_"] <= 1000)]
+    # Validate required columns
+    required_cols = [time_col, x_col, y_col, z_col]
+    if not all(col in df.columns for col in required_cols):
+        raise ValueError(f"Missing required columns in file: {file_path}")
 
-    #Calculate seconds passed since beginning of measurement
+    # Convert timestamp → seconds since start
     df[time_col] = pd.to_datetime(df[time_col], errors="raise", format="%d.%m.%Y %H:%M:%S.%f")
     df[time_col] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
 
-    tow_traverse_data = df[[time_col, x_col, y_col, z_col]].iloc[:smallest_file_length].to_numpy()
+    # Drop rows with NaNs (instead of cutting length globally)
+    df = df.dropna(subset=required_cols)
+
+    tow_traverse_data = df[[time_col, x_col, y_col, z_col]].to_numpy()
 
     return tow_traverse_data, ['LT_time', 'LT_x', 'LT_y', 'LT_z']
 

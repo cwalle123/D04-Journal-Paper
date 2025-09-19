@@ -91,7 +91,7 @@ def plot_Layup_vs_Traverse_tow(tow: int, tow_length_mm=1000):
         plt.xlabel("X (mm)")
         plt.ylabel("Y (mm)")
         plt.title(f"Real tow {tow} from traverse interpolated data and layup data")
-        plt.legend()
+        plt.legend(loc="lower left")
         plt.grid(True)
         plt.tight_layout()
         plt.show()
@@ -415,10 +415,11 @@ def optimize_fft_match(tow: int,
 
 def main():
     #plot_real_tow(15)
-    # for tow in range(32):
+    # for tow in range(1,32):
+    #     print(tow)
     #     plot_Layup_vs_Traverse_tow(tow)
 
-    plot_Layup_vs_Traverse_tow(5)
+    plot_Layup_vs_Traverse_tow(25) # 25 is the only weird one
 
     # real_df, sim_df = plot_simulated_vs_real_tow(8)
     # compare_fft_real_vs_sim(real_df, sim_df)
