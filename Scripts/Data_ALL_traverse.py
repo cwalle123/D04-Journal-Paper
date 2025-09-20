@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # Internal imports
 from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse
 from Handling_ALL_Functions import get_synced_data
-from Data_ALL_importer import Traverse_LT_excel_to_array
+from Data_ALL_importer import Traverse_LT_excel_to_array, Traverse_Gap_excel_to_array
 
 ##############################################################################################################
 """Functions"""
@@ -102,7 +102,7 @@ def raw_vs_interpolated_comparison(tow: int):
     #raw_data = 
     return NotImplementedError
 
-def velocity_check(tow: int):
+def LT_velocity_check(tow: int):
     # --- Load data ---
     LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
     t_data = LT_arr[:, 0]   # time
@@ -156,6 +156,51 @@ def velocity_check(tow: int):
     plt.show()
 
     return t_trim, x_trim, z_trim, v_inst, v_const
+
+def GAP_velocity_check(tow: int):
+    # --- Load data ---
+    Gap_arr, Gap_cols = Traverse_Gap_excel_to_array(tow)
+    t_data = Gap_arr[:, 0]       # seconds (already elapsed time)
+    gap_data = Gap_arr[:, 3]     # actual gap values, but we’ll track along-tow position
+
+    # --- Build virtual x-axis for 1000 mm tow ---
+    # Sampling rate = 4 ms
+    dt = 0.004
+    n_points = len(t_data)
+    x_data = np.linspace(0, 1000, n_points)   # assume evenly spaced along tow length
+
+    # --- Instantaneous velocity (mm/s) ---
+    v_inst = np.gradient(x_data, t_data)
+
+    # --- Average velocity ---
+    v_avg = 1000 / (t_data[-1] - t_data[0])
+    v_avg_line = np.full_like(t_data, v_avg)
+
+    # --- Plot ---
+    plt.figure(figsize=(10, 6))
+
+    # Gap vs position
+    plt.subplot(2, 1, 1)
+    plt.plot(x_data, gap_data, label="Gap", color="steelblue")
+    plt.xlabel("Tow Position (mm)")
+    plt.ylabel("Gap (mm)")
+    plt.title(f"Tow {tow} Gap and Velocity (0–1000 mm)")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
+
+    # Velocity comparison
+    plt.subplot(2, 1, 2)
+    plt.plot(t_data, v_inst, label="Instantaneous Velocity", color="darkorange")
+    plt.plot(t_data, v_avg_line, "--", label=f"Average Velocity = {v_avg:.3f}", color="green")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Velocity (mm/s)")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
+
+    plt.tight_layout()
+    plt.show()
+
+    return t_data, x_data, gap_data, v_inst, v_avg
 
 def z_check(tow: int):
     # --- Load data ---
@@ -267,11 +312,12 @@ def plot_all_tows_trimmed():
 """Run this file"""
 
 def main():
-    traverse_LT_viewer(2)
+    # traverse_LT_viewer(2)
     # z_check(5)
-    # velocity_check(5)
+    # LT_velocity_check(5)
+    GAP_velocity_check(5)
     # plot_all_tows_trimmed()
-    # print(traverse_tow_constructor(27))
+    print(traverse_tow_constructor(5))
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

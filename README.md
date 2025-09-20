@@ -12,11 +12,11 @@ This means that many of the syncing and files relates to the syncing is no longe
 and means that we are continuing with the assumptions that there is no correlation between
 different error types.
 
-Right now there are 1 task that needs to be tackled to make our model work:
-We need to retrain the model on the new experimental data and validate it
+Right now there is only 1 task that needs to be tackled to make our model work:
+We need to validate the model
 
 This might seem like we need to redo a lot of things, but this isnt true. We already have our
-existing code working. All we have to do is make sure that our previous code can handle this new data stream and regenerate the result figures.
+existing code working. All we have to do is regenerate the result figures.
 
 More specific tasks and updates are to be added/completed in the TODO file.
 

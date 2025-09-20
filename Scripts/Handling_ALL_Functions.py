@@ -128,8 +128,8 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     elif sensor_type == "Traverse":
         """
         Load one tow, trim LT to first continuous region where 107 <= x <= 1107,
-        reset LT time (start at 0),
-        compute Gap x-position from time (velocity = 50 mm/s),
+        reset LT time and x (start at 0),
+        compute Gap x-position from instantaneous Gap velocity,
         interpolate Gap data onto LT_x using linear splines,
         horizontally stack, remove rows with outliers,
         and print info when outliers are removed.
@@ -144,7 +144,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 
         # --- Trim LT to first continuous 107 <= x <= 1107 ---
         x_col = LT_arr[:, 1]
-        mask = (x_col >= TCP_LLS_B) & (x_col <= (1000 + TCP_LLS_B)) # TCP_LLS_B from constants.py
+        mask = (x_col >= TCP_LLS_B) & (x_col <= (1000 + TCP_LLS_B))  # TCP_LLS_B from constants.py
         if not np.any(mask):
             raise ValueError(f"Tow {tow}: no x values between 107 and 1107.")
 
@@ -161,12 +161,20 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 
         # --- Process Gap data ---
         if Gap_arr is not None:
-            # Compute Gap x from tow average velocity
+            # Gap time relative to start
             gap_time = Gap_arr[:, 0] - Gap_arr[0, 0]
-            gap_velocity = 1000 / gap_time[-1] # average velocity for respective tow
-            gap_x = gap_time * gap_velocity  # mm/s
 
-            # Interpolate Gap columns onto LT_x axis
+            # --- Compute instantaneous gap velocity (mm/s) ---
+            # Assume tow length = 1000 mm spread across Gap samples
+            n_points = len(gap_time)
+            gap_pos = np.linspace(0, 1000, n_points)  # this essentially applies the sampling rate of 4ms
+            gap_v_inst = np.gradient(gap_pos, gap_time)
+
+            # --- Compute gap_x from integrating instantaneous velocity ---
+            gap_x = np.cumsum(gap_v_inst * np.gradient(gap_time))
+            gap_x -= gap_x[0]  # start at 0
+
+            # --- Interpolate Gap columns onto LT_x axis ---
             Gap_interp = np.zeros((LT_x.shape[0], 3))
             interp_kind = "linear"
 
@@ -176,15 +184,15 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 
             # --- Combine LT and Gap data ---
             synced = np.column_stack([
-                LT_arr[:, 0],   # time
-                Gap_interp,     # Gap_leftedge, Gap_rightedge, Gap_gap
-                LT_x,           # LT_x
-                LT_arr[:, 2:4]  # LT_y, LT_z
-            ])
+                LT_arr[:, 0],       # time
+                Gap_interp,         # Gap_leftedge, Gap_rightedge, Gap_gap
+                LT_x,               # LT_x
+                LT_arr[:, 2:4]])    # LT_y, LT_z
+            
             synced_cols = ["time", "Gap_leftedge", "Gap_rightedge", "Gap_gap", "LT_x", "LT_y", "LT_z"]
 
             # --- Remove spike rows but keep NaNs ---
-            spike_threshold = 0.3  # mm
+            spike_threshold = 0.21  # mm
             left_diff = np.diff(synced[:, 1], prepend=synced[0, 1])
             right_diff = np.diff(synced[:, 2], prepend=synced[0, 2])
             keep_mask = np.ones(synced.shape[0], dtype=bool)
@@ -198,10 +206,6 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
                     print(f"Tow {tow}: removed spike at x = {synced[idx, 4]:.2f} mm, Gap_right jump = {right_diff[idx]:.2f} mm")
 
             synced = synced[keep_mask, :]
-
-            # --- Remove rows with NaN ---
-            # valid_rows = ~np.isnan(synced).any(axis=1)
-            # synced = synced[valid_rows, :]
 
         else:
             synced = LT_arr
@@ -338,12 +342,12 @@ def traverse_vs_layup_data(tow: int):
 """Run this file"""
 
 def main():
-    x = get_synced_data(9, "Traverse", overwrite=True)
+    x = get_synced_data(5, "Traverse", overwrite=True)
 
     # Just to check if the new data with weights is correct (it is)
-    #for tow in range(1,32):
-    #    x = get_synced_data(tow, "Traverse", overwrite=True)
-    #    print(np.shape(x))
+    # for tow in range(1,32):
+    #     x = get_synced_data(tow, "Traverse", overwrite=True)
+    #     print(np.shape(x))
 
     #print("Columns:", x.columns.tolist())
 
