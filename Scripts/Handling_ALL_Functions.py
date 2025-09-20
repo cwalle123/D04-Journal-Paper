@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 
 # Internal imports
 from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, Traverse_Gap_excel_to_array, Traverse_LT_excel_to_array
-from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse
+from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse, TCP_LLS_B
 
 ##############################################################################################################
 """Functions for saving, loading, and purging data"""
@@ -144,8 +144,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 
         # --- Trim LT to first continuous 107 <= x <= 1107 ---
         x_col = LT_arr[:, 1]
-        TCP_to_LLS_B = 107
-        mask = (x_col >= TCP_to_LLS_B) & (x_col <= (1000 + TCP_to_LLS_B))
+        mask = (x_col >= TCP_LLS_B) & (x_col <= (1000 + TCP_LLS_B)) # TCP_LLS_B from constants.py
         if not np.any(mask):
             raise ValueError(f"Tow {tow}: no x values between 107 and 1107.")
 
@@ -162,9 +161,10 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
 
         # --- Process Gap data ---
         if Gap_arr is not None:
-            # Compute Gap x from velocity
+            # Compute Gap x from tow average velocity
             gap_time = Gap_arr[:, 0] - Gap_arr[0, 0]
-            gap_x = gap_time * 50.0  # mm/s
+            gap_velocity = 1000 / gap_time[-1] # average velocity for respective tow
+            gap_x = gap_time * gap_velocity  # mm/s
 
             # Interpolate Gap columns onto LT_x axis
             Gap_interp = np.zeros((LT_x.shape[0], 3))
@@ -338,12 +338,12 @@ def traverse_vs_layup_data(tow: int):
 """Run this file"""
 
 def main():
-    x = get_synced_data(1, "Traverse", overwrite=True)
+    x = get_synced_data(9, "Traverse", overwrite=True)
 
     # Just to check if the new data with weights is correct (it is)
-    # for tow in range(1,32):
-    #     x = get_synced_data(tow, "Traverse", overwrite=True)
-    #     print(np.shape(x))
+    #for tow in range(1,32):
+    #    x = get_synced_data(tow, "Traverse", overwrite=True)
+    #    print(np.shape(x))
 
     #print("Columns:", x.columns.tolist())
 
