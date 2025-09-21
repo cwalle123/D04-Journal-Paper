@@ -1,5 +1,5 @@
 """
-FFT comparison where BOTH sides follow Code A conventions:
+FFT comparison where BOTH sides follow Model_ALL_Validation-Tow_Visualiser conventions:
 
 REAL (Traverse):
   - Built from traverse_tow_constructor(tow)
@@ -9,7 +9,7 @@ REAL (Traverse):
   - normalize by subtracting centerline[0]
   - resample to a uniform x-grid for FFT (recommended)
 
-SIM (Code A style):
+SIM (Model_ALL_Validation-Tow_Visualiser style):
   - CAM + LT consecutive-error paths -> centerline
   - LLS_B consecutive-error path -> width; width = 6.35 + width_error
   - edges = centerline ± 0.5*width
@@ -34,8 +34,8 @@ import constants
 # ---------------- RUN PARAMS ----------------
 tow_number = 8
 length_tow_mm = 1000.0             # physical length used to define sim sampling
-n_steps_sim = 360                   # sim samples (like Code A's number_of_steps)
-num_bins = 180                      # like Code A's Consecutive_Error_Bins
+n_steps_sim = 360                   # sim samples (like Model_ALL_Validation-Tow_Visualiser's number_of_steps)
+num_bins = 180                      # like Model_ALL_Validation-Tow_Visualiser's Consecutive_Error_Bins
 zero_padding_factor = 2
 use_seed = False
 random_seed = 0
@@ -47,7 +47,7 @@ NOMINAL_WIDTH_MM = 6.35
 # ---------- REAL (TRAVERSE) ----------
 def traverse_like_A(tow: int, resample_uniform: bool = True, target_steps: int | None = None):
     """
-    Reconstruct a REAL tow exactly like Code A:
+    Reconstruct a REAL tow exactly like Model_ALL_Validation-Tow_Visualiser:
       - edges from traverse_tow_constructor
       - centerline, width
       - normalization by subtracting centerline[0]
@@ -56,7 +56,7 @@ def traverse_like_A(tow: int, resample_uniform: bool = True, target_steps: int |
     """
     df = traverse_tow_constructor(tow)
 
-    # edges from traverse (Code A source of truth)
+    # edges from traverse (Model_ALL_Validation-Tow_Visualiser source of truth)
     x_r = df["x_right"].to_numpy()
     y_r = df["y_right"].to_numpy()
     x_l = df["x_left"].to_numpy()
@@ -67,7 +67,7 @@ def traverse_like_A(tow: int, resample_uniform: bool = True, target_steps: int |
     centerline = 0.5 * (y_l + y_r)
     width = (y_l - y_r)
 
-    # normalize like Code A (subtract start value)
+    # normalize like Model_ALL_Validation-Tow_Visualiser (subtract start value)
     offset0 = centerline[0]
     centerline = centerline - offset0
     y_l_n = y_l - offset0
@@ -105,12 +105,12 @@ def simulate_like_A(n_steps: int, num_bins: int, length_tow_mm: float, seed=None
     if seed is not None:
         np.random.seed(seed)
 
-    # consecutive-error models for CAM, LT, LLS_B (same as Code A)
+    # consecutive-error models for CAM, LT, LLS_B (same as Model_ALL_Validation-Tow_Visualiser)
     _, sc, ic, _, _, _, xsc, bec, dvc = consecutive_error("CAM",   test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False, random_state=np.random.randint(1e9))
     _, sl, il, _, _, _, xsl, bel, dvl = consecutive_error("LT",    test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False, random_state=np.random.randint(1e9))
     _, sw, iw, _, _, _, xsw, bew, dvw = consecutive_error("LLS_B", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False, random_state=np.random.randint(1e9))
 
-    # starting ranges copied from Code A
+    # starting ranges copied from Model_ALL_Validation-Tow_Visualiser
     start_cam  = np.random.uniform(-0.75,  0.75)
     start_lt   = np.random.uniform(-0.90, -0.70)
     start_llsb = np.random.uniform(-0.21, -0.02)
@@ -125,7 +125,7 @@ def simulate_like_A(n_steps: int, num_bins: int, length_tow_mm: float, seed=None
     top_edge    = centerline + 0.5 * width
     bottom_edge = centerline - 0.5 * width
 
-    # normalize like Code A (subtract starting value)
+    # normalize like Model_ALL_Validation-Tow_Visualiser (subtract starting value)
     offset0 = centerline[0]
     centerline = centerline - offset0
     top_edge    = top_edge - offset0
