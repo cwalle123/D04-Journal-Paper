@@ -1,13 +1,20 @@
-# -*- coding: utf-8 -*-
+"""This file is used to find the optimum number of steps and bins."""
 
+##############################################################################################################
+
+# External imports
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+# -*- coding: utf-8 -*-
 
-# --- Project imports: match Code A sources ---
+#Internal imports
 from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
+
+##############################################################################################################
+"""Functions"""
 
 # ----------------- Helpers -----------------
 
@@ -49,7 +56,6 @@ def build_real_traverse_centerline_like_A(tow: int, resample_uniform: bool = Tru
 
     return x, centerline
 
-
 def simulate_centerline_like_A(n_steps: int, num_bins: int, length_tow_mm: float, nominal_width_mm: float = 6.35):
     """
     SIM (Code A):
@@ -82,7 +88,6 @@ def simulate_centerline_like_A(n_steps: int, num_bins: int, length_tow_mm: float
     # Sim x-grid is uniform [0, length_tow_mm], but FFT uses sampling rate only
     return centerline
 
-
 def single_sided_fft(signal: np.ndarray, sampling_rate: float, pad_factor: int = 1):
     """
     Returns positive-frequency single-sided amplitude spectrum.
@@ -98,7 +103,6 @@ def single_sided_fft(signal: np.ndarray, sampling_rate: float, pad_factor: int =
     pos = freq > 0
     return freq[pos], amp[pos]
 
-
 def mse_over_common_freq_band(freq_a, amp_a, freq_b, amp_b):
     """
     Interpolates amp_b onto freq_a within the common max frequency range, then MSE.
@@ -110,7 +114,6 @@ def mse_over_common_freq_band(freq_a, amp_a, freq_b, amp_b):
     Aa = amp_a[mask]
     Ab_i = np.interp(fa, freq_b, amp_b)
     return mean_squared_error(Aa, Ab_i)
-
 
 # ----------------- Main optimizer -----------------
 
@@ -197,7 +200,11 @@ def find_best_nsteps_and_bins(
 
     return mse_surface, optimal_steps, optimal_bins
 
+##############################################################################################################
+"""Run this file"""
 
-# Run
-if __name__ == "__main__":
+def main():
     find_best_nsteps_and_bins()
+
+if __name__ == "__main__":
+    main()

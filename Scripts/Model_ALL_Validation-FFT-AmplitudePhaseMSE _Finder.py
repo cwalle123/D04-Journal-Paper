@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 FFT comparison where BOTH sides follow Code A conventions:
 
@@ -17,15 +16,21 @@ SIM (Code A style):
   - normalize by subtracting centerline[0]
 """
 
+##############################################################################################################
+
+# External imports
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 
-# ---- Non-standalone project imports (same as Code A) ----
+#Internal imports
 from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 import constants
+# -*- coding: utf-8 -*-
 
+##############################################################################################################
+"""Run parameters"""
 # ---------------- RUN PARAMS ----------------
 tow_number = 8
 length_tow_mm = 1000.0             # physical length used to define sim sampling
@@ -34,10 +39,12 @@ num_bins = 180                      # like Code A's Consecutive_Error_Bins
 zero_padding_factor = 2
 use_seed = False
 random_seed = 0
-
 NOMINAL_WIDTH_MM = 6.35
 
-# ---------- REAL (TRAVERSE) LIKE CODE A ----------
+##############################################################################################################
+"""Functions"""
+
+# ---------- REAL (TRAVERSE) ----------
 def traverse_like_A(tow: int, resample_uniform: bool = True, target_steps: int | None = None):
     """
     Reconstruct a REAL tow exactly like Code A:
@@ -93,7 +100,7 @@ def traverse_like_A(tow: int, resample_uniform: bool = True, target_steps: int |
         "width": width,
     }
 
-# ---------- SIM (LIKE CODE A) ----------
+# ---------- SIM ----------
 def simulate_like_A(n_steps: int, num_bins: int, length_tow_mm: float, seed=None):
     if seed is not None:
         np.random.seed(seed)
@@ -146,7 +153,7 @@ def single_sided_fft(signal, fs, pad_factor=1):
     mask = freqs > 0
     return freqs[mask], amp[mask], phase[mask]
 
-# ---------- Build both tows (A-style) ----------
+# ---------- Build both tows ----------
 real = traverse_like_A(tow_number, resample_uniform=True, target_steps=None)  # uniform resample to len(x)
 sim  = simulate_like_A(n_steps=n_steps_sim, num_bins=num_bins, length_tow_mm=length_tow_mm,
                        seed=(random_seed if use_seed else None))
