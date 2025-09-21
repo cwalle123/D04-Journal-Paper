@@ -114,13 +114,33 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     """
 
     # --- Get real tow ---
-    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm)
+    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False)
 
-    # --- Generate one simulated tow (no plot, just data) ---
+    # Extract edges
+    real_x = real_df["x_right"].to_numpy()
+    real_y_right = real_df["y_right"].to_numpy()
+    real_y_left = real_df["y_left"].to_numpy()
+
+    # Compute centerline
+    real_centerline = 0.5 * (real_y_left + real_y_right)
+
+    # Normalize so centerline starts at 0
+    real_offset = real_centerline[0]
+    real_centerline = real_centerline - real_offset
+    real_y_left = real_y_left - real_offset
+    real_y_right = real_y_right - real_offset
+
+    real_data = pd.DataFrame({
+        "x_mm": real_x,
+        "centerline": real_centerline,
+        "left_edge": real_y_left,
+        "right_edge": real_y_right,
+        "width": real_y_left - real_y_right})
+
+    # --- Generate simulated tow ---
     gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent = generate_multitow_layout(
         num_tows=1, tow_length_mm=tow_length_mm, plot=False)
 
-    # --- For single tow, regenerate its geometry ---
     num_bins = Consecutive_Error_Bins
     n_steps = int(tow_length_mm * 340 / 1000)
     n_steps = number_of_steps
@@ -155,39 +175,46 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     sim_bottom = tow_centerline_sim - 0.5 * tow_widths_sim
     sim_x = np.linspace(0, tow_length_mm, len(tow_centerline_sim))
 
-    # --- Plot both ---
-    if plot == True:
-        plt.figure(figsize=(10, 6))
+    # Normalize so sim starts at y=0
+    sim_offset = tow_centerline_sim[0]
+    tow_centerline_sim = tow_centerline_sim - sim_offset
+    sim_top = sim_top - sim_offset
+    sim_bottom = sim_bottom - sim_offset
 
-        # Real tow
-        plt.plot(real_df["x_mm"], real_df["centerline"], "--", color="blue", label="Real centerline")
-        plt.plot(real_df["x_mm"], real_df["left_edge"], "-", color="blue", alpha=0.6, label="Real edges")
-        plt.plot(real_df["x_mm"], real_df["right_edge"], "-", color="blue", alpha=0.6)
-
-        # Simulated tow
-        plt.plot(sim_x, tow_centerline_sim, "--", color="red", label="Sim centerline")
-        plt.plot(sim_x, sim_top, "-", color="red", alpha=0.6, label="Sim edges")
-        plt.plot(sim_x, sim_bottom, "-", color="red", alpha=0.6)
-
-        plt.xlabel("Tow length (mm)", fontsize=14)
-        plt.ylabel("Position (mm)", fontsize=14)
-        plt.title(f"Tow {tow}: Real vs Simulated", fontsize=16)
-        plt.legend()
-        plt.grid(True)
-
-        # Apply 1:1 scale if requested
-        if scaled:
-            plt.axis("equal")  # ensures X and Y have same scale
-
-        plt.tight_layout()
-        plt.show()
-
-    return real_df, pd.DataFrame({
+    sim_data = pd.DataFrame({
         "x_mm": sim_x,
         "centerline": tow_centerline_sim,
         "top_edge": sim_top,
         "bottom_edge": sim_bottom,
         "width": tow_widths_sim})
+
+    # --- Plot both ---
+    if plot:
+        plt.figure(figsize=(10, 6))
+
+        # Real tow
+        plt.plot(real_data["x_mm"], real_data["centerline"], "--", color="blue", label="Real centerline")
+        plt.plot(real_data["x_mm"], real_data["left_edge"], "-", color="blue", alpha=0.6, label="Real edges")
+        plt.plot(real_data["x_mm"], real_data["right_edge"], "-", color="blue", alpha=0.6)
+
+        # Simulated tow
+        plt.plot(sim_data["x_mm"], sim_data["centerline"], "--", color="red", label="Sim centerline")
+        plt.plot(sim_data["x_mm"], sim_data["top_edge"], "-", color="red", alpha=0.6, label="Sim edges")
+        plt.plot(sim_data["x_mm"], sim_data["bottom_edge"], "-", color="red", alpha=0.6)
+
+        plt.xlabel("Tow length (mm)", fontsize=14)
+        plt.ylabel("Position (mm)", fontsize=14)
+        plt.title(f"Tow {tow}: Real vs Simulated (aligned to y=0)", fontsize=16)
+        plt.legend()
+        plt.grid(True)
+
+        if scaled:
+            plt.axis("equal")
+
+        plt.tight_layout()
+        plt.show()
+
+    return real_data, sim_data
 
 def compare_simulated_vs_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     """
@@ -419,10 +446,10 @@ def main():
     #    print(tow)
     #    plot_Layup_vs_Traverse_tow(tow)
 
-    plot_Layup_vs_Traverse_tow(2)
+    # plot_Layup_vs_Traverse_tow(2)
 
-    # real_df, sim_df = plot_simulated_vs_real_tow(8)
-    # compare_fft_real_vs_sim(real_df, sim_df)
+    real_df, sim_df = plot_simulated_vs_real_tow(8, plot = True)
+    compare_fft_real_vs_sim(real_df, sim_df)
 
     # best_params, best_error = optimize_fft_match(tow=8, steps_range=(600, 1000), bins_range=(60, 100), n_trials=50)
 
