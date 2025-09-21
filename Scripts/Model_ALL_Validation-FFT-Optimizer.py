@@ -20,7 +20,7 @@ from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_pat
 
 def build_real_traverse_centerline_like_A(tow: int, resample_uniform: bool = True, target_steps: int | None = None):
     """
-    REAL (traverse) like Code A:
+    REAL (traverse) like Model_ALL_Validation-Tow_Visualiser:
       - edges from traverse_tow_constructor
       - centerline = (y_left + y_right)/2
       - normalize by subtracting first value
@@ -38,7 +38,7 @@ def build_real_traverse_centerline_like_A(tow: int, resample_uniform: bool = Tru
     x = x_r
     centerline = 0.5 * (y_l + y_r)
 
-    # Normalize to start at 0 (Code A convention)
+    # Normalize to start at 0 (Model_ALL_Validation-Tow_Visualiser convention)
     centerline = centerline - centerline[0]
 
     # Clean + sort
@@ -58,7 +58,7 @@ def build_real_traverse_centerline_like_A(tow: int, resample_uniform: bool = Tru
 
 def simulate_centerline_like_A(n_steps: int, num_bins: int, length_tow_mm: float, nominal_width_mm: float = 6.35):
     """
-    SIM (Code A):
+    SIM (Model_ALL_Validation-Tow_Visualiser):
       - consecutive_error for CAM, LT, LLS_B
       - centerline = CAM + LT
       - width = nominal + LLS_B error (not used in FFT but kept for parity)
@@ -70,7 +70,7 @@ def simulate_centerline_like_A(n_steps: int, num_bins: int, length_tow_mm: float
     _, sl, il, _, _, _, xsl, bel, dvl = consecutive_error("LT",    test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False)
     _, sw, iw, _, _, _, xsw, bew, dvw = consecutive_error("LLS_B", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False)
 
-    # Start ranges copied from Code A
+    # Start ranges copied from Model_ALL_Validation-Tow_Visualiser
     start_cam  = np.random.uniform(-0.75,  0.75)
     start_lt   = np.random.uniform(-0.90, -0.70)
     start_llsb = np.random.uniform(-0.21, -0.02)
@@ -80,9 +80,9 @@ def simulate_centerline_like_A(n_steps: int, num_bins: int, length_tow_mm: float
     w_err    = generate_error_path(start_llsb, n_steps, sw,  iw,  xsw,  bew, dvw)
 
     centerline = cam_path + lt_path
-    width = nominal_width_mm + w_err  # kept for parity with Code A (not used below)
+    width = nominal_width_mm + w_err  # kept for parity with Model_ALL_Validation-Tow_Visualiser (not used below)
 
-    # Normalize like Code A
+    # Normalize like Model_ALL_Validation-Tow_Visualiser
     centerline = centerline - centerline[0]
 
     # Sim x-grid is uniform [0, length_tow_mm], but FFT uses sampling rate only
@@ -129,8 +129,8 @@ def find_best_nsteps_and_bins(
     """
     Grid-search for (n_steps, num_bins) that minimize summed amplitude-spectrum MSE
     across tows, using:
-      - REAL: traverse centerline like Code A
-      - SIM: Code A (CAM + LT + LLS_B), centerline-only FFT
+      - REAL: traverse centerline like Model_ALL_Validation-Tow_Visualiser
+      - SIM: Model_ALL_Validation-Tow_Visualiser (CAM + LT + LLS_B), centerline-only FFT
     """
     if nsteps_candidates is None:
         nsteps_candidates = list(range(100, 600, 10))
@@ -141,7 +141,7 @@ def find_best_nsteps_and_bins(
     for tow in tow_range:
         print(f"[INFO] Processing Tow {tow} ...")
 
-        # --- REAL (Traverse) like Code A ---
+        # --- REAL (Traverse) like Model_ALL_Validation-Tow_Visualiser ---
         x_real, cl_real = build_real_traverse_centerline_like_A(
             tow=tow,
             resample_uniform=resample_uniform_real,
@@ -161,7 +161,7 @@ def find_best_nsteps_and_bins(
                 total_mse = 0.0
 
                 for _ in range(n_repeats):
-                    # --- SIM like Code A ---
+                    # --- SIM like Model_ALL_Validation-Tow_Visualiser ---
                     cl_sim = simulate_centerline_like_A(
                         n_steps=n_steps,
                         num_bins=num_bins,
