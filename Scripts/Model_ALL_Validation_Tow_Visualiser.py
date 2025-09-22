@@ -130,12 +130,6 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     sim_bottom = tow_centerline_sim - 0.5 * tow_widths_sim
     sim_x = np.linspace(0, tow_length_mm, len(tow_centerline_sim))
 
-    # Normalize so sim starts at y=0
-    sim_offset = tow_centerline_sim[0]
-    tow_centerline_sim = tow_centerline_sim - sim_offset
-    sim_top = sim_top - sim_offset
-    sim_bottom = sim_bottom - sim_offset
-
     sim_data = pd.DataFrame({
         "x_mm": sim_x,
         "centerline": tow_centerline_sim,
