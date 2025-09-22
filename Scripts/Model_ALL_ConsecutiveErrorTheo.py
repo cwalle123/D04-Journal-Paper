@@ -118,7 +118,7 @@ def generate_starting_error(sensor: str):
         start_range = (-0.9, -0.7)
     else: print("Invalid sensor type.")
 
-    start_error = random.uniform(*start_range)
+    start_error = random.normalvariate(*start_range)
     return start_error
 
 
