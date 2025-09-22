@@ -124,8 +124,7 @@ def find_best_nsteps_and_bins(
     n_repeats=10,
     zero_padding_factor: int = 2,
     resample_uniform_real: bool = True,
-    sim_length_mm: float = 1000.0
-):
+    sim_length_mm: float = 1000.0):
     """
     Grid-search for (n_steps, num_bins) that minimize summed amplitude-spectrum MSE
     across tows, using:

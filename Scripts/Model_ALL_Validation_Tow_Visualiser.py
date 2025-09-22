@@ -1,5 +1,4 @@
-"""This file is used to generate a figure of a simulated tow vs an experimental tow.
-   This file is currently not being used for anything except plotting"""
+"""This file is used to generate a figure of a simulated tow vs an experimental tow."""
 
 ##############################################################################################################
 
@@ -9,7 +8,6 @@ import numpy as np
 import pandas as pd
 import random
 from scipy.stats import norm
-from scipy.fft import fft, fftfreq
 import os
 
 #Internal imports
@@ -142,7 +140,6 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
         num_tows=1, tow_length_mm=tow_length_mm, plot=False)
 
     num_bins = Consecutive_Error_Bins
-    n_steps = int(tow_length_mm * 340 / 1000)
     n_steps = number_of_steps
 
     # Load error model fits
