@@ -65,12 +65,18 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False)
 
     # Extract edges
-    real_x = real_df["x_right"].to_numpy()
+    real_x_right = real_df["x_right"].to_numpy()
     real_y_right = real_df["y_right"].to_numpy()
+    real_x_left = real_df["x_left"].to_numpy()
     real_y_left = real_df["y_left"].to_numpy()
+
+    '''real_x = real_df["x_right"].to_numpy()
+    real_y_right = real_df["y_right"].to_numpy()
+    real_y_left = real_df["y_left"].to_numpy()'''
 
     # Compute centerline
     real_centerline = 0.5 * (real_y_left + real_y_right)
+    x_centerline = 0.5 * (real_x_right + real_x_left)
 
     # Normalize so centerline starts at 0
     real_offset = real_centerline[0]
@@ -79,8 +85,10 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     real_y_right = real_y_right - real_offset
 
     real_data = pd.DataFrame({
-        "x_mm": real_x,
+        "x_right_edge": real_x_right,
+        "x_left_edge": real_x_left,
         "centerline": real_centerline,
+        "x_centerline": x_centerline,
         "left_edge": real_y_left,
         "right_edge": real_y_right,
         "width": real_y_left - real_y_right})
@@ -140,9 +148,9 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
         plt.figure(figsize=(10, 6))
 
         # Real tow
-        plt.plot(real_data["x_mm"], real_data["centerline"], "--", color="blue", label="Real centerline")
-        plt.plot(real_data["x_mm"], real_data["left_edge"], "-", color="blue", alpha=0.6, label="Real edges")
-        plt.plot(real_data["x_mm"], real_data["right_edge"], "-", color="blue", alpha=0.6)
+        plt.plot(real_data["x_centerline"], real_data["centerline"], "--", color="blue", label="Real centerline")
+        plt.plot(real_data["x_left_edge"], real_data["left_edge"], "-", color="blue", alpha=0.6, label="Real edges")
+        plt.plot(real_data["x_right_edge"], real_data["right_edge"], "-", color="blue", alpha=0.6)
 
         # Simulated tow
         plt.plot(sim_data["x_mm"], sim_data["centerline"], "--", color="red", label="Sim centerline")
