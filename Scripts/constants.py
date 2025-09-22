@@ -28,7 +28,7 @@ y_offset_layup = 125.5 #mm
 y_increment_programmed = 12.5 #mm
 
 # programmed y-offset for traverse gap data collection
-y_offset_traverse = 118.75 #mm
+y_offset_traverse = 125 #mm
 
 # programmed increment size for traverse gap data collection
 y_increment_traverse = 12.5 #mm

@@ -435,7 +435,7 @@ def main():
     plot_histograms_separated(
         df,
         bin_widths=[0.005, 0.005, 0.005, 0.008],
-        run = False)
+        run = True)
 
     plot_LLSA_vs_LLSB(df,
         title="Error LLS A vs. Error LLS B (ALL TOWS)",

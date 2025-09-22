@@ -21,29 +21,29 @@ def traverse_LT_viewer(tow: int):
     Shows left and right edges of the tow.
     """
     # --- Load trimmed traverse data ---
-    gap_right_data = get_synced_data(tow - 1, "Traverse", overwrite=True) 
-    gap_left_data = get_synced_data(tow, "Traverse", overwrite=True)
+    bottom_tow_data = get_synced_data(tow - 1, "Traverse", overwrite=True) 
+    top_tow_data = get_synced_data(tow, "Traverse", overwrite=True)
 
     # --- Extract data for right edge ---
-    x_right = gap_right_data["LT_x"].to_numpy()
-    LT_y_right = gap_right_data["LT_y"].to_numpy()
-    edge_right = gap_right_data["Gap_leftedge"].to_numpy()
+    x_bottom = bottom_tow_data["LT_x"].to_numpy()
+    LT_y_bottom = bottom_tow_data["LT_y"].to_numpy()
+    bottom_edge = bottom_tow_data["Gap_leftedge"].to_numpy()
 
     # --- Extract data for left edge ---
-    x_left = gap_left_data["LT_x"].to_numpy()
-    LT_y_left = gap_left_data["LT_y"].to_numpy()
-    edge_left = gap_left_data["Gap_rightedge"].to_numpy()
+    x_top = top_tow_data["LT_x"].to_numpy()
+    LT_y_top = top_tow_data["LT_y"].to_numpy()
+    top_edge = top_tow_data["Gap_rightedge"].to_numpy()
 
     # --- Calculate y positions of edges ---
-    y_right = LT_y_right + 0.5 * frame_width_traverse - edge_right
-    y_left = LT_y_left + 0.5 * frame_width_traverse - edge_left
+    y_bottom = LT_y_bottom + 0.5 * frame_width_traverse - bottom_edge
+    y_top = LT_y_top + 0.5 * frame_width_traverse - top_edge
 
     # --- Plot ---
     plt.figure(figsize=(10, 5))
-    plt.plot(x_right, LT_y_right, "--", color="orange", label="Raw LT_y right")
-    plt.plot(x_left, LT_y_left, "--", color="cyan", label="Raw LT_y left")
-    plt.plot(x_right, y_right, "-", color="red", linewidth=2, label="Edge right")
-    plt.plot(x_left, y_left, "-", color="blue", linewidth=2, label="Edge left")
+    plt.plot(x_bottom, LT_y_bottom, "--", color="orange", label="Raw LT_y right")
+    plt.plot(x_top, LT_y_top, "--", color="cyan", label="Raw LT_y left")
+    plt.plot(x_bottom, y_bottom, "-", color="red", linewidth=2, label="Edge right")
+    plt.plot(x_top, y_top, "-", color="blue", linewidth=2, label="Edge left")
     plt.xlabel("X (mm)")
     plt.ylabel("Y (mm)")
     plt.title(f"Traverse LT_y and edges for Tow {tow}")
@@ -61,38 +61,41 @@ def traverse_tow_constructor(tow: int):
         return None
 
     # --- Load synced & trimmed data for adjacent gaps ---
-    gap_right_data = get_synced_data(tow - 1, "Traverse", overwrite=True) 
-    gap_left_data = get_synced_data(tow, "Traverse", overwrite=True)
+    bottom_tow_data = get_synced_data(tow - 1, "Traverse", overwrite=True) 
+    top_tow_data = get_synced_data(tow, "Traverse", overwrite=True)
 
     # --- Extract relevant data ---
-    x_right = gap_right_data["LT_x"].to_numpy()
-    y_right = gap_right_data["LT_y"].to_numpy()
-    edge_right = gap_right_data["Gap_leftedge"].to_numpy()
+    x_bottom = bottom_tow_data["LT_x"].to_numpy()
+    y_bottom = bottom_tow_data["LT_y"].to_numpy()
+    bottom_edge = bottom_tow_data["Gap_rightedge"].to_numpy()
 
-    x_left = gap_left_data["LT_x"].to_numpy()
-    y_left = gap_left_data["LT_y"].to_numpy()
-    edge_left = gap_left_data["Gap_rightedge"].to_numpy()
+    x_top = top_tow_data["LT_x"].to_numpy()
+    y_top = top_tow_data["LT_y"].to_numpy()
+    top_edge = top_tow_data["Gap_leftedge"].to_numpy()
 
     # --- Truncate all arrays to the shortest length to ensure alignment ---
-    min_len = min(len(x_right), len(y_right), len(edge_right), len(x_left), len(y_left), len(edge_left))
-    x_right = x_right[:min_len]
-    y_right = y_right[:min_len]
-    edge_right = edge_right[:min_len]
-    x_left = x_left[:min_len]
-    y_left = y_left[:min_len]
-    edge_left = edge_left[:min_len]
+    min_len = min(len(x_bottom), len(y_bottom), len(bottom_edge), len(x_top), len(y_top), len(top_edge))
+    x_bottom = x_bottom[:min_len]
+    y_bottom = y_bottom[:min_len]
+    bottom_edge = bottom_edge[:min_len]
+    x_top = x_top[:min_len]
+    y_top = y_top[:min_len]
+    top_edge = top_edge[:min_len]
 
     # --- Calculate y positions using frame width ---
-    y_offset = 0.5 * frame_width_traverse
-    y_right = y_right + y_offset - edge_right
-    y_left = y_left + y_offset - edge_left
+    # y_offset = 0.5 * frame_width_traverse
+    # y_bottom = y_bottom + y_offset - bottom_edge
+    # y_top = y_top + y_offset - top_edge
+
+    y_bottom_edge = y_bottom + bottom_edge
+    y_top_edge = y_top + top_edge
 
     # --- Construct final dataframe ---
     traverse_tow = pd.DataFrame({
-        "x_right": x_right,
-        "y_right": y_right,
-        "x_left": x_left,
-        "y_left": y_left})
+        "x_right": x_bottom,
+        "y_right": y_bottom_edge,
+        "x_left": x_top,
+        "y_left": y_top_edge})
 
     return traverse_tow
 
@@ -302,6 +305,52 @@ def plot_all_tows_trimmed():
 
     return all_data
 
+def plot_lt_y_error_histogram(tow: int, bins: int = 50):
+    """
+    Plots histogram of LT_y error (measured - nominal position) for a given tow.
+    Overlays mean and standard deviation as vertical lines.
+    """
+    # --- Load traverse data ---
+    df = get_synced_data(tow, "Traverse")
+
+    if "LT_y" not in df.columns:
+        raise KeyError("Traverse data does not contain 'LT_y' column")
+
+    # --- Nominal tow position ---
+    nominal_y = 125 + (tow - 1) * 12.5
+
+    # --- Compute error ---
+    lt_y_error = df["LT_y"].dropna().values - nominal_y
+
+    if len(lt_y_error) == 0:
+        raise ValueError(f"No LT_y data available for tow {tow}")
+
+    # --- Compute statistics ---
+    mean_val = np.mean(lt_y_error)
+    std_val = np.std(lt_y_error)
+
+    # --- Plot histogram ---
+    plt.figure(figsize=(8, 5))
+    counts, bins_edges, _ = plt.hist(lt_y_error, bins=bins, density=True, alpha=0.6, color="orange", edgecolor="black")
+
+    # Overlay Gaussian approximation
+    x = np.linspace(min(lt_y_error), max(lt_y_error), 500)
+    y = (1 / (std_val * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x - mean_val) / std_val) ** 2)
+    plt.plot(x, y, "r--", linewidth=2, label="Gaussian approx.")
+
+    # Overlay mean and std lines
+    plt.axvline(mean_val, color="red", linestyle="-", linewidth=2, label=f"Mean = {mean_val:.3f}")
+    plt.axvline(mean_val - std_val, color="green", linestyle="--", linewidth=1.5, label=f"± Std = {std_val:.3f}")
+    plt.axvline(mean_val + std_val, color="green", linestyle="--", linewidth=1.5)
+
+    plt.title(f"LT_y Error Distribution (Tow {tow})")
+    plt.xlabel("LT_y Error [mm]")
+    plt.ylabel("Density")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
 ##############################################################################################################
 """Run this file"""
 
@@ -309,7 +358,7 @@ def main():
     # traverse_LT_viewer(2)
     # z_check(5)
     # LT_velocity_check(5)
-    GAP_velocity_check(5)
+    # GAP_velocity_check(5)
     # plot_all_tows_trimmed()
     print(traverse_tow_constructor(5))
 

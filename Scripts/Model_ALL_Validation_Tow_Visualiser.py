@@ -289,11 +289,11 @@ def compare_multiple_simulations(tow: int, n_simulations: int = 50, tow_length_m
 """Run this file"""
 
 def main():
-    #plot_real_tow(15)
+    # plot_real_tow(15)
 
-    real_df, sim_df = plot_simulated_vs_real_tow(8, plot = True)
+    real_df, sim_df = plot_simulated_vs_real_tow(15, plot = True)
 
-    compare_simulated_vs_real_tow(8)
+    # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
 
 if __name__ == "__main__":
