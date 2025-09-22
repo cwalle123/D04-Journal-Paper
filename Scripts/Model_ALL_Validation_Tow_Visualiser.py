@@ -293,7 +293,7 @@ def main():
 
     real_df, sim_df = plot_simulated_vs_real_tow(8, plot = True)
 
-    # compare_simulated_vs_real_tow(8)
+    compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
 
 if __name__ == "__main__":
