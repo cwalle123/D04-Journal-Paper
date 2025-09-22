@@ -15,7 +15,7 @@ from Handling_ALL_Functions import get_synced_data
 from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Model_ALL_Simulation import generate_multitow_layout
-from constants import number_of_steps, Consecutive_Error_Bins
+from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse
 
 ##############################################################################################################
 """Functions"""
@@ -78,8 +78,8 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     real_centerline = 0.5 * (real_y_left + real_y_right)
     x_centerline = 0.5 * (real_x_right + real_x_left)
 
-    # Normalize so centerline starts at 0
-    real_offset = real_centerline[0]
+    # Translate tow to start around where tow 1 would be for comparison!
+    real_offset = y_offset_traverse + (tow - 1)*y_increment_traverse
     real_centerline = real_centerline - real_offset
     real_y_left = real_y_left - real_offset
     real_y_right = real_y_right - real_offset
@@ -153,7 +153,7 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
 
         plt.xlabel("Tow length (mm)", fontsize=14)
         plt.ylabel("Position (mm)", fontsize=14)
-        plt.title(f"Tow {tow}: Real vs Simulated (aligned to y=0)", fontsize=16)
+        plt.title(f"Tow {tow}: Real vs Simulated", fontsize=16)
         plt.legend()
         plt.grid(True)
 
