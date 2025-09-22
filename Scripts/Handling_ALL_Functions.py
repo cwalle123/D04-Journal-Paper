@@ -310,34 +310,6 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     # Return as DataFrame
     return pd.DataFrame(processed_data, columns=col_names)
 
-def traverse_vs_layup_data(tow: int):
-
-    path_traverse = r'C:\Users\manue\OneDrive\Documents\GitHub\D04-Journal-Paper\Synced data from Siddharth\ExportedCSVs\Traverse\Traverse tracker data\TrackerData_7_Traverse.csv'
-    path_layup = r'C:\Users\manue\OneDrive\Documents\GitHub\D04-Journal-Paper\Synced data from Siddharth\ExportedCSVs\Layup data\Data\Data_Run07_Tracker.csv'
-
-    #path_traverse = f"Cached Data/TRAVERSE_GAP_{tow}.csv"
-    #path_layup = f"Cached Data/LAYUP_{tow}.csv"
-
-    traverse = pd.read_csv(path_traverse)
-    layup = pd.read_csv(path_layup)
-
-    # Plot traverse dataframe
-    plt.plot(traverse.iloc[:, 2], traverse.iloc[:, 3], label="Traverse", linestyle='-',linewidth=1.5, color='b')
-    #plt.plot((traverse.iloc[:, 2] * 500 + 500 * traverse.iloc[:, 0]), (0.5 * traverse.iloc[:, 3] + 0.5 * traverse.iloc[:, 1]), label="Traverse", linestyle='-',linewidth=1.5, color='b')
-
-    # Plot layup dataframe
-    plt.plot(layup.iloc[:, 2], layup.iloc[:, 3], label="Layup", linestyle='-',linewidth=1.5, color='r')
-    #plt.plot(layup.iloc[:, 7], (layup.iloc[:, 8] + layup.iloc[:, 3]), label="Layup", linestyle='-',linewidth=1.5, color='r')
-
-    # Labels and title
-    plt.xlabel("x")
-    plt.ylabel("y")
-    plt.title("Traverse vs Layup")
-    plt.legend()
-    plt.tight_layout()
-    plt.grid(True)
-    plt.show()
-
 ##############################################################################################################
 """Run this file"""
 
@@ -352,10 +324,6 @@ def main():
     #print("Columns:", x.columns.tolist())
 
     #print(get_synced_data(10, "TRAVERSE_LT"))
-
-    #get_synced_data(5, "Traverse", overwrite=True)
-
-    #traverse_vs_layup_data(10)
     
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

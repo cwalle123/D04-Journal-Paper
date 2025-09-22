@@ -391,7 +391,6 @@ def main():
     #print(names)
     #print(np.shape(x))
 
-
     arr, data = Traverse_Gap_excel_to_array(4)
     print(arr)
     print(data)

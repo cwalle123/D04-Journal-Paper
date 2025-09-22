@@ -96,12 +96,6 @@ def traverse_tow_constructor(tow: int):
 
     return traverse_tow
 
-def raw_vs_interpolated_comparison(tow: int):
-    """Plot raw data from Siddharth vs interpolated data from get_synced_data to compare.
-    Visualize whether interpolation happens correctly"""
-    #raw_data = 
-    return NotImplementedError
-
 def LT_velocity_check(tow: int):
     # --- Load data ---
     LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
@@ -202,7 +196,7 @@ def GAP_velocity_check(tow: int):
 
     return t_data, x_data, gap_data, v_inst, v_avg
 
-def z_check(tow: int):
+def LT_z_check(tow: int):
     # --- Load data ---
     LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
     t_data = LT_arr[:, 0]   # time

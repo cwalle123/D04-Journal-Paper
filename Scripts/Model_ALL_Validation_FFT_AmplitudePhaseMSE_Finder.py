@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 
 #Internal imports
-from Model_ALL_Validation_Tow_Visualiser import plot_real_tow, plot_simulated_vs_real_tow
-from constants import number_of_steps, font_large, Consecutive_Error_Bins
+from Model_ALL_Validation_Tow_Visualiser import plot_simulated_vs_real_tow
+from constants import font_large
 
 ##############################################################################################################
 """Functions"""

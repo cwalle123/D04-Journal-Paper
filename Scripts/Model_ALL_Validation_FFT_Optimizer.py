@@ -6,8 +6,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
-# -*- coding: utf-8 -*-
+from mpl_toolkits.mplot3d import Axes3D
 
 #Internal imports
 from Data_ALL_traverse import traverse_tow_constructor
