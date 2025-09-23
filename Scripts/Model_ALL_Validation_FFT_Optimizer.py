@@ -1,280 +1,195 @@
 # -*- coding: utf-8 -*-
-"""This file is used to find the optimum number of steps and bins — EDGES version.
-
-What it does
-------------
-Grid-search over (n_steps, num_bins) by comparing **edge spectra** (FFT magnitudes):
-
-  • Simulated edges are built EXACTLY like the visualizer:
-        centerline = CAM + LT
-        width      = NOMINAL_WIDTH_MM + LLS_B_error
-        top_edge    = centerline + 0.5 * width
-        bottom_edge = centerline - 0.5 * width
-
-  • Real edges come from traverse via:
-        Model_ALL_Validation_Tow_Visualiser.plot_real_tow(tow, plot=False)
-    We align to a common x-range, resample to the candidate n_steps grid,
-    and (optionally) remove DC to avoid offset bias in FFT magnitude comparison.
-
-Objective
----------
-Average the FFT magnitude MSE over the two edges:
-    0.5 * [ MSE( |FFT(SimTop)|, |FFT(RealLeft)| ) + MSE( |FFT(SimBottom)|, |FFT(RealRight)| ) ]
-"""
-
-##############################################################################################################
-# External imports
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
-import random
 
-##############################################################################################################
-# Internal imports
+# --- Project imports: match Code A sources ---
+from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
-from Model_ALL_Validation_Tow_Visualiser import plot_real_tow
-try:
-    from constants import NOMINAL_WIDTH_MM
-except Exception:
-    NOMINAL_WIDTH_MM = 6.35  # Fallback if not defined
-
-##############################################################################################################
-"""Functions"""
 
 # ----------------- Helpers -----------------
-
-def uniform_resample(x, y, n_steps: int):
+def build_real_traverse_centerline_like_A(tow: int, resample_uniform: bool = True, target_steps: int | None = None):
     """
-    Resample (x, y) to 'n_steps' uniformly spaced points between x[0] and x[-1].
-    Returns (x_uni, y_uni).
+    REAL (traverse) like Visualizer:
+      - edges from traverse_tow_constructor
+      - centerline = (y_left + y_right)/2
+      - normalize by subtracting first value
+      - optional uniform resampling for FFT stability
+    Returns (x_mm, centerline_mm)
     """
-    x0, x1 = float(x[0]), float(x[-1])
-    x_uni = np.linspace(x0, x1, int(n_steps), endpoint=True)
-    y_uni = np.interp(x_uni, x, y)
-    return x_uni, y_uni
+    df = traverse_tow_constructor(tow)
+
+    x_r = df["x_right"].to_numpy()
+    y_r = df["y_right"].to_numpy()
+    x_l = df["x_left"].to_numpy()
+    y_l = df["y_left"].to_numpy()
+
+    # Use one x axis (assume x_r ~ x_l)
+    x = x_r
+    centerline = 0.5 * (y_l + y_r)
+
+    # Normalize to start at 0 (Visualizer convention)
+    centerline = centerline - centerline[0]
+
+    # Clean + sort
+    m = np.isfinite(x) & np.isfinite(centerline)
+    x = x[m]; centerline = centerline[m]
+    order = np.argsort(x)
+    x = x[order]; centerline = centerline[order]
+
+    if resample_uniform:
+        if target_steps is None:
+            target_steps = len(x)
+        x_uni = np.linspace(x[0], x[-1], target_steps)
+        centerline = np.interp(x_uni, x, centerline)
+        x = x_uni
+
+    return x, centerline
 
 
-def single_sided_rfft_mag(signal: np.ndarray, pad_factor: int = 1):
+def simulate_centerline_like_A(n_steps: int, num_bins: int, length_tow_mm: float, nominal_width_mm: float = 6.35):
     """
-    Real FFT (rfft) single-sided magnitude, including DC..Nyquist.
-    Returns magnitude array (no frequency vector).
-    Normalized by input length for comparability across lengths.
+    SIM (Visualizer):
+      - consecutive_error for CAM, LT, LLS_B
+      - centerline = CAM + LT
+      - width = nominal + LLS_B error (not used in FFT but kept for parity)
+      - normalize centerline by subtracting first value
+    Returns centerline array of length n_steps.
     """
-    s = np.asarray(signal, dtype=float)
-    n = s.size
-    n_fft = int(max(n, pad_factor * n))
-    mag = np.abs(np.fft.rfft(s, n=n_fft)) / n
-    return mag
+    # Fit models
+    _, sc, ic, _, _, _, xsc, bec, dvc = consecutive_error("CAM", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False)
+    _, sl, il, _, _, _, xsl, bel, dvl = consecutive_error("LT", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False)
+    _, sw, iw, _, _, _, xsw, bew, dvw = consecutive_error("LLS_B", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False)
+
+    # Start ranges copied from Visualizer
+    start_cam = np.random.uniform(-0.75, 0.75)
+    start_lt = np.random.uniform(-0.90, -0.70)
+    start_llsb = np.random.uniform(-0.21, -0.02)
+
+    cam_path = generate_error_path(start_cam, n_steps, sc, ic, xsc, bec, dvc)
+    lt_path = generate_error_path(start_lt, n_steps, sl, il, xsl, bel, dvl)
+    w_err = generate_error_path(start_llsb, n_steps, sw, iw, xsw, bew, dvw)
+
+    centerline = cam_path + lt_path
+    width = nominal_width_mm + w_err  # kept for parity with Visualizer (not used below)
+
+    # Normalize like Visualizer
+    centerline = centerline - centerline[0]
+
+    # Sim x-grid is uniform [0, length_tow_mm], but FFT uses sampling rate only
+    return centerline
 
 
-def build_real_edges_from_visualizer(tow: int, target_steps: int, remove_dc: bool = True):
+def single_sided_fft(signal: np.ndarray, sampling_rate: float, pad_factor: int = 1):
     """
-    Fetch traverse edges exactly like the visualizer via:
-        plot_real_tow(tow, plot=False)
-    Steps:
-      - Align left/right to common overlapping x-range
-      - Put right onto left's x via interpolation
-      - Resample both to 'target_steps' on the same uniform grid
-      - Optionally remove DC (mean)
-
-    Returns
-    -------
-    x_uni : (target_steps,)
-    y_left_uni : (target_steps,)
-    y_right_uni : (target_steps,)
+    Returns positive-frequency single-sided amplitude spectrum.
+    sampling_rate: samples per mm (i.e., 1/Δx)
     """
-    real_df = plot_real_tow(tow, plot=False)
+    n = len(signal)
+    n_pad = int(pad_factor * n)
+    padded = np.pad(signal, (0, n_pad - n), mode="constant") if n_pad > n else signal
 
-    x_r = real_df["x_right"].to_numpy()
-    y_r = real_df["y_right"].to_numpy()
-    x_l = real_df["x_left"].to_numpy()
-    y_l = real_df["y_left"].to_numpy()
+    # d = 1/sampling_rate = Δx (mm/sample)
+    freq = np.fft.fftfreq(len(padded), d=1.0 / sampling_rate)
+    fft_vals = np.fft.fft(padded)
+    amp = 2.0 * np.abs(fft_vals) / len(padded)
 
-    # Align to common x-overlap
-    x_min = max(x_l[0], x_r[0])
-    x_max = min(x_l[-1], x_r[-1])
-    mask_l = (x_l >= x_min) & (x_l <= x_max)
-    mask_r = (x_r >= x_min) & (x_r <= x_max)
-    x_l, y_l = x_l[mask_l], y_l[mask_l]
-    x_r, y_r = x_r[mask_r], y_r[mask_r]
-
-    # Put right on left's x, then resample both to a shared uniform grid
-    y_r_on_l = np.interp(x_l, x_r, y_r)
-    x_uni, y_left_uni = uniform_resample(x_l, y_l, target_steps)
-    _,     y_right_uni = uniform_resample(x_l, y_r_on_l, target_steps)
-
-    if remove_dc:
-        y_left_uni  = y_left_uni  - np.mean(y_left_uni)
-        y_right_uni = y_right_uni - np.mean(y_right_uni)
-
-    return x_uni, y_left_uni, y_right_uni
+    pos = freq > 0
+    return freq[pos], amp[pos]
 
 
-def simulate_edges_like_visualizer(n_steps: int,
-                                   tow_length_mm: float,
-                                   num_bins: int,
-                                   use_seed: bool = False,
-                                   random_seed: int = 0):
+def mse_over_common_freq_band(freq_a, amp_a, freq_b, amp_b):
     """
-    Simulate edges IDENTICALLY to the visualizer:
-
-        centerline = CAM + LT
-        width      = NOMINAL_WIDTH_MM + LLS_B_error
-        top_edge    = centerline + 0.5 * width
-        bottom_edge = centerline - 0.5 * width
-
-    Returns
-    -------
-    x_sim : (n_steps,)
-    top_edge : (n_steps,)
-    bottom_edge : (n_steps,)
+    Interpolates amp_b onto freq_a within the common max frequency range, then MSE.
+    Avoids misleading tails from extrapolation.
     """
-    if use_seed:
-        np_rng_state = np.random.get_state()
-        py_rng_state = random.getstate()
-        np.random.seed(int(random_seed))
-        random.seed(int(random_seed))
-
-    try:
-        # Fit models with the candidate num_bins
-        _, sc, ic, _, _, _, xsc, bec, dvc = consecutive_error(
-            "CAM", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False,
-            random_state=random.randint(0, 10_000)
-        )
-        _, sl, il, _, _, _, xsl, bel, dvl = consecutive_error(
-            "LT", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False,
-            random_state=random.randint(0, 10_000)
-        )
-        _, sw, iw, _, _, _, xsw, bew, dvw = consecutive_error(
-            "LLS_B", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False,
-            random_state=random.randint(0, 10_000)
-        )
-
-        # Start ranges (same as visualizer)
-        start_cam  = random.uniform(-0.75,  0.75)
-        start_lt   = random.uniform(-0.90, -0.70)
-        start_llsb = random.uniform(-0.21, -0.02)
-
-        cam_path = generate_error_path(start_cam,  n_steps, sc,  ic,  xsc,  bec, dvc)
-        lt_path  = generate_error_path(start_lt,   n_steps, sl,  il,  xsl,  bel, dvl)
-        w_err    = generate_error_path(start_llsb, n_steps, sw,  iw,  xsw,  bew, dvw)
-
-        centerline = cam_path + lt_path
-        width = float(NOMINAL_WIDTH_MM) + w_err
-
-        top_edge    = centerline + 0.5 * width
-        bottom_edge = centerline - 0.5 * width
-
-        x_sim = np.linspace(0.0, tow_length_mm, int(n_steps), endpoint=True)
-        return x_sim, top_edge, bottom_edge
-
-    finally:
-        if use_seed:
-            np.random.set_state(np_rng_state)
-            random.setstate(py_rng_state)
+    fmax = min(freq_a.max(), freq_b.max())
+    mask = freq_a <= fmax
+    fa = freq_a[mask]
+    Aa = amp_a[mask]
+    Ab_i = np.interp(fa, freq_b, amp_b)
+    return mean_squared_error(Aa, Ab_i)
 
 
-# ----------------- Main optimizer (EDGES) -----------------
-
+# ----------------- Main optimizer -----------------
 def find_best_nsteps_and_bins(
     tow_range=range(2, 8),
     nsteps_candidates=None,
     bin_candidates=None,
-    n_repeats: int = 6,
-    length_tow_mm: float = 1000.0,
+    n_repeats=10,
     zero_padding_factor: int = 2,
-    use_seed: bool = False,
-    random_seed: int = 0,
-    remove_dc_real: bool = True,
-    plot_surface_3d: bool = True,
+    resample_uniform_real: bool = True,
+    sim_length_mm: float = 1000.0
 ):
     """
-    Grid-search optimizer that matches **edge spectra** (SimTop/SimBottom vs RealLeft/RealRight).
-
-    Parameters
-    ----------
-    tow_range : iterable
-        Set of tows to include.
-    nsteps_candidates : list[int]
-        Candidate n_steps values (uniform resampling + sim length discretization).
-    bin_candidates : list[int]
-        Candidate num_bins values for the consecutive-error models.
-    n_repeats : int
-        Number of random simulations per grid point to average out randomness.
-    length_tow_mm : float
-        Physical tow length for the simulated x-grid.
-    zero_padding_factor : int
-        rFFT zero-padding factor for spectrum smoothness.
-    use_seed : bool
-        If True, seeds RNG for reproducibility per repeat.
-    random_seed : int
-        Base seed when use_seed=True.
-    remove_dc_real : bool
-        Remove mean from real edges before FFT magnitude.
-    plot_surface_3d : bool
-        Whether to show the 3D surface.
-
-    Returns
-    -------
-    mse_surface : np.ndarray, shape (len(bin_candidates), len(nsteps_candidates))
-    optimal_steps : int
-    optimal_bins : int
+    Grid-search for (n_steps, num_bins) that minimize summed amplitude-spectrum MSE across tows, using:
+      - REAL: traverse centerline like Code A
+      - SIM: Code A (CAM + LT + LLS_B), centerline-only FFT
     """
     if nsteps_candidates is None:
-        nsteps_candidates = list(range(180, 541, 20))
+        nsteps_candidates = list(range(100, 600, 10))
     if bin_candidates is None:
-        bin_candidates = list(range(60, 241, 20))
-
-    # Precompute REAL edge spectra per (tow, n_steps)
-    real_cache = {}  # key: (tow, n_steps) -> (mag_left, mag_right)
-    for tow in tow_range:
-        for n_steps in nsteps_candidates:
-            _, yL_real, yR_real = build_real_edges_from_visualizer(
-                tow, target_steps=n_steps, remove_dc=remove_dc_real
-            )
-            mag_L = single_sided_rfft_mag(yL_real, pad_factor=zero_padding_factor)
-            mag_R = single_sided_rfft_mag(yR_real, pad_factor=zero_padding_factor)
-            real_cache[(tow, n_steps)] = (mag_L, mag_R)
+        bin_candidates = list(range(30, 300, 5))
 
     mse_surface = np.zeros((len(bin_candidates), len(nsteps_candidates)), dtype=float)
 
-    # Grid search
-    for b_idx, num_bins in enumerate(bin_candidates):
-        for s_idx, n_steps in enumerate(nsteps_candidates):
-            mse_accum = 0.0
-            for tow in tow_range:
-                mag_L_real, mag_R_real = real_cache[(tow, n_steps)]
-                for rep in range(n_repeats):
-                    _, yTop_sim, yBot_sim = simulate_edges_like_visualizer(
+    for tow in tow_range:
+        print(f"[INFO] Processing Tow {tow} ...")
+
+        # --- REAL (Traverse) like Code A ---
+        x_real, cl_real = build_real_traverse_centerline_like_A(
+            tow=tow,
+            resample_uniform=resample_uniform_real,
+            target_steps=None
+        )
+
+        # sampling rate (samples per mm)
+        dx_real = (x_real[-1] - x_real[0]) / (len(x_real) - 1)
+        fs_real = 1.0 / dx_real
+
+        # REAL FFT
+        freq_real, amp_real = single_sided_fft(cl_real, sampling_rate=fs_real, pad_factor=zero_padding_factor)
+
+        for b_idx, num_bins in enumerate(bin_candidates):
+            # Fit models ONCE per (tow, num_bins) for efficiency
+            # (We still generate new random realizations per repeat.)
+            for s_idx, n_steps in enumerate(nsteps_candidates):
+                total_mse = 0.0
+
+                for _ in range(n_repeats):
+                    # --- SIM like Code A ---
+                    cl_sim = simulate_centerline_like_A(
                         n_steps=n_steps,
-                        tow_length_mm=length_tow_mm,
                         num_bins=num_bins,
-                        use_seed=use_seed,
-                        random_seed=(random_seed + rep) if use_seed else 0
+                        length_tow_mm=sim_length_mm,
+                        nominal_width_mm=6.35
                     )
-                    mag_L_sim = single_sided_rfft_mag(yTop_sim, pad_factor=zero_padding_factor)  # SimTop ↔ RealLeft
-                    mag_R_sim = single_sided_rfft_mag(yBot_sim, pad_factor=zero_padding_factor)  # SimBottom ↔ RealRight
 
-                    mse_L = mean_squared_error(mag_L_real, mag_L_sim)
-                    mse_R = mean_squared_error(mag_R_real, mag_R_sim)
-                    mse_accum += 0.5 * (mse_L + mse_R)
+                    # sim sampling rate (samples per mm)
+                    fs_sim = n_steps / sim_length_mm
 
-            mse_surface[b_idx, s_idx] = mse_accum / float(len(tow_range) * n_repeats)
+                    # SIM FFT
+                    freq_sim, amp_sim = single_sided_fft(cl_sim, sampling_rate=fs_sim, pad_factor=zero_padding_factor)
 
-    # ---- Plot the surface (same style as your first file) ----
-    if plot_surface_3d:
-        X, Y = np.meshgrid(nsteps_candidates, bin_candidates)
-        fig = plt.figure(figsize=(12, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(X, Y, mse_surface, cmap='viridis')
-        ax.set_xlabel("number of steps")
-        ax.set_ylabel("number of bins")
-        ax.set_zlabel("Total MSE (mean over tows & repeats)")
-        plt.tight_layout()
-        plt.show()
+                    # MSE over common freq band
+                    mse = mse_over_common_freq_band(freq_real, amp_real, freq_sim, amp_sim)
+                    total_mse += mse
 
-    # ---- Best configuration (same return signature) ----
+                mse_surface[b_idx, s_idx] += total_mse  # accumulate over tows
+
+    # ---- Plot the surface ----
+    X, Y = np.meshgrid(nsteps_candidates, bin_candidates)
+    fig = plt.figure(figsize=(12, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X, Y, mse_surface, cmap='viridis')
+    ax.set_xlabel("number of steps")
+    ax.set_ylabel("number of bins")
+    ax.set_zlabel("Total MSE (sum over tows & repeats)")
+    plt.tight_layout()
+    plt.show()
+
+    # ---- Best configuration ----
     min_idx = np.unravel_index(np.argmin(mse_surface), mse_surface.shape)
     optimal_bins = bin_candidates[min_idx[0]]
     optimal_steps = nsteps_candidates[min_idx[1]]
@@ -284,23 +199,6 @@ def find_best_nsteps_and_bins(
     return mse_surface, optimal_steps, optimal_bins
 
 
-##############################################################################################################
-"""Run this file"""
-
-def main():
-    find_best_nsteps_and_bins(
-        tow_range=range(2, 8),
-        nsteps_candidates=list(range(180, 541, 20)),
-        bin_candidates=list(range(60, 241, 20)),
-        n_repeats=6,
-        length_tow_mm=1000.0,
-        zero_padding_factor=2,
-        use_seed=False,
-        random_seed=0,
-        remove_dc_real=True,
-        plot_surface_3d=True,
-    )
-
+# Run
 if __name__ == "__main__":
-    main()
-
+    find_best_nsteps_and_bins()
