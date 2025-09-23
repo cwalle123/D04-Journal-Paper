@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Internal imports
-from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse
+from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse, tow_width_specified
 from Handling_ALL_Functions import get_synced_data
 from Data_ALL_importer import Traverse_LT_excel_to_array, Traverse_Gap_excel_to_array
 
@@ -61,8 +61,8 @@ def traverse_tow_constructor(tow: int, normalize: bool = False):
         return None
 
     # --- Load synced & trimmed data for adjacent gaps ---
-    bottom_tow_data = get_synced_data(tow - 1, "Traverse", overwrite=True) 
-    top_tow_data = get_synced_data(tow, "Traverse", overwrite=True)
+    bottom_tow_data = get_synced_data(tow - 1, "Traverse") 
+    top_tow_data = get_synced_data(tow, "Traverse")
 
     # --- Extract relevant data ---
     x_bottom = bottom_tow_data["LT_x"].to_numpy()
@@ -104,6 +104,81 @@ def traverse_tow_constructor(tow: int, normalize: bool = False):
         "y_centerline": y_centerline})
 
     return traverse_tow
+
+def traverse_tow_gaps_and_overlaps(plot=True):
+    """
+    Collect normalized traverse tow data (tows 2–30).
+    Apply +12.5 mm offset per tow index after tow 2.
+    Compute gap/overlap percentages between adjacent tows.
+    """
+
+    top_edge_paths, bottom_edge_paths = [], []
+    x_vals_list = []
+
+    # --- Collect traverse tow edges with offsets ---
+    for tow in range(2, 31):  # Tow 2..30
+        traverse_tow = traverse_tow_constructor(tow, normalize=True)
+        if traverse_tow is None:
+            continue
+
+        # Offset in y direction
+        offset_mm = (tow - 2) * tow_width_specified
+
+        x_vals_list.append(traverse_tow["x_centerline"].to_numpy())
+        top_edge_paths.append(traverse_tow["y_left"].to_numpy() + offset_mm)
+        bottom_edge_paths.append(traverse_tow["y_right"].to_numpy() + offset_mm)
+
+    # --- Truncate all arrays to the global minimum length ---
+    min_len = min(len(arr) for arr in x_vals_list)
+    x_vals = x_vals_list[0][:min_len]  # use first tow's x-values, cut to min length
+    top_edge_paths = [arr[:min_len] for arr in top_edge_paths]
+    bottom_edge_paths = [arr[:min_len] for arr in bottom_edge_paths]
+
+    # --- Gap/Overlap analysis ---
+    gap_overlap_dict = {
+        f"Gap/overlap_Tow{tow_idx+2}_Tow{tow_idx+3}": 
+            bottom_edge_paths[tow_idx+1] - top_edge_paths[tow_idx]
+        for tow_idx in range(len(top_edge_paths) - 1)
+    }
+    gap_overlap_df = pd.DataFrame(gap_overlap_dict, index=x_vals)
+
+    gap_df = gap_overlap_df.where(gap_overlap_df > 0)
+    overlap_df = gap_overlap_df.where(gap_overlap_df < 0)
+
+    # --- Area calculations ---
+    highest_tow_edge = top_edge_paths[-1]
+    lowest_tow_edge = bottom_edge_paths[0]
+    total_layout_area = np.trapezoid(highest_tow_edge - lowest_tow_edge, x_vals)
+
+    total_gap_area = sum(np.trapezoid(np.clip(values, 0, None), x_vals) for values in gap_overlap_df.values.T)
+    total_overlap_area = sum(np.trapezoid(np.clip(-values, 0, None), x_vals) for values in gap_overlap_df.values.T)
+
+    gap_percent = (total_gap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
+    overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
+
+    # --- Print summary ---
+    print(f"\nTotal layout area: {total_layout_area:.2f} mm²")
+    print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
+    print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
+
+    # --- Plotting ---
+    if plot:
+        plt.figure(figsize=(10, 6))
+        for i, (top, bottom) in enumerate(zip(top_edge_paths, bottom_edge_paths)):
+            color = plt.get_cmap("tab10")(i % 10)
+            tow_number = i + 2
+            plt.plot(x_vals, (top + bottom) / 2, "--", color=color, label=f"Tow {tow_number} centerline")
+            plt.plot(x_vals, top, "-", color=color)
+            plt.plot(x_vals, bottom, "-", color=color)
+        plt.xlabel("Tow length (mm)")
+        plt.ylabel("Tow position (mm)")
+        plt.title("Traverse Tow Layout with 12.5 mm Offsets")
+        plt.legend(loc="best", fontsize=8)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+
+    return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
 
 def LT_velocity_check(tow: int):
     # --- Load data ---
@@ -366,7 +441,8 @@ def main():
     # LT_velocity_check(5)
     # GAP_velocity_check(5)
     # plot_all_tows_trimmed()
-    print(traverse_tow_constructor(5))
+    # print(traverse_tow_constructor(5))
+    traverse_tow_gaps_and_overlaps()
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
