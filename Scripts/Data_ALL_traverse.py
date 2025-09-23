@@ -52,7 +52,7 @@ def traverse_LT_viewer(tow: int):
     plt.tight_layout()
     plt.show()
 
-def traverse_tow_constructor(tow: int):
+def traverse_tow_constructor(tow: int, normalize: bool = False):
     """Construct edge lines of a tow from traverse data (outliers already removed in get_synced_data)."""
     
     if tow not in range(2, 31):
@@ -82,20 +82,26 @@ def traverse_tow_constructor(tow: int):
     y_top = y_top[:min_len]
     top_edge = top_edge[:min_len]
 
-    # --- Calculate y positions using frame width ---
-    # y_offset = 0.5 * frame_width_traverse
-    # y_bottom = y_bottom + y_offset - bottom_edge
-    # y_top = y_top + y_offset - top_edge
-
+    # --- Calculate y edges and centerline ---
     y_bottom_edge = y_bottom + bottom_edge
     y_top_edge = y_top + top_edge
+    y_centerline = (y_bottom_edge + y_top_edge)/2
+
+    # --- Translate the tow down to y = 0 ---
+    if normalize == True:
+        real_offset = y_offset_traverse + (tow - 1)*y_increment_traverse
+        y_centerline = y_centerline - real_offset
+        y_top_edge = y_top_edge - real_offset
+        y_bottom_edge = y_bottom_edge - real_offset
 
     # --- Construct final dataframe ---
     traverse_tow = pd.DataFrame({
         "x_right": x_bottom,
         "y_right": y_bottom_edge,
         "x_left": x_top,
-        "y_left": y_top_edge})
+        "y_left": y_top_edge,
+        "x_centerline": x_bottom,
+        "y_centerline": y_centerline})
 
     return traverse_tow
 
