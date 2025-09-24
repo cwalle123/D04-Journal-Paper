@@ -1,208 +1,258 @@
-"""This file is used to generate a fft plots to validate the model"""
+# -*- coding: utf-8 -*-
+"""
+FFT comparison for tow EDGES (left/right) + CENTERLINE
 
-##############################################################################################################
+Real (traverse) edges via traverse_tow_constructor(...)
+Simulated edges built EXACTLY like the visualizer:
+    centerline = CAM + LT
+    width_nom  = constants.NOMINAL_WIDTH_MM (fallback 6.35)
+    width      = width_nom + LLS_B_error
+    sim_top    = centerline + 0.5 * width
+    sim_bottom = centerline - 0.5 * width
 
-# External imports
+Fixes:
+  • Per-series zeroing (subtract first sample) for real & sim (edges & centerline)
+  • Normalize FFT magnitudes by ORIGINAL N (not padded N)
+  • Pairing SWAPPED: Top ↔ Right, Bottom ↔ Left
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 
-#Internal imports
-from Model_ALL_Validation_Tow_Visualiser import plot_simulated_vs_real_tow
-from constants import font_large
+# --- Project imports ---
+from Model_ALL_Simulation import generate_error_path, consecutive_error
+from Data_ALL_traverse import traverse_tow_constructor
+import constants
 
-##############################################################################################################
-"""Functions"""
+# ---------------- PARAMETERS ----------------
+tow_number = 3
+length_tow = 1000.0      # mm
+n_steps = 360
+num_bins = 180
+zero_padding_factor = 2
+use_seed = False
+random_seed = 0
 
-def fft_comparison(tow: int, plot=True):
-    """
-    Compare FFT of real vs simulated centerlines for a given tow.
+# -------------- DATA LOAD (TRAVERSE EDGES) ---------------
+trav = traverse_tow_constructor(tow_number, normalize=False)
+x_left  = trav["x_left"].to_numpy()
+y_left  = trav["y_left"].to_numpy()
+x_right = trav["x_right"].to_numpy()
+y_right = trav["y_right"].to_numpy()
 
-    Parameters
-    ----------
-    tow : int
-        Tow index to analyze.
-    tow_length_mm : int, optional
-        Length of the tow in mm (default 1000).
-    plot : bool, optional
-        Whether to plot amplitude and phase comparison (default True).
+# Sampling rates
+x_pos = x_left
+length_between_points = (x_pos[-1] - x_pos[0]) / (len(x_pos) - 1)
+sampling_rate_real = 1.0 / length_between_points    # samples per mm
+sampling_rate_sim  = n_steps / float(length_tow)    # samples per mm
 
-    Returns
-    -------
-    mse_amplitude : float
-        Mean squared error between amplitude spectra.
-    mse_phase : float
-        Mean squared error between phase spectra.
-    """
-    print(f"--- FFT Comparison for Tow {tow} ---")
+# ---------------- MODEL FITTING (CAM, LT, LLS_B) ----------------
+bin_stats_cam, slope_cam, intercept_cam, _, _, _, x_sorted_cam, bin_edges_cam, devs_cam = consecutive_error(
+    "CAM", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False
+)
+bin_stats_lt, slope_lt, intercept_lt, _, _, _, x_sorted_lt, bin_edges_lt, devs_lt = consecutive_error(
+    "LT", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False
+)
+bin_stats_llsb, slope_llsb, intercept_llsb, _, _, _, x_sorted_llsb, bin_edges_llsb, devs_llsb = consecutive_error(
+    "LLS_B", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False
+)
 
-    # --- Get real and simulated data ---
-    print("Generating real and simulated tow data...")
-    real_data, sim_data = plot_simulated_vs_real_tow(tow, tow_length_mm=1000, plot=False)
-    print(f"Real centerline length: {len(real_data)}")
-    print(f"Simulated centerline length: {len(sim_data)}")
+# ------------ SIMULATED PATHS (EDGES like visualizer) ------------
+if use_seed:
+    np.random.seed(random_seed)
 
-    # --- Extract centerlines ---
-    y_real = real_data["centerline"].to_numpy()
-    y_sim = np.interp(real_data["x_mm"], sim_data["x_mm"], sim_data["centerline"])
-    print("Centerlines extracted and aligned for FFT.")
+start_cam  = np.random.uniform(-0.4,  0.6)
+start_lt   = np.random.uniform(-1.0, -0.8)
+start_llsb = np.random.uniform(-0.2,  0.2)
 
-    # --- FFT ---
-    fft_real = np.fft.fft(y_real)
-    fft_sim = np.fft.fft(y_sim)
-    print("FFT computed for both real and simulated centerlines.")
+cam_path   = generate_error_path(start_cam,  n_steps, slope_cam,  intercept_cam,  x_sorted_cam,  bin_edges_cam,  devs_cam)
+lt_path    = generate_error_path(start_lt,   n_steps, slope_lt,   intercept_lt,   x_sorted_lt,   bin_edges_lt,   devs_lt)
+llsb_path  = generate_error_path(start_llsb, n_steps, slope_llsb, intercept_llsb, x_sorted_llsb, bin_edges_llsb, devs_llsb)
 
-    # Only use positive frequencies
-    n = len(y_real)
-    freqs = np.fft.fftfreq(n, d=(real_data["x_mm"][1] - real_data["x_mm"][0]))
-    pos_mask = freqs >= 0
+centerline = cam_path + lt_path
+width_nom  = getattr(constants, "NOMINAL_WIDTH_MM", 6.35)
+width      = width_nom + llsb_path
 
-    fft_real_pos = fft_real[pos_mask]
-    fft_sim_pos = fft_sim[pos_mask]
-    freqs_pos = freqs[pos_mask]
-    print(f"Number of positive frequencies considered: {len(freqs_pos)}")
+# Simulated edges
+sim_top    = centerline + 0.5 * width      # ↔ Right (swapped pairing)
+sim_bottom = centerline - 0.5 * width      # ↔ Left  (swapped pairing)
+sim_centerline = centerline
 
-    # --- Amplitude and phase ---
-    amp_real = np.abs(fft_real_pos)
-    amp_sim = np.abs(fft_sim_pos)
-    phase_real = np.angle(fft_real_pos)
-    phase_sim = np.angle(fft_sim_pos)
-    print("Amplitude and phase spectra computed.")
+# --------- Per-series zeroing (match visualizer style) ----------
+def z0(a: np.ndarray) -> np.ndarray:
+    return a - a[0]
 
-    # --- MSE calculation ---
-    mse_amplitude = mean_squared_error(amp_real, amp_sim)
-    mse_phase = mean_squared_error(phase_real, phase_sim)
-    print(f"MSE Amplitude: {mse_amplitude:.4f}")
-    print(f"MSE Phase: {mse_phase:.4f}")
+# Real
+real_left       = z0(y_left.copy())
+real_right      = z0(y_right.copy())
+real_centerline = z0(0.5 * (y_left + y_right))
 
-    # --- Plot ---
-    if plot:
-        print("Plotting amplitude and phase comparison...")
-        fig, ax = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+# Sim
+sim_top        = z0(sim_top.copy())
+sim_bottom     = z0(sim_bottom.copy())
+sim_centerline = z0(sim_centerline.copy())
 
-        ax[0].plot(freqs_pos, amp_real, label="Real amplitude", color="blue")
-        ax[0].plot(freqs_pos, amp_sim, label="Sim amplitude", color="red", linestyle="--")
-        ax[0].set_ylabel("Amplitude")
-        ax[0].legend()
-        ax[0].grid(True)
+# ---------------- REAL FFT (EDGES) ----------------
+# Left edge
+N_left = len(real_left)
+N_left_padded = zero_padding_factor * N_left
+left_padded = np.pad(real_left, (0, N_left_padded - N_left), mode='constant')
 
-        ax[1].plot(freqs_pos, phase_real, label="Real phase", color="blue")
-        ax[1].plot(freqs_pos, phase_sim, label="Sim phase", color="red", linestyle="--")
-        ax[1].set_xlabel("Frequency (1/mm)")
-        ax[1].set_ylabel("Phase (radians)")
-        ax[1].legend()
-        ax[1].grid(True)
+fft_left = np.fft.fft(left_padded)
+freq_left = np.fft.fftfreq(N_left_padded, d=1.0 / sampling_rate_real)
+amp_left = 2.0 * np.abs(fft_left) / N_left       # normalize by ORIGINAL N
+phase_left = np.angle(fft_left)
+mask_left = freq_left > 0
+freq_left_pos = freq_left[mask_left]
+amp_left_pos = amp_left[mask_left]
+phase_left_pos = phase_left[mask_left]
 
-        plt.suptitle(f"FFT Comparison: Real vs Simulated Centerlines (Tow {tow})", fontsize=16)
-        plt.tight_layout()
-        plt.show()
-        print("Plotting done.")
+# Right edge
+N_right = len(real_right)
+N_right_padded = zero_padding_factor * N_right
+right_padded = np.pad(real_right, (0, N_right_padded - N_right), mode='constant')
 
-    print(f"--- End of FFT Comparison for Tow {tow} ---\n")
-    return mse_amplitude, mse_phase
+fft_right = np.fft.fft(right_padded)
+freq_right = np.fft.fftfreq(N_right_padded, d=1.0 / sampling_rate_real)
+amp_right = 2.0 * np.abs(fft_right) / N_right    # normalize by ORIGINAL N
+phase_right = np.angle(fft_right)
+mask_right = freq_right > 0
+freq_right_pos = freq_right[mask_right]
+amp_right_pos = amp_right[mask_right]
+phase_right_pos = phase_right[mask_right]
 
-def fft_comparison_all_tows_vs_simulated(plot=False):
-    """
-    Compare FFT of all 31 real tows against a single simulated tow.
+# -------------- SIMULATED FFT (EDGES) ---------------
+# Top (↔ RIGHT)
+N_sim_top = len(sim_top)
+N_sim_top_padded = zero_padding_factor * N_sim_top
+sim_top_padded = np.pad(sim_top, (0, N_sim_top_padded - N_sim_top), mode='constant')
 
-    Parameters
-    ----------
-    simulated_tow_length_mm : int, optional
-        Length of the simulated tow (default 1000).
-    plot : bool, optional
-        Whether to plot each tow's comparison (default False).
+fft_sim_top = np.fft.fft(sim_top_padded)
+freq_sim_top = np.fft.fftfreq(N_sim_top_padded, d=1.0 / sampling_rate_sim)
+amp_sim_top = 2.0 * np.abs(fft_sim_top) / N_sim_top   # normalize by ORIGINAL N
+phase_sim_top = np.angle(fft_sim_top)
+mask_sim_top = freq_sim_top > 0
+freq_sim_top_pos = freq_sim_top[mask_sim_top]
+amp_sim_top_pos = amp_sim_top[mask_sim_top]
+phase_sim_top_pos = phase_sim_top[mask_sim_top]
 
-    Returns
-    -------
-    results : dict
-        Dictionary containing MSEs for each tow:
-        {
-            tow_index: {'mse_amplitude': value, 'mse_phase': value},
-            ...
-        }
-    avg_mse_amplitude : float
-        Average MSE of amplitude across all 31 tows.
-    avg_mse_phase : float
-        Average MSE of phase across all 31 tows.
-    """
-    results = {}
-    mse_amp_list = []
-    mse_phase_list = []
+# Bottom (↔ LEFT)
+N_sim_bot = len(sim_bottom)
+N_sim_bot_padded = zero_padding_factor * N_sim_bot
+sim_bot_padded = np.pad(sim_bottom, (0, N_sim_bot_padded - N_sim_bot), mode='constant')
 
-    print("=== Comparing all 31 tows against a single simulated tow ===")
+fft_sim_bot = np.fft.fft(sim_bot_padded)
+freq_sim_bot = np.fft.fftfreq(N_sim_bot_padded, d=1.0 / sampling_rate_sim)
+amp_sim_bot = 2.0 * np.abs(fft_sim_bot) / N_sim_bot  # normalize by ORIGINAL N
+phase_sim_bot = np.angle(fft_sim_bot)
+mask_sim_bot = freq_sim_bot > 0
+freq_sim_bot_pos = freq_sim_bot[mask_sim_bot]
+amp_sim_bot_pos = amp_sim_bot[mask_sim_bot]
+phase_sim_bot_pos = phase_sim_bot[mask_sim_bot]
 
-    # Generate a single simulated tow once
-    print("Generating one simulated tow for comparison...")
-    _, sim_data = plot_simulated_vs_real_tow(tow=2, tow_length_mm=1000, plot=False)
-    print("Simulated tow ready.\n")
+# ---------- INTERPOLATE SIM → REAL (EDGES, SWAPPED) -------------
+# NEW pairing: sim_top ↔ real_right, sim_bottom ↔ real_left
+amp_sim_top_interp_for_right   = np.interp(freq_right_pos, freq_sim_top_pos, amp_sim_top_pos)
+phase_sim_top_interp_for_right = np.interp(freq_right_pos, freq_sim_top_pos, phase_sim_top_pos)
 
-    # Loop through all 31 tows
-    for tow_index in range(2, 31):
-        print(f"--- Tow {tow_index} ---")
+amp_sim_bot_interp_for_left    = np.interp(freq_left_pos,  freq_sim_bot_pos, amp_sim_bot_pos)
+phase_sim_bot_interp_for_left  = np.interp(freq_left_pos,  freq_sim_bot_pos, phase_sim_bot_pos)
 
-        # Get real tow
-        real_data, _ = plot_simulated_vs_real_tow(tow=tow_index, tow_length_mm=1000, plot=False)
+# ------------ ERROR METRICS (EDGES, SWAPPED) ----------
+mse_amp_left  = mean_squared_error(amp_left_pos,  amp_sim_bot_interp_for_left)
+mse_amp_right = mean_squared_error(amp_right_pos, amp_sim_top_interp_for_right)
 
-        # Run FFT comparison using aligned centerlines
-        y_real = real_data["centerline"].to_numpy()
-        y_sim = np.interp(real_data["x_mm"], sim_data["x_mm"], sim_data["centerline"])
+phase_diff_left  = np.angle(np.exp(1j * (phase_left_pos  - phase_sim_bot_interp_for_left)))
+phase_diff_right = np.angle(np.exp(1j * (phase_right_pos - phase_sim_top_interp_for_right)))
+mse_phase_left  = np.mean(phase_diff_left**2)
+mse_phase_right = np.mean(phase_diff_right**2)
 
-        fft_real = np.fft.fft(y_real)
-        fft_sim = np.fft.fft(y_sim)
+mse_amp_avg   = 0.5 * (mse_amp_left + mse_amp_right)
+mse_phase_avg = 0.5 * (mse_phase_left + mse_phase_right)
 
-        n = len(y_real)
-        freqs = np.fft.fftfreq(n, d=(real_data["x_mm"][1] - real_data["x_mm"][0]))
-        pos_mask = freqs >= 0
+print(f"MSE Amplitude (L,R,avg): {mse_amp_left:.6f}, {mse_amp_right:.6f}, avg={mse_amp_avg:.6f}")
+print(f"MSE Phase     (L,R,avg): {mse_phase_left:.6f}, {mse_phase_right:.6f}, avg={mse_phase_avg:.6f}")
 
-        amp_real = np.abs(fft_real[pos_mask])
-        amp_sim = np.abs(fft_sim[pos_mask])
-        phase_real = np.angle(fft_real[pos_mask])
-        phase_sim = np.angle(fft_sim[pos_mask])
+# ---------------- REAL & SIM FFT (CENTERLINE) ----------------
+# Real centerline
+N_c_real = len(real_centerline)
+N_c_real_padded = zero_padding_factor * N_c_real
+real_c_padded = np.pad(real_centerline, (0, N_c_real_padded - N_c_real), mode='constant')
 
-        mse_amp = mean_squared_error(amp_real, amp_sim)
-        mse_phase = mean_squared_error(phase_real, phase_sim)
+fft_c_real = np.fft.fft(real_c_padded)
+freq_c_real = np.fft.fftfreq(N_c_real_padded, d=1.0 / sampling_rate_real)
+amp_c_real = 2.0 * np.abs(fft_c_real) / N_c_real      # normalize by ORIGINAL N
+phase_c_real = np.angle(fft_c_real)
+mask_c_real = freq_c_real > 0
+freq_c_pos = freq_c_real[mask_c_real]
+amp_c_pos = amp_c_real[mask_c_real]
+phase_c_pos = phase_c_real[mask_c_real]
 
-        print(f"MSE Amplitude: {mse_amp:.4f}, MSE Phase: {mse_phase:.4f}\n")
+# Sim centerline
+N_c_sim = len(sim_centerline)
+N_c_sim_padded = zero_padding_factor * N_c_sim
+sim_c_padded = np.pad(sim_centerline, (0, N_c_sim_padded - N_c_sim), mode='constant')
 
-        results[tow_index] = {'mse_amplitude': mse_amp, 'mse_phase': mse_phase}
-        mse_amp_list.append(mse_amp)
-        mse_phase_list.append(mse_phase)
+fft_c_sim = np.fft.fft(sim_c_padded)
+freq_c_sim = np.fft.fftfreq(N_c_sim_padded, d=1.0 / sampling_rate_sim)
+amp_c_sim = 2.0 * np.abs(fft_c_sim) / N_c_sim         # normalize by ORIGINAL N
+phase_c_sim = np.angle(fft_c_sim)
+mask_c_sim = freq_c_sim > 0
+freq_c_sim_pos = freq_c_sim[mask_c_sim]
+amp_c_sim_pos = amp_c_sim[mask_c_sim]
+phase_c_sim_pos = phase_c_sim[mask_c_sim]
 
-        # Optional plotting
-        if plot:
-            fig, ax = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
-            ax[0].plot(freqs[pos_mask], amp_real, label="Real amplitude", color="blue")
-            ax[0].plot(freqs[pos_mask], amp_sim, label="Sim amplitude", color="red", linestyle="--")
-            ax[0].set_ylabel("Amplitude")
-            ax[0].legend()
-            ax[0].grid(True)
+# ---- INTERPOLATE & METRICS (CENTERLINE) ----
+amp_c_sim_interp   = np.interp(freq_c_pos,  freq_c_sim_pos,  amp_c_sim_pos)
+phase_c_sim_interp = np.interp(freq_c_pos,  freq_c_sim_pos,  phase_c_sim_pos)
 
-            ax[1].plot(freqs[pos_mask], phase_real, label="Real phase", color="blue")
-            ax[1].plot(freqs[pos_mask], phase_sim, label="Sim phase", color="red", linestyle="--")
-            ax[1].set_xlabel("Frequency (1/mm)")
-            ax[1].set_ylabel("Phase (radians)")
-            ax[1].legend()
-            ax[1].grid(True)
-            plt.suptitle(f"Tow {tow_index} FFT Comparison", fontsize=16)
-            plt.tight_layout()
-            plt.show()
+mse_amp_C = mean_squared_error(amp_c_pos, amp_c_sim_interp)
+phase_diff_C = np.angle(np.exp(1j * (phase_c_pos - phase_c_sim_interp)))
+mse_phase_C = np.mean(phase_diff_C**2)
 
-    # Compute average MSEs
-    avg_mse_amplitude = np.mean(mse_amp_list)
-    avg_mse_phase = np.mean(mse_phase_list)
-    print(f"=== Average MSE across all 31 tows ===")
-    print(f"Average MSE Amplitude: {avg_mse_amplitude:.4f}")
-    print(f"Average MSE Phase: {avg_mse_phase:.4f}")
+print(f"MSE Amplitude (Centerline): {mse_amp_C:.6f}")
+print(f"MSE Phase     (Centerline): {mse_phase_C:.6f}")
 
-    print("=== All 31 tows compared ===")
-    return results, avg_mse_amplitude, avg_mse_phase
+# ----------------- PLOTS --------------------
+FONT = getattr(constants, "font_large", 12)
 
-##############################################################################################################
-"""Run this file"""
+# Amplitude — edges (swapped pairing)
+plt.figure(figsize=(10, 5))
+plt.plot(freq_left_pos,  amp_left_pos,                   label="Real Left FFT",  alpha=0.9)
+plt.plot(freq_left_pos,  amp_sim_bot_interp_for_left,   "--", label="Sim Bottom FFT (↔ Left)")
+plt.plot(freq_right_pos, amp_right_pos,                  label="Real Right FFT", alpha=0.9)
+plt.plot(freq_right_pos, amp_sim_top_interp_for_right,  "--", label="Sim Top FFT (↔ Right)")
+plt.xlabel("Frequency (mm⁻¹)", fontsize=FONT)
+plt.ylabel("Amplitude (mm)",    fontsize=FONT)
+plt.xlim(0, 0.2)
+plt.grid(True); plt.legend(); plt.tight_layout(); plt.show()
 
-def main():
-    fft_comparison(8)
-    # fft_comparison_all_tows_vs_simulated()
+# Phase — edges (swapped pairing)
+plt.figure(figsize=(10, 5))
+plt.plot(freq_left_pos,  phase_left_pos,                  label="Real Left Phase",  alpha=0.9)
+plt.plot(freq_left_pos,  phase_sim_bot_interp_for_left,  "--", label="Sim Bottom Phase (↔ Left)")
+plt.plot(freq_right_pos, phase_right_pos,                 label="Real Right Phase", alpha=0.9)
+plt.plot(freq_right_pos, phase_sim_top_interp_for_right, "--", label="Sim Top Phase (↔ Right)")
+plt.xlabel("Frequency (mm⁻¹)", fontsize=FONT)
+plt.ylabel("Phase (radians)",   fontsize=FONT)
+plt.xlim(0, 0.2)
+plt.grid(True); plt.legend(); plt.tight_layout(); plt.show()
 
-if __name__ == "__main__":
-    main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
+# Amplitude — centerline
+plt.figure(figsize=(10, 5))
+plt.plot(freq_c_pos, amp_c_pos,           label="Real Centerline FFT", alpha=0.9)
+plt.plot(freq_c_pos, amp_c_sim_interp,   "--", label="Sim Centerline FFT")
+plt.xlabel("Frequency (mm⁻¹)", fontsize=FONT)
+plt.ylabel("Amplitude (mm)",    fontsize=FONT)
+plt.xlim(0, 0.2)
+plt.grid(True); plt.legend(); plt.tight_layout(); plt.show()
+
+# Phase — centerline
+plt.figure(figsize=(10, 5))
+plt.plot(freq_c_pos, phase_c_pos,         label="Real Centerline Phase", alpha=0.9)
+plt.plot(freq_c_pos, phase_c_sim_interp, "--", label="Sim Centerline Phase")
+plt.xlabel("Frequency (mm⁻¹)", fontsize=FONT)
+plt.ylabel("Phase (radians)",   fontsize=FONT)
+plt.xlim(0, 0.2)
+plt.grid(True); plt.legend(); plt.tight_layout(); plt.show()
