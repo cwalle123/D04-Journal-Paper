@@ -67,11 +67,13 @@ def traverse_tow_constructor(tow: int, normalize: bool = False):
     # --- Extract relevant data ---
     x_bottom = bottom_tow_data["LT_x"].to_numpy()
     y_bottom = bottom_tow_data["LT_y"].to_numpy()
-    bottom_edge = bottom_tow_data["Gap_rightedge"].to_numpy()
+    #bottom_edge = bottom_tow_data["Gap_rightedge"].to_numpy()
+    bottom_edge = bottom_tow_data["Gap_leftedge"].to_numpy()
 
     x_top = top_tow_data["LT_x"].to_numpy()
     y_top = top_tow_data["LT_y"].to_numpy()
-    top_edge = top_tow_data["Gap_leftedge"].to_numpy()
+    #top_edge = top_tow_data["Gap_leftedge"].to_numpy()
+    top_edge = top_tow_data["Gap_rightedge"].to_numpy()
 
     # --- Truncate all arrays to the shortest length to ensure alignment ---
     min_len = min(len(x_bottom), len(y_bottom), len(bottom_edge), len(x_top), len(y_top), len(top_edge))
@@ -83,8 +85,10 @@ def traverse_tow_constructor(tow: int, normalize: bool = False):
     top_edge = top_edge[:min_len]
 
     # --- Calculate y edges and centerline ---
-    y_bottom_edge = y_bottom + bottom_edge
-    y_top_edge = y_top + top_edge
+    #y_bottom_edge = y_bottom + bottom_edge
+    #y_top_edge = y_top + top_edge
+    y_bottom_edge = y_bottom - bottom_edge
+    y_top_edge = y_top - top_edge
     y_centerline = (y_bottom_edge + y_top_edge)/2
 
     # --- Translate the tow down to y = 0 ---
