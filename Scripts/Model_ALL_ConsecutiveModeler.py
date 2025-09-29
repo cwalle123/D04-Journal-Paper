@@ -14,11 +14,12 @@ from constants import tow_width_specified
 from Handling_ALL_Functions import get_synced_data
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
+from Model_ALL_RandomWalk import generate_random_walk
 
 ##############################################################################################################
 """Functions"""
 
-def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_widths: list[float] = None):
+def plot_histograms(real_data: pd.DataFrame, sim_data: list, RW_data: list, title: str, bin_widths: list[float] = None):
     '''This function plots a histogram of real and simulated data
         for each of the sensors separately.'''
 
@@ -57,8 +58,9 @@ def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_wid
         bw = bin_widths[i]
         bins = 40 if bw is None else np.arange(mn, mx + bw, bw)
 
-        ax.hist(clean, bins=bins, alpha=0.5, density=True, label='Experimental')
-        ax.hist(sim_data[i], bins=bins, alpha=0.5, density=True, label='Model')
+        ax.hist(clean, bins=bins, alpha=0.4, density=True, label='Experimental')
+        ax.hist(sim_data[i], bins=bins, alpha=0.4, density=True, label='D04-Model')
+        ax.hist(RW_data[i], bins=bins, alpha=0.4, density=True, label='Random Walk', color='lightgreen')
         best = best_fit_distribution(clean, bins=len(bins) - 1)
         dist, params = best['dist'], best['params']
         friendly = distribution_labels.get(dist.name, dist.name)
@@ -107,12 +109,16 @@ def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_wid
         std_val = clean.std()
         sim_mean = np.array(sim_data[i]).mean()
         sim_std = np.array(sim_data[i]).std()
+        RW_mean = np.array(RW_data[i]).mean()
+        RW_std = np.array(RW_data[i]).std()
 
         print(f'{titles[i]} Experimental mean/std = {mean_val}/{std_val}')
         print(f'{titles[i]} Model mean/std = {sim_mean}/{sim_std}')
+        print(f'{titles[i]} RW mean/std = {RW_mean}/{RW_std}')
 
         ax.axvline(mean_val, color='purple', linestyle='-', label='Experimental Mean', linewidth=1)
         ax.axvline(sim_mean, color='red', linestyle='-', label='Model Mean', linewidth=1)     # + '\n' + rf'$\sigma$ = {sim_std:.2f}'
+        ax.axvline(RW_mean, color='darkgreen', linestyle='-', label='Random Walk Mean', linewidth=1)
         ax.axvline(0, color='black', linestyle='dashed')
 
         #ax[row, col].set_title(titles[i])
@@ -125,7 +131,7 @@ def plot_histograms(real_data: pd.DataFrame, sim_data: list, title: str, bin_wid
         plt.tight_layout(rect=[0, 0, 1, 1])
         plt.show()
 
-def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin_plots: bool=False, return_data: bool=True):
+def run_model(generate_varying_bin_plots: bool=False, return_data: bool=True):
     '''This function executes all steps needed to plot the
         histograms for each sensor, including experimental and real.
         This involves first getting the data and then plotting.'''
@@ -139,22 +145,23 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
     real_CAM_data = real_CAM_data["error_CAM"]
     real_LLSA_data = real_LLSA_data["error_LLS_A"]
     real_LSSB_data = real_LSSB_data["error_LLS_B"]
+    print('experimental data has been collected.')
 
-    if use_saved:
-        _save_path = "Script\\"
-        LT_short_name = 'LT_Dist_Data'
-        CAM_short_name = 'CAM_Dist_Data'
-        LLSA_short_name = 'LLSA_Dist_Data'
-        LLSB_short_name = 'LLSB_Dist_Data'
+    #if use_saved:
+    #    _save_path = "Script\\"
+    #    LT_short_name = 'LT_Dist_Data'
+    #    CAM_short_name = 'CAM_Dist_Data'
+    #    LLSA_short_name = 'LLSA_Dist_Data'
+    #    LLSB_short_name = 'LLSB_Dist_Data'
+#
+    #    if save_data:
+    #        save_distribution_data(_save_path, LT_short_name, CAM_short_name, LLSA_short_name, LLSB_short_name)
+    #    LT_dist = pd.read_pickle(_save_path + LT_short_name + ".pkl")
+    #    CAM_dist = pd.read_pickle(_save_path + CAM_short_name + ".pkl")
+    #    LLSA_dist = pd.read_pickle(_save_path + LLSA_short_name + ".pkl")
+    #    LLSB_dist = pd.read_pickle(_save_path + LLSB_short_name + ".pkl")
 
-        if save_data:
-            save_distribution_data(_save_path, LT_short_name, CAM_short_name, LLSA_short_name, LLSB_short_name)
-        LT_dist = pd.read_pickle(_save_path + LT_short_name + ".pkl")
-        CAM_dist = pd.read_pickle(_save_path + CAM_short_name + ".pkl")
-        LLSA_dist = pd.read_pickle(_save_path + LLSA_short_name + ".pkl")
-        LLSB_dist = pd.read_pickle(_save_path + LLSB_short_name + ".pkl")
-
-
+    # -----code for creating the data with the D04-model---------
     LT_generated_bins_mean_var = []
     CAM_generated_bins_mean_var = []
     LLSA_generated_bins_mean_var = []
@@ -163,16 +170,16 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
     for num_bins in range(130, 131, 5):
         #num_bins = 30
         rs = 42
-        LT_dist = consecutive_error('LT', random_state=rs, num_bins=num_bins, test_ratio=0.00001, plot_fit=False)
-        CAM_dist = consecutive_error('CAM', random_state=rs, num_bins=num_bins, test_ratio=0.00001, plot_fit=False)
-        LLSA_dist = consecutive_error('LLS_A', random_state=rs, num_bins=num_bins, test_ratio=0.00001, plot_fit=False)
-        LLSB_dist = consecutive_error('LLS_B', random_state=rs, num_bins=num_bins, test_ratio=0.00001, plot_fit=False)
+        LT_dist = consecutive_error('LT', used_tows=list(range(2, 32, 2)), num_bins=num_bins)
+        CAM_dist = consecutive_error('CAM', used_tows=list(range(2, 32, 2)), num_bins=num_bins)
+        LLSA_dist = consecutive_error('LLS_A', used_tows=list(range(2, 32, 2)), num_bins=num_bins)
+        LLSB_dist = consecutive_error('LLS_B', used_tows=list(range(2, 32, 2)), num_bins=num_bins)
 
         # ------ This section generates the simulated data used for the comparison ------
-        n_runs = 200
+        n_runs = 50     # TODO: increase once finalising figures
         total_data = []
-        n_steps = 289
-        total_error = [[], [], [], []]
+        n_steps = 320
+        total_D04_error = [[], [], [], []]
         for run in range(n_runs):
             # starting position data
             start_cam = generate_starting_error("CAM")
@@ -191,10 +198,10 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
                                                   LLSB_dist[-2], LLSB_dist[-1])
 
 
-            total_error[0] = (total_error[0] + list(LT_error_list))
-            total_error[1] = (total_error[1] + list(CAM_error_list))
-            total_error[2] = (total_error[2] + list(LLSA_error_list))
-            total_error[3] = (total_error[3] + list(LLSB_error_list))
+            total_D04_error[0] = (total_D04_error[0] + list(LT_error_list))
+            total_D04_error[1] = (total_D04_error[1] + list(CAM_error_list))
+            total_D04_error[2] = (total_D04_error[2] + list(LLSA_error_list))
+            total_D04_error[3] = (total_D04_error[3] + list(LLSB_error_list))
 
 
             #generated_data = []
@@ -206,17 +213,35 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
             #    generated_data.append([x, centerline_error, width_error])
             #
             #generated_data = pd.DataFrame(generated_data, columns = ['x', 'error'])
+        print('DO4-model data has been generated.')
+
+        # ---------code for generating the random walk data----------
+        n_runs = 50     # TODO: increase once finalising figures
+        total_RW_error = [[], [], [], []]
+        for run in range(n_runs):
+            LT_RW_data = generate_random_walk("LT", 'RWM')
+            CAM_RW_data = generate_random_walk("CAM", 'RWM')
+            LLSA_RW_data = generate_random_walk("LLS_A", 'RWM')
+            LLSB_RW_data = generate_random_walk("LLS_B", 'RWM')
+
+            total_RW_error[0] = (total_RW_error[0] + list(LT_RW_data))
+            total_RW_error[1] = (total_RW_error[1] + list(CAM_RW_data))
+            total_RW_error[2] = (total_RW_error[2] + list(LLSA_RW_data))
+            total_RW_error[3] = (total_RW_error[3] + list(LLSB_RW_data))
+        print('Random walk data has been generated.')
+
 
         plot_histograms(
             [real_LLSA_data, real_LSSB_data, real_LT_data, real_CAM_data],
-            [total_error[2], total_error[3], total_error[0], total_error[1]],
+            [total_D04_error[2], total_D04_error[3], total_D04_error[0], total_D04_error[1]],
+            [total_RW_error[2], total_RW_error[3], total_RW_error[0], total_RW_error[1]],
             title="Sensor Error Histograms (ALL TOWS BUT NOT SPACE SYNCED), num_bins=" + str(num_bins),
             bin_widths=[0.01, 0.01, 0.005, 0.03]
         )
 
         for i in range(4):
-            mean = float(np.array(total_error[i]).mean())
-            variance = float(np.array(total_error[i]).std())
+            mean = float(np.array(total_D04_error[i]).mean())
+            variance = float(np.array(total_D04_error[i]).std())
             generated_bins_mean_var[i].append([num_bins, mean, variance])
 
     print(f'LT errors: {LT_generated_bins_mean_var}')
@@ -224,24 +249,24 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
     print(f'LLSA errors: {LLSA_generated_bins_mean_var}')
     print(f'LLSB errors: {LLSB_generated_bins_mean_var}')
 
-    print('total number of data points = ', len(total_error[0]))
-    plt.subplot(223)
-    plt.hist(total_error[0], bins=50)
-    plt.title('LT')
-    plt.subplot(224)
-    plt.hist(total_error[1], bins=50)
-    plt.title('CAM')
-    plt.subplot(221)
-    plt.hist(total_error[2], bins=50)
-    plt.title('LLSA')
-    plt.subplot(222)
-    plt.hist(total_error[3], bins=50)
-    plt.title('LLSB')
-
-    plt.tight_layout()
-    plt.show()
-
-    real_hist()
+    print('total number of data points = ', len(total_D04_error[0]))
+    #plt.subplot(223)
+    #plt.hist(total_error[0], bins=50)
+    #plt.title('LT')
+    #plt.subplot(224)
+    #plt.hist(total_error[1], bins=50)
+    #plt.title('CAM')
+    #plt.subplot(221)
+    #plt.hist(total_error[2], bins=50)
+    #plt.title('LLSA')
+    #plt.subplot(222)
+    #plt.hist(total_error[3], bins=50)
+    #plt.title('LLSB')
+#
+    #plt.tight_layout()
+    #plt.show()
+#
+    #real_hist()
 
     # This generates plots to determine optimal bin number based on global mean and variance.
     if generate_varying_bin_plots:
@@ -317,7 +342,48 @@ def run_model(save_data: bool=False, use_saved: bool=False, generate_varying_bin
             delta_mean = LT_generated_bins_mean_var - means[0]
 
     if return_data:
-        return total_error
+        return total_D04_error
+
+
+
+def Gap_Histogram():
+    #real_gap_data = calculate_real_gap_overlap_percentages(num_tows=15, tow_spacing_mm=12.5)
+    real_gap_data = get_synced_data('Traverse')
+    print('real_gap_data')
+    mean_real = np.mean(real_gap_data)
+    std_real = np.std(real_gap_data)
+    print(f'the REAL MEAN = {mean_real}')
+    # real_gap_data = filter(lambda x: 4 >= x >= 8, real_gap_data)
+    print(real_gap_data)
+
+    gap_overlap_df = generate_multitow_layout(num_tows=200, tow_spacing_mm=12.5, n_steps=2778)
+    mean_sim = np.mean(gap_overlap_df)
+    std_sim = np.std(gap_overlap_df)
+    #print(f'uuhhhuhhh {real_gap_data}')
+    #print('wtf')
+    print(f'Experimental mean/std = {mean_real}/{std_real}')
+    print(f'Model mean/std = {mean_sim}/{std_sim}')
+
+    #plots
+    gap_center = 12.5-6.35
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.hist(real_gap_data, label='Experimental', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.5, density=True)     # bins=[0]+list(np.linspace(6.15-1.2, 6.15+1.2, 80+1))+[10]
+    ax.hist(gap_overlap_df, label='Model', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.5, density=True)
+    ax.axvline(mean_real, color='purple', linestyle='-', label='Experimental Mean')
+    ax.axvline(mean_sim, color='red', linestyle='-', label='Model Mean')
+    ax.set_xlabel("Gap (mm)", fontsize=12)
+    ax.set_ylabel("Density", fontsize=12)
+    ax.axvline(gap_center, color='black', linestyle='dashed', label='Ideal Gap')
+    # plt.title(f"Gaps")
+    ax.set_xlim(gap_center-1.2, gap_center+1.2)
+    ax.axhline(0, color='gray', linestyle='--', linewidth=1)
+    ax.legend(fontsize=10)
+
+    plt.xticks(np.linspace(gap_center-1.2, gap_center+1.2, 9))
+    #plt.grid(True)
+    plt.tight_layout(rect=[0, 0, 1, 1])
+    plt.show()
+
 
 def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal: bool):
     """
@@ -397,8 +463,6 @@ def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal:
 
 def main():
     data = run_model()
-
-    print("Hello world")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
