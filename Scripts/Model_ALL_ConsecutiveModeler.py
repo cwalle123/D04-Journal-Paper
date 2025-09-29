@@ -15,6 +15,7 @@ from Handling_ALL_Functions import get_synced_data
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
 from Model_ALL_RandomWalk import generate_random_walk
+from Model_ALL_Simulation import generate_multitow_layout
 
 ##############################################################################################################
 """Functions"""
@@ -347,29 +348,32 @@ def run_model(generate_varying_bin_plots: bool=False, return_data: bool=True):
 
 
 def Gap_Histogram():
-    #real_gap_data = calculate_real_gap_overlap_percentages(num_tows=15, tow_spacing_mm=12.5)
+    # ------getting experimental data-----------
     real_gap_data = get_synced_data('Traverse')
-    print('real_gap_data')
-    mean_real = np.mean(real_gap_data)
-    std_real = np.std(real_gap_data)
-    print(f'the REAL MEAN = {mean_real}')
-    # real_gap_data = filter(lambda x: 4 >= x >= 8, real_gap_data)
     print(real_gap_data)
+    experimental_mean = np.mean(real_gap_data)
+    experimental_std = np.std(real_gap_data)
+    # real_gap_data = filter(lambda x: 4 >= x >= 8, real_gap_data)
 
-    gap_overlap_df = generate_multitow_layout(num_tows=200, tow_spacing_mm=12.5, n_steps=2778)
-    mean_sim = np.mean(gap_overlap_df)
-    std_sim = np.std(gap_overlap_df)
-    #print(f'uuhhhuhhh {real_gap_data}')
-    #print('wtf')
-    print(f'Experimental mean/std = {mean_real}/{std_real}')
-    print(f'Model mean/std = {mean_sim}/{std_sim}')
+    # -------generating D04-model data--------
+    gap_overlap_df, _, _, _, _ = generate_multitow_layout(num_tows=31, tow_spacing_mm=12.5)
+    print(gap_overlap_df)
+    D04_mean = np.mean(gap_overlap_df)
+    D04_std = np.std(gap_overlap_df)
+
+    # -------generating Random Walk data--------
+    RW_gap_data = ???
+
+    print(f'Experimental mean/std = {experimental_mean}/{experimental_std}')
+    print(f'D04 mean/std = {D04_mean}/{D04_std}')
+    print(f'RW mean/std = {RW_mean}/{RW_std}')
 
     #plots
     gap_center = 12.5-6.35
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.hist(real_gap_data, label='Experimental', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.5, density=True)     # bins=[0]+list(np.linspace(6.15-1.2, 6.15+1.2, 80+1))+[10]
     ax.hist(gap_overlap_df, label='Model', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.5, density=True)
-    ax.axvline(mean_real, color='purple', linestyle='-', label='Experimental Mean')
+    ax.axvline(experimental_mean, color='purple', linestyle='-', label='Experimental Mean')
     ax.axvline(mean_sim, color='red', linestyle='-', label='Model Mean')
     ax.set_xlabel("Gap (mm)", fontsize=12)
     ax.set_ylabel("Density", fontsize=12)
