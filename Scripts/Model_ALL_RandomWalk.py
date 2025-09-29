@@ -258,6 +258,56 @@ def get_proposal_distribution(sensor, plot: bool=False):
     return std
 
 
+def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000, proposal_type: str="RWM"):
+
+    tow_offset = 0
+    top_edge_paths, bottom_edge_paths = [], []
+    for n in range(num_tows):
+        LT_steps = get_n_steps("LT")
+        CAM_steps = get_n_steps("CAM")
+        LLS_B_steps = get_n_steps("LLS_B")
+        print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
+
+        # getting randomn walk data
+        LT_walk_data = generate_random_walk("LT", proposal_type=proposal_type, n_steps=LT_steps)
+        CAM_walk_data = generate_random_walk("CAM", proposal_type=proposal_type, n_steps=CAM_steps)
+        LLSB_walk_data = generate_random_walk("LLS_B", proposal_type=proposal_type, n_steps=LLS_B_steps)
+        LLSB_walk_data = [x + tow_width_mm for x in LLSB_walk_data]
+
+        # determine what the smallest number of steps is for the errors and use this is the global number of steps
+        n_steps = CAM_steps
+        if CAM_steps != min(LT_steps, CAM_steps, LLS_B_steps): print('Error, shortest data length was NOT used!')
+        x_walk_data = np.linspace(0, tow_length_mm, n_steps)
+
+        # interpolate the data with more steps to have the sam, shorter, length
+        LT_walk_data = interpolate(LT_walk_data, n_steps)
+        LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
+
+        # getting it into centerline and width format
+        tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
+        tow_width_data = tow_width_mm + np.array(LLSB_walk_data)
+
+        tow_top_edge = tow_centerline_data + 0.5 * tow_width_data
+        tow_bottom_edge = tow_centerline_data - 0.5 * tow_width_data
+
+        top_edge_paths.append(tow_top_edge)
+        bottom_edge_paths.append(tow_bottom_edge)
+
+        # creating the gap_overlap_data
+        gap_overlap_dict = {
+            f"Gap/overlap_Tow{tow_index + 1}_Tow{tow_index + 2}": bottom_edge_paths[tow_index + 1] - top_edge_paths[
+                tow_index]
+            for tow_index in range(num_tows - 1)
+        }
+        gap_overlap_df = pd.DataFrame(gap_overlap_dict)
+
+        tow_offset += tow_spacing_mm
+
+    return gap_overlap_df
+
+
+
+
 def get_actual_Dataframe(tow: int):
     '''
     Gets the tow-data and returns it as a dataframe in the required format for the tow-visualizer.
