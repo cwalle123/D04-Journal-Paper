@@ -1,4 +1,5 @@
-"""This file deals with all of the important functions that are used all throughout the project"""
+"""This file deals with all of the important functions that are used all throughout the project.
+   Written by Martijn van der Voort, Clifton-John Walle and Sam Rotteveel"""
 
 ##############################################################################################################
 

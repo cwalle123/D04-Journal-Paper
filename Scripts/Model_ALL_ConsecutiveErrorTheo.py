@@ -9,6 +9,8 @@
     because we don’t have enough data points at that precise point. This is why bins have been created: 
     this works, but will obtain a slight bias, because the deviation normal curve does not
     correspond to the exact value of x, but only to the values around it
+
+    Written by: 
 '''
 
 ##############################################################################################################

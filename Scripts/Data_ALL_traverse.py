@@ -1,4 +1,5 @@
-"""This file deals with traverse data handling and plotting"""
+"""This file deals with traverse data handling and plotting
+   Written by: Martijn van der Voort, Clifton-John Walle and Manuel Cruz."""
 
 ##############################################################################################################
 

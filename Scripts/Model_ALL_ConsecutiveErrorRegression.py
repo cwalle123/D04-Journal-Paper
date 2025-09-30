@@ -1,5 +1,6 @@
 '''
 This code makes regression models for mean and variation of the data bins that were extracted in the ConsecutiveErrorRegressions.
+Written by: 
 '''
 
 ##############################################################################################################

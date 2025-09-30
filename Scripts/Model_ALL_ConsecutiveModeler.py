@@ -1,4 +1,5 @@
-'''This file is meant to run a large number of simulations at a time.'''
+'''This file is meant to run a large number of simulations at a time.
+   Written by: '''
 
 ##############################################################################################################
 

@@ -1,4 +1,5 @@
-"""This file is used to generate a figure of a simulated tow vs an experimental tow."""
+"""This file is used to generate a figure of a simulated tow vs an experimental tow.
+   Written by: Martijn van der Voort, Clifton-John Walle and Manuel Cruz"""
 
 ##############################################################################################################
 

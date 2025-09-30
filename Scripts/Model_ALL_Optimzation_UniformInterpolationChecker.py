@@ -1,4 +1,5 @@
 # compare_interpolation_traverse.py
+""" Written by: """
 # Standalone comparison of NON-INTERPOLATED vs INTERPOLATED (uniform) traverse edges for a given tow.
 import numpy as np
 import matplotlib.pyplot as plt

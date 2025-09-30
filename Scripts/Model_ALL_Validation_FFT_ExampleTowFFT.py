@@ -14,6 +14,8 @@ Fixes:
   • Per-series zeroing (subtract first sample) for real & sim (edges & centerline)
   • Normalize FFT magnitudes by ORIGINAL N (not padded N)
   • Pairing SWAPPED: Top ↔ Right, Bottom ↔ Left
+
+Written by: 
 """
 
 import numpy as np

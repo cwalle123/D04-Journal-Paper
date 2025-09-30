@@ -1,4 +1,5 @@
-"""This file is used to find the optimum number of steps and bins."""
+"""This file is used to find the optimum number of steps and bins.
+   Written by: """
 
 ##############################################################################################################
 

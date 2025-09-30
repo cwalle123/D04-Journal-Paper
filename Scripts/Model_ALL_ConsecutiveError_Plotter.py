@@ -1,6 +1,7 @@
 """A genera data plotter in order to see relations between consecutive steps"""
 
 """This file is currently not being used for anything except plotting"""
+"""Written by: """
 
 ##############################################################################################################
 

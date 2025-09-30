@@ -1,4 +1,5 @@
-"""This file deals with generating simulated tows using the model"""
+"""This file deals with generating simulated tows using the model.
+   Written by: """
 
 ##############################################################################################################
 
