@@ -274,7 +274,6 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         LT_walk_data = generate_random_walk("LT", proposal_type=proposal_type, n_steps=LT_steps)
         CAM_walk_data = generate_random_walk("CAM", proposal_type=proposal_type, n_steps=CAM_steps)
         LLSB_walk_data = generate_random_walk("LLS_B", proposal_type=proposal_type, n_steps=LLS_B_steps)
-        LLSB_walk_data = [x + tow_width_mm for x in LLSB_walk_data]
 
         # determine what the smallest number of steps is for the errors and use this is the global number of steps
         n_steps = CAM_steps
@@ -294,16 +293,15 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
 
         top_edge_paths.append(tow_top_edge)
         bottom_edge_paths.append(tow_bottom_edge)
-
-        # creating the gap_overlap_data
-        gap_overlap_dict = {
-            f"Gap/overlap_Tow{tow_index + 1}_Tow{tow_index + 2}": bottom_edge_paths[tow_index + 1] - top_edge_paths[
-                tow_index]
-            for tow_index in range(num_tows - 1)
-        }
-        gap_overlap_df = pd.DataFrame(gap_overlap_dict)
-
         tow_offset += tow_spacing_mm
+
+    # creating the gap_overlap_data
+    gap_overlap_dict = {
+        f"Gap/overlap_Tow{tow_index + 1}_Tow{tow_index + 2}": bottom_edge_paths[tow_index + 1] - top_edge_paths[
+            tow_index]
+        for tow_index in range(num_tows - 1)
+    }
+    gap_overlap_df = pd.DataFrame(gap_overlap_dict)
 
     return gap_overlap_df
 

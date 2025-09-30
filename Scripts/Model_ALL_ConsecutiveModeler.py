@@ -348,25 +348,40 @@ def run_model(generate_varying_bin_plots: bool=False, return_data: bool=True):
 
 
 
-def Gap_Histogram():
+def Gap_Histogram(tows_simulated: int):
     # ------getting experimental data---------
     real_gap_data = []
-    for i in range(31):
-        added_gap_data = get_synced_data(2, 'TRAVERSE_GAP')
-        real_gap_data += added_gap_data
+    for i in range(1, 31):
+        added_gap_data = list(get_synced_data(i, 'Traverse')['Gap_gap'])
+        real_gap_data = real_gap_data + added_gap_data
     print(real_gap_data)
+    print('real printed', len(real_gap_data))
     experimental_mean = np.mean(real_gap_data)
     experimental_std = np.std(real_gap_data)
     # real_gap_data = filter(lambda x: 4 >= x >= 8, real_gap_data)
 
     # -------generating D04-model data--------
-    gap_overlap_df, _, _, _, _ = generate_multitow_layout(num_tows=31, tow_spacing_mm=12.5)
-    print(gap_overlap_df)
+    gap_overlap_df, _, _, _, _ = generate_multitow_layout(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    gap_overlap_df = np.array(gap_overlap_df)
+    D04_gap_data = []
+    for i in range (tows_simulated-1):
+        D04_gap_data = D04_gap_data + list(gap_overlap_df[:, i])
+    print(D04_gap_data)
+    print('D04 printed', len(D04_gap_data))
     D04_mean = np.mean(gap_overlap_df)
     D04_std = np.std(gap_overlap_df)
 
     # -------generating Random Walk data--------
-    RW_gap_data = generate_RW_multitow(num_tows=31, tow_spacing_mm=12.5)
+    RW_gap_df = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RW_gap_df = np.array(RW_gap_df)
+    RW_gap_data = []
+    for i in range (tows_simulated-1):
+        RW_gap_data = RW_gap_data + list(RW_gap_df[:, i])
+        #print(RW_gap_data, i)
+    print(RW_gap_data)
+    print('RW printed', len(RW_gap_data))
+    RW_mean = np.mean(RW_gap_data)
+    RW_std = np.std(RW_gap_data)
 
     print(f'Experimental mean/std = {experimental_mean}/{experimental_std}')
     print(f'D04 mean/std = {D04_mean}/{D04_std}')
@@ -376,12 +391,11 @@ def Gap_Histogram():
     gap_center = 12.5-6.35
     fig, ax = plt.subplots(figsize=(8, 4))
     ax.hist(real_gap_data, label='Experimental', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.4, density=True)     # bins=[0]+list(np.linspace(6.15-1.2, 6.15+1.2, 80+1))+[10]
-    ax.hist(gap_overlap_df, label='Model', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.4, density=True)
-    ax.hist(RW_gap_data, label='Random Walk', bins=[0] + list(np.linspace(gap_center - 1.2, gap_center + 1.2, 100 + 1)) + [10],
-            alpha=0.4, density=True, color='lightgreen')
+    ax.hist(D04_gap_data, label='Model', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.4, density=True)
+    ax.hist(RW_gap_data, label='Random Walk', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.4, density=True, color='green')
     ax.axvline(experimental_mean, color='purple', linestyle='-', label='Experimental Mean')
     ax.axvline(D04_mean, color='red', linestyle='-', label='D04-Model Mean')
-    ax.axvline(D04_mean, color='darkgreen', linestyle='-', label='RW Mean')
+    ax.axvline(RW_mean, color='darkgreen', linestyle='-', label='RW Mean')
     ax.set_xlabel("Gap (mm)", fontsize=12)
     ax.set_ylabel("Density", fontsize=12)
     ax.axvline(gap_center, color='black', linestyle='dashed', label='Ideal Gap')
@@ -474,7 +488,7 @@ def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal:
 
 def main():
     #data = run_model()
-    Gap_Histogram()
+    Gap_Histogram(30)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
