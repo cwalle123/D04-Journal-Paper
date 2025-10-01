@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 from dataclasses import dataclass
+import seaborn as sns
 
 # Internal imports
 from constants import tow_width_specified
@@ -354,7 +355,7 @@ def Gap_Histogram(tows_simulated: int):
     for i in range(1, 31):
         added_gap_data = list(get_synced_data(i, 'Traverse')['Gap_gap'])
         real_gap_data = real_gap_data + added_gap_data
-    print(real_gap_data)
+    #print(real_gap_data)
     print('real printed', len(real_gap_data))
     experimental_mean = np.mean(real_gap_data)
     experimental_std = np.std(real_gap_data)
@@ -366,7 +367,7 @@ def Gap_Histogram(tows_simulated: int):
     D04_gap_data = []
     for i in range (tows_simulated-1):
         D04_gap_data = D04_gap_data + list(gap_overlap_df[:, i])
-    print(D04_gap_data)
+    #print(D04_gap_data)
     print('D04 printed', len(D04_gap_data))
     D04_mean = np.mean(gap_overlap_df)
     D04_std = np.std(gap_overlap_df)
@@ -378,7 +379,7 @@ def Gap_Histogram(tows_simulated: int):
     for i in range (tows_simulated-1):
         RW_gap_data = RW_gap_data + list(RW_gap_df[:, i])
         #print(RW_gap_data, i)
-    print(RW_gap_data)
+    #print(RW_gap_data)
     print('RW printed', len(RW_gap_data))
     RW_mean = np.mean(RW_gap_data)
     RW_std = np.std(RW_gap_data)
@@ -390,9 +391,10 @@ def Gap_Histogram(tows_simulated: int):
     # plots
     gap_center = 12.5-6.35
     fig, ax = plt.subplots(figsize=(8, 4))
-    ax.hist(real_gap_data, label='Experimental', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.4, density=True)     # bins=[0]+list(np.linspace(6.15-1.2, 6.15+1.2, 80+1))+[10]
-    ax.hist(D04_gap_data, label='Model', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.4, density=True)
-    ax.hist(RW_gap_data, label='Random Walk', bins=[0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10], alpha=0.4, density=True, color='green')
+    bins = [0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10]
+    ax.hist(real_gap_data, label='Experimental', bins=bins, alpha=0.55, density=True)     # bins=[0]+list(np.linspace(6.15-1.2, 6.15+1.2, 80+1))+[10]
+    ax.hist(D04_gap_data, label='Model', bins=bins, alpha=0.55, density=True)
+    ax.hist(RW_gap_data, label='Random Walk', bins=bins, alpha=0.55, density=True, color='green')
     ax.axvline(experimental_mean, color='purple', linestyle='-', label='Experimental Mean')
     ax.axvline(D04_mean, color='red', linestyle='-', label='D04-Model Mean')
     ax.axvline(RW_mean, color='darkgreen', linestyle='-', label='RW Mean')
@@ -408,6 +410,8 @@ def Gap_Histogram(tows_simulated: int):
     #plt.grid(True)
     plt.tight_layout(rect=[0, 0, 1, 1])
     plt.show()
+    
+    return real_gap_data, D04_gap_data, RW_gap_data, experimental_mean, D04_mean, RW_mean, gap_center, bins
 
 
 def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal: bool):
@@ -483,12 +487,46 @@ def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal:
     plt.tight_layout()
     plt.show()
 
+def KDE_curves(tows_simulated: int):
+    """Function to plot probability density functions using KDE plotting.
+        Author: ChatGPT"""
+    # Obtain data
+    real_gap_data, D04_gap_data, RW_gap_data, real_mean, D04_mean, RW_mean, ideal_gap_center, bins = Gap_Histogram(tows_simulated)
+    
+    plt.figure(figsize=(10,6))
+
+    # Plot histograms
+    plt.hist(real_gap_data, bins=bins, density=True, alpha=0.3, color="blue", label="Experimental")
+    plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.3, color="orange", label="D04")
+    plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.3, color="crimson", label="Random Walk")
+    
+    # Plot smooth KDE curves
+    sns.kdeplot(real_gap_data, label="Experimental", color="blue", linewidth=2)
+    sns.kdeplot(D04_gap_data, label="D04", color="orange", linewidth=2)
+    sns.kdeplot(RW_gap_data, label="Random Walk", color="crimson", linewidth=2)
+
+    # Plot vertical lines for means and ideal gap
+    plt.axvline(real_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+    plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
+    plt.axvline(RW_mean, color="crimson", linestyle="--", linewidth=1, label="RW Mean")
+    plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+
+    # Labels and layout
+    plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+    plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+    plt.xlabel("Gap (mm)", fontsize=14)
+    plt.ylabel("Probability Density", fontsize=14)
+    plt.legend(fontsize=10)
+    plt.grid(alpha=0.3, linestyle="--")
+    plt.tight_layout()
+    plt.show()
 ##############################################################################################################
 """Run this file"""
 
 def main():
     #data = run_model()
-    Gap_Histogram(30)
+    #Gap_Histogram(30)
+    KDE_curves(30)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
