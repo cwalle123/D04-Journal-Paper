@@ -31,11 +31,14 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     y_right = real_df["y_right"].to_numpy()
     x_left = real_df["x_left"].to_numpy()
     y_left = real_df["y_left"].to_numpy()
+    x_centerline  = real_df["x_centerline"].to_numpy()
+    y_centerline  = real_df["y_centerline"].to_numpy()
 
     if plot:
         plt.figure(figsize=(10, 3))
         plt.plot(x_right, y_right, "-", linewidth=2.0, label="Right edge")
         plt.plot(x_left, y_left, "-", linewidth=2.0, label="Left edge")
+        plt.plot(x_centerline, y_centerline, "--", linewidth=2.0, label="Centerline")
         plt.xlabel("X (mm)")
         plt.ylabel("Y (mm)")
         plt.title(f"Real tow {tow} from traverse interpolated data")
@@ -80,7 +83,7 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     x_centerline = 0.5 * (real_x_right + real_x_left)
 
     # Translate tow to start around where tow 1 would be for comparison!
-    real_offset = y_offset_traverse + (tow - 1)*y_increment_traverse
+    real_offset = 112 + (tow - 1)*y_increment_traverse
     real_centerline = real_centerline - real_offset
     real_y_left = real_y_left - real_offset
     real_y_right = real_y_right - real_offset
@@ -144,17 +147,16 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
 
         # Real tow
         plt.plot(real_data["x_centerline"], real_data["centerline"], "--", color="blue", label="Real centerline")
-        plt.plot(real_data["x_left_edge"], real_data["left_edge"], "-", color="blue", alpha=0.6, label="Real edges")
-        plt.plot(real_data["x_right_edge"], real_data["right_edge"], "-", color="blue", alpha=0.6)
+        plt.plot(real_data["x_left_edge"], real_data["left_edge"], "-", color="blue", alpha=1, label="Real edges")
+        plt.plot(real_data["x_right_edge"], real_data["right_edge"], "-", color="blue", alpha=1)
 
         # Simulated tow
-        plt.plot(sim_data["x_mm"], sim_data["centerline"], "--", color="red", label="Sim centerline")
-        plt.plot(sim_data["x_mm"], sim_data["top_edge"], "-", color="red", alpha=0.6, label="Sim edges")
-        plt.plot(sim_data["x_mm"], sim_data["bottom_edge"], "-", color="red", alpha=0.6)
+        plt.plot(sim_data["x_mm"], sim_data["centerline"], "--", color="gold", label="Sim centerline")
+        plt.plot(sim_data["x_mm"], sim_data["top_edge"], "-", color="gold", alpha=1, label="Sim edges")
+        plt.plot(sim_data["x_mm"], sim_data["bottom_edge"], "-", color="gold", alpha=1)
 
         plt.xlabel("Tow length (mm)", fontsize=14)
-        plt.ylabel("Position (mm)", fontsize=14)
-        plt.title(f"Tow {tow}: Real vs Simulated", fontsize=16)
+        plt.ylabel("Lateral Position (mm)", fontsize=14)
         plt.legend()
         plt.grid(True)
 
@@ -290,9 +292,9 @@ def compare_multiple_simulations(tow: int, n_simulations: int = 50, tow_length_m
 """Run this file"""
 
 def main():
-    plot_real_tow(15)
+    # plot_real_tow(6)
 
-    #real_df, sim_df = plot_simulated_vs_real_tow(15, plot = True)
+    real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True)
 
     # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)

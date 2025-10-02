@@ -94,7 +94,7 @@ def traverse_tow_constructor(tow: int, normalize: bool = False):
 
     # --- Translate the tow down to y = 0 ---
     if normalize == True:
-        real_offset = y_offset_traverse + (tow - 1)*y_increment_traverse
+        real_offset = 112 + (tow - 1)*y_increment_traverse
         y_centerline = y_centerline - real_offset
         y_top_edge = y_top_edge - real_offset
         y_bottom_edge = y_bottom_edge - real_offset
