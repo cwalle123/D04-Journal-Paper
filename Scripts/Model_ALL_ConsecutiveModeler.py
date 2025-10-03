@@ -349,7 +349,7 @@ def run_model(generate_varying_bin_plots: bool=False, return_data: bool=True):
 
 
 
-def Gap_Histogram(tows_simulated: int):
+def Gap_Histogram(tows_simulated: int, plot: bool=False):
     # ------getting experimental data---------
     real_gap_data = []
     for i in range(1, 31):
@@ -388,28 +388,31 @@ def Gap_Histogram(tows_simulated: int):
     print(f'D04 mean/std = {D04_mean}/{D04_std}')
     print(f'RW mean/std = {RW_mean}/{RW_std}')
 
-    # plots
     gap_center = 12.5-6.35
-    fig, ax = plt.subplots(figsize=(8, 4))
     bins = [0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10]
-    ax.hist(real_gap_data, label='Experimental', bins=bins, alpha=0.55, density=True)     # bins=[0]+list(np.linspace(6.15-1.2, 6.15+1.2, 80+1))+[10]
-    ax.hist(D04_gap_data, label='Model', bins=bins, alpha=0.55, density=True)
-    ax.hist(RW_gap_data, label='Random Walk', bins=bins, alpha=0.55, density=True, color='green')
-    ax.axvline(experimental_mean, color='purple', linestyle='-', label='Experimental Mean')
-    ax.axvline(D04_mean, color='red', linestyle='-', label='D04-Model Mean')
-    ax.axvline(RW_mean, color='darkgreen', linestyle='-', label='RW Mean')
-    ax.set_xlabel("Gap (mm)", fontsize=12)
-    ax.set_ylabel("Density", fontsize=12)
-    ax.axvline(gap_center, color='black', linestyle='dashed', label='Ideal Gap')
-    # plt.title(f"Gaps")
-    ax.set_xlim(gap_center-1.2, gap_center+1.2)
-    ax.axhline(0, color='gray', linestyle='--', linewidth=1)
-    ax.legend(fontsize=10)
 
-    plt.xticks(np.linspace(gap_center-1.2, gap_center+1.2, 9))
-    #plt.grid(True)
-    plt.tight_layout(rect=[0, 0, 1, 1])
-    plt.show()
+    if plot:
+        # plots
+        fig, ax = plt.subplots(figsize=(8, 4))
+        
+        ax.hist(real_gap_data, label='Experimental', bins=bins, alpha=0.55, density=True)     # bins=[0]+list(np.linspace(6.15-1.2, 6.15+1.2, 80+1))+[10]
+        ax.hist(D04_gap_data, label='Model', bins=bins, alpha=0.55, density=True)
+        ax.hist(RW_gap_data, label='Random Walk', bins=bins, alpha=0.55, density=True, color='green')
+        ax.axvline(experimental_mean, color='purple', linestyle='-', label='Experimental Mean')
+        ax.axvline(D04_mean, color='red', linestyle='-', label='D04-Model Mean')
+        ax.axvline(RW_mean, color='darkgreen', linestyle='-', label='RW Mean')
+        ax.set_xlabel("Gap (mm)", fontsize=12)
+        ax.set_ylabel("Density", fontsize=12)
+        ax.axvline(gap_center, color='black', linestyle='dashed', label='Ideal Gap')
+        # plt.title(f"Gaps")
+        ax.set_xlim(gap_center-1.2, gap_center+1.2)
+        ax.axhline(0, color='gray', linestyle='--', linewidth=1)
+        ax.legend(fontsize=10)
+
+        plt.xticks(np.linspace(gap_center-1.2, gap_center+1.2, 9))
+        #plt.grid(True)
+        plt.tight_layout(rect=[0, 0, 1, 1])
+        plt.show()
     
     return real_gap_data, D04_gap_data, RW_gap_data, experimental_mean, D04_mean, RW_mean, gap_center, bins
 
@@ -496,19 +499,19 @@ def KDE_curves(tows_simulated: int):
     plt.figure(figsize=(10,6))
 
     # Plot histograms
-    plt.hist(real_gap_data, bins=bins, density=True, alpha=0.3, color="blue", label="Experimental")
-    plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.3, color="orange", label="D04")
-    plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.3, color="crimson", label="Random Walk")
+    plt.hist(real_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental", hatch='/')
+    plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="D04", hatch='o')
+    plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="red", label="Random Walk", hatch='*')
     
     # Plot smooth KDE curves
     sns.kdeplot(real_gap_data, label="Experimental", color="blue", linewidth=2)
     sns.kdeplot(D04_gap_data, label="D04", color="orange", linewidth=2)
-    sns.kdeplot(RW_gap_data, label="Random Walk", color="crimson", linewidth=2)
+    sns.kdeplot(RW_gap_data, label="Random Walk", color="red", linewidth=2)
 
     # Plot vertical lines for means and ideal gap
     plt.axvline(real_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
     plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
-    plt.axvline(RW_mean, color="crimson", linestyle="--", linewidth=1, label="RW Mean")
+    plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
     plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
 
     # Labels and layout
