@@ -18,6 +18,7 @@ from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_pat
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
 from Model_ALL_RandomWalk import generate_random_walk, generate_RW_multitow
 from Model_ALL_Simulation import generate_multitow_layout
+from Model_ALL_RandomSampling import generate_RS_multitow
 
 ##############################################################################################################
 """Functions"""
@@ -523,13 +524,172 @@ def KDE_curves(tows_simulated: int):
     plt.grid(alpha=0.3, linestyle="--")
     plt.tight_layout()
     plt.show()
+
+def model_distribution_figures(tows_simulated: int, plottype: str):
+    """Generate 1 figure with 3 plots. 1: Experimental vs. D04. 2: Experimental vs. RW. 3: Experimental vs. Random Sampling.
+       Plottype can be "single" or "separate"
+       Author: Martijn van der Voort"""
+    
+    # Check for plottype
+    if plottype != "single" or plottype != "separate":
+        raise ValueError(f'The provided plottype does not exist. Choose "single" or "separate"')
+
+    # ------getting experimental data---------
+    experimental_gap_data = []
+    for i in range(1, 31):
+        added_gap_data = list(get_synced_data(i, 'Traverse')['Gap_gap'])
+        experimental_gap_data = experimental_gap_data + added_gap_data
+    print('real printed', len(experimental_gap_data))
+    experimental_mean = np.mean(experimental_gap_data)
+    experimental_std = np.std(experimental_gap_data)
+
+    # -------generating D04-model data--------
+    gap_overlap_df, _, _, _, _ = generate_multitow_layout(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    gap_overlap_df = np.array(gap_overlap_df)
+    D04_gap_data = []
+    for i in range (tows_simulated-1):
+        D04_gap_data = D04_gap_data + list(gap_overlap_df[:, i])
+    print('D04 printed', len(D04_gap_data))
+    D04_mean = np.mean(D04_gap_data)
+    D04_std = np.std(D04_gap_data)
+
+    # -------generating Random Walk data--------
+    RW_gap_df = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RW_gap_df = np.array(RW_gap_df)
+    RW_gap_data = []
+    for i in range (tows_simulated-1):
+        RW_gap_data = RW_gap_data + list(RW_gap_df[:, i])
+    print('RW printed', len(RW_gap_data))
+    RW_mean = np.mean(RW_gap_data)
+    RW_std = np.std(RW_gap_data)
+
+    #-------generating Random Sampling data--------
+    RS_gap_df = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RS_gap_df = np.array(RS_gap_df)
+    RS_gap_data = []
+    for i in range (tows_simulated-1):
+        RS_gap_data = RS_gap_data + list(RS_gap_df[:, i])
+    print('RS printed', len(RS_gap_data))
+    RS_mean = np.mean(RS_gap_data)
+    RS_std = np.std(RS_gap_data)
+
+    #-----print statements
+    print(f'Experimental mean/std = {experimental_mean}/{experimental_std}')
+    print(f'D04 mean/std = {D04_mean}/{D04_std}')
+    print(f'RW mean/std = {RW_mean}/{RW_std}')
+    print(f'RS mean/std = {RS_mean}/{RS_std}')
+
+    #-------calculating plot parameters---------
+    ideal_gap_center = 12.5-6.35
+    bins = [0]+list(np.linspace(ideal_gap_center-1.2, ideal_gap_center+1.2, 100+1))+[10]
+
+    #--------generating plot--------
+    if plottype == "single":
+        plt.figure(figsize=(12, 8))
+
+        plt.subplot(311)
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="D04")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(D04_gap_data, label="D04", color="orange", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.legend(fontsize=10)
+        
+        plt.subplot(312)
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="red", label="RW")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(RW_gap_data, label="RW", color="red", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.legend(fontsize=10)
+        
+        plt.subplot(313)
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="RS")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(RS_gap_data, label="RS", color="green", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.legend(fontsize=10)
+        plt.xlabel("Gap (mm)", fontsize=14)
+         
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.grid(alpha=0.3, linestyle="--")
+        plt.show()
+    
+    if plottype == "separate":
+        
+        #D04
+        plt.figure(figsize=(10,6))
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="D04")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(D04_gap_data, label="D04", color="orange", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
+        plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=14)
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.legend(fontsize=10)
+        plt.grid(alpha=0.3, linestyle="--")
+        plt.tight_layout()
+        plt.show()
+
+        #RW
+        plt.figure(figsize=(10,6))
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="red", label="RW")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(RW_gap_data, label="RW", color="red", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
+        plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=14)
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.legend(fontsize=10)
+        plt.grid(alpha=0.3, linestyle="--")
+        plt.tight_layout()
+        plt.show()
+
+        #RS
+        plt.figure(figsize=(10,6))
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="RS")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(RS_gap_data, label="RS", color="green", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
+        plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=14)
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.legend(fontsize=10)
+        plt.grid(alpha=0.3, linestyle="--")
+        plt.tight_layout()
+        plt.show()
 ##############################################################################################################
 """Run this file"""
 
 def main():
     #data = run_model()
     #Gap_Histogram(30)
-    KDE_curves(30)
+    #KDE_curves(30)
+    model_distribution_figures(30, plottype="separate")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
