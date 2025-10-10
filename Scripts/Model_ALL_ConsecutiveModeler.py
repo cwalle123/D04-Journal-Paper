@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import seaborn as sns
 
 # Internal imports
-from constants import tow_width_specified
+from constants import tow_width_specified, font_large, font_medium
 from Handling_ALL_Functions import get_synced_data
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
@@ -596,8 +596,9 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        plt.ylabel("Probability Density", fontsize=14)
-        plt.legend(fontsize=10)
+        plt.ylabel("Probability Density", fontsize=font_large)
+        plt.grid(alpha=0.3, linestyle="--")
+        plt.legend(fontsize=font_medium)
         
         plt.subplot(312)
         plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
@@ -608,8 +609,9 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        plt.ylabel("Probability Density", fontsize=14)
-        plt.legend(fontsize=10)
+        plt.ylabel("Probability Density", fontsize=font_large)
+        plt.grid(alpha=0.3, linestyle="--")
+        plt.legend(fontsize=font_medium)
         
         plt.subplot(313)
         plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
@@ -620,11 +622,11 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        plt.legend(fontsize=10)
-        plt.xlabel("Gap (mm)", fontsize=14)
-         
-        plt.ylabel("Probability Density", fontsize=14)
+        plt.legend(fontsize=font_medium)
+        plt.xlabel("Gap (mm)", fontsize=font_large)
         plt.grid(alpha=0.3, linestyle="--")
+        
+        plt.ylabel("Probability Density", fontsize=font_large)
         plt.show()
     
     if plottype == "separate":
@@ -689,7 +691,7 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(30)
-    model_distribution_figures(30, plottype="separate")
+    model_distribution_figures(30, plottype="single")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
