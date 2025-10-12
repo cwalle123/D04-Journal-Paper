@@ -15,6 +15,7 @@ from Handling_ALL_Functions import get_synced_data
 from constants import tow_width_specified
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
+from Model_ALL_Validation_Tow_Visualiser import plot_simulated_vs_real_tow
 
 
 
@@ -80,8 +81,7 @@ def propose_new_RWM_value(x_current, dist_std, sensor):    # random walk metropo
     return proposal
 
 def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevian algorithm (MALA)
-
-    #proposal = ???
+    proposal = 1
     return proposal
 
 
@@ -251,7 +251,7 @@ def get_proposal_distribution(sensor, plot: bool=False):
 
         # plotting
         plt.plot(x, distribution(x), label='proposal distribution')
-        plt.hist(data, weights=weights, density=True, label='step-size data', bins=1000)
+        plt.hist(data, weights=weights, density=True, label='step-size data', bins=300)
         plt.xlim(mean-3*std, mean+3*std)
         plt.title('step size distribution for ' + sensor)
         plt.legend()
@@ -333,12 +333,14 @@ def get_actual_Dataframe(tow: int):
          "width_LLS_B": width,
          "x": x})
 
+
+
     print(dataframe)
     return dataframe
 
 
 
-def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list, ideal: bool):      # TODO: probably get rid of this.. . :(
+def tow_visualizer_alt(tows: list[pd.DataFrame], real_data, y_intended: list, labels: list, ideal: bool):      # TODO: probably get rid of this.. . :(
     """
     This function takes a list of dataframes that contains features of a tows and plots the corresponding tows in one figure, as well as the ideal tow.
     The data it takes from that dataframe are
@@ -359,7 +361,7 @@ def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list,
         raise TypeError("All elements in 'tows' must be pandas DataFrames.")
 
     # set figure size
-    plt.figure(figsize=(15, 2))
+    plt.figure(figsize=(15, 5))
 
     for i in range(len(y_intended)):
         CAM_centerline = tows[i]["center_CAM"]  # take the centerline from CAM
@@ -383,6 +385,14 @@ def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list,
                  [centerline.iloc[-1] - 0.5 * width.iloc[-1], centerline.iloc[-1] + 0.5 * width.iloc[-1]],
                  linestyle='solid', color='black')
 
+
+    # traverse plot
+
+    # Real tow
+    plt.plot(real_data["x_centerline"], real_data["centerline"], "--", color="blue", label="Real centerline")
+    plt.plot(real_data["x_left_edge"], real_data["left_edge"], "-", color="blue", alpha=1, label="Real edges")
+    plt.plot(real_data["x_right_edge"], real_data["right_edge"], "-", color="blue", alpha=1)
+
     if ideal == True:
         # plot the ideal tow (just a rectangle)
         plt.plot([0, 1000], [tow_width_specified * 0.5, tow_width_specified * 0.5], color='green', label='ideal tow')
@@ -400,7 +410,7 @@ def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list,
     # plot info
     plt.xlabel("x-position [mm]")
     plt.ylabel("y-position [mm]")
-    #plt.xlim(x_min, x_max)
+    plt.xlim(0, 100)
     #plt.ylim(y_min, y_max)
     plt.grid()
     plt.title("random walk comparison... or something like that")
@@ -409,10 +419,15 @@ def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list,
     plt.show()
 
 
-def plot_tow_comparison(proposal_type: str, plot_individual_histograms: bool=False):
+def plot_tow_comparison(proposal_type: str="RWM", plot_individual_histograms: bool=False):
     '''
     This function is intended to make a comparison of a full tow between random walk and actual data.
     '''
+
+    # real data
+    real_data, sim_data = plot_simulated_vs_real_tow(5)
+    print(real_data)
+
     tow_length = 1000   # [mm]
     LT_steps = get_n_steps("LT")
     CAM_steps = get_n_steps("CAM")
@@ -442,9 +457,11 @@ def plot_tow_comparison(proposal_type: str, plot_individual_histograms: bool=Fal
          "width_LLS_B": LLSB_walk_data,
          "x": x_walk_data})
 
-    real_data = get_actual_Dataframe(2)
+    #real_data = get_actual_Dataframe(2)
 
-    tow_visualizer_alt([walk_dataframe, real_data], [0, 0], ["random walk", "Real"], False)
+    tow_visualizer_alt([walk_dataframe], real_data, [0], ["random walk", "Real"], False)
+
+    return walk_dataframe
 
 def interpolate(data, new_steps):
     data = np.array(data)
@@ -520,9 +537,9 @@ def check_burn_in(sensor, steps, n_hists):
 
 def main():
     #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
-    #plot_tow_comparison(proposal_type="RWM", plot_individual_histograms=True)
-    #std = get_proposal_distribution("LLS_B", plot=True)
-    plot_animated_walk_hist("CAM", 31)
+    plot_tow_comparison(proposal_type="RWM", plot_individual_histograms=True)
+    #std = get_proposal_distribution("CAM", plot=True)
+    #plot_animated_walk_hist("CAM", 31)
     #print(get_n_steps("CAM"))
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)
