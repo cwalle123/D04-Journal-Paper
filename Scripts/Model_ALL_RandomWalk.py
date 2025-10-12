@@ -302,7 +302,27 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
     }
     gap_overlap_df = pd.DataFrame(gap_overlap_dict)
 
-    return gap_overlap_df
+    x_vals = x_walk_data
+    gap_df = gap_overlap_df.where(gap_overlap_df > 0)
+    overlap_df = gap_overlap_df.where(gap_overlap_df < 0)
+
+    # --- Area calculations ---
+    highest_tow_edge = top_edge_paths[-1]
+    lowest_tow_edge = bottom_edge_paths[0]
+    total_layout_area = np.trapezoid(highest_tow_edge - lowest_tow_edge, x_vals)
+
+    total_gap_area = sum(np.trapezoid(np.clip(values, 0, None), x_vals) for values in gap_overlap_df.values.T)
+    total_overlap_area = sum(np.trapezoid(np.clip(-values, 0, None), x_vals) for values in gap_overlap_df.values.T)
+
+    gap_percent = (total_gap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
+    overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
+
+    # --- Print summary ---
+    print(f"\nTotal layout area: {total_layout_area:.2f} mm²")
+    print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
+    print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
+
+    return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
 
 
 
