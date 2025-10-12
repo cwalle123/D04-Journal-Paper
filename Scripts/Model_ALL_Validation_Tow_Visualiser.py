@@ -22,7 +22,7 @@ from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse
 ##############################################################################################################
 """Functions"""
 
-def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
+def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True, force_steps: bool = False):
     """
     Plot a real tow profile using Traverse interpolated data
     """
@@ -34,6 +34,19 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     y_left = real_df["y_left"].to_numpy()
     x_centerline  = real_df["x_centerline"].to_numpy()
     y_centerline  = real_df["y_centerline"].to_numpy()
+
+    if force_steps:
+        target_points = 340
+        n_points = len(x_centerline)
+        if n_points > target_points:
+            indices = np.linspace(0, n_points - 1, target_points, dtype=int)
+            x_right = x_right[indices]
+            y_right = y_right[indices]
+            x_left = x_left[indices]
+            y_left = y_left[indices]
+            x_centerline = x_centerline[indices]
+            y_centerline = y_centerline[indices]
+            real_df = real_df.iloc[indices].reset_index(drop=True)
 
     if plot:
         plt.figure(figsize=(10, 3))
@@ -50,7 +63,7 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
 
     return real_df
 
-def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
+def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True, force_steps: bool = False):
     """
     Overlay a simulated tow on a real tow.
     Real tow is built from Traverse Data
@@ -67,7 +80,7 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     """
 
     # --- Get real tow ---
-    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False)
+    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False, force_steps=force_steps)
 
     # Extract edges
     real_x_right = real_df["x_right"].to_numpy()
@@ -169,7 +182,7 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
 
     return real_data, sim_data
 
-def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
+def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True, force_steps: bool = False):
     """
     Overlay a simulated tow on a real tow.
     Real tow is built from Traverse Data
@@ -186,7 +199,7 @@ def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False,
     """
 
     # --- Get real tow ---
-    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False)
+    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False, force_steps=force_steps)
 
     # Extract edges
     real_x_right = real_df["x_right"].to_numpy()
@@ -203,7 +216,7 @@ def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False,
     x_centerline = 0.5 * (real_x_right + real_x_left)
 
     # Translate tow to start around where tow 1 would be for comparison!
-    real_offset = 112 + (tow - 1)*y_increment_traverse
+    real_offset = 111.7 + (tow - 1)*y_increment_traverse
     real_centerline = real_centerline - real_offset
     real_y_left = real_y_left - real_offset
     real_y_right = real_y_right - real_offset
@@ -448,11 +461,11 @@ def compare_real_vs_RW_gaps_overlaps():
 def main():
     # plot_real_tow(6)
 
-    real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True)
+    real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True, force_steps = True)
     compare_real_vs_simulated_gaps_overlaps()
 
-    # real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True)
-    # compare_real_vs_RW_gaps_overlaps()
+    real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True, force_steps = True)
+    compare_real_vs_RW_gaps_overlaps()
 
     # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)

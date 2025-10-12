@@ -468,7 +468,7 @@ def plot_RW_tows(proposal_type: str="RWM", plot_individual_histograms: bool=Fals
 
     #real_data = get_actual_Dataframe(2)
 
-    tow_visualizer_alt([walk_dataframe], [0], ["random walk", "Real"], False)
+    # tow_visualizer_alt([walk_dataframe], [0], ["random walk", "Real"], False)
 
     return walk_dataframe
 
