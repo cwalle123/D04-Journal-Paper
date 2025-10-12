@@ -169,7 +169,6 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
 
     return real_data, sim_data
 
-
 def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
     """
     Overlay a simulated tow on a real tow.
@@ -220,12 +219,17 @@ def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False,
 
     sim_data = plot_tow_comparison()
 
-    # sim_data = pd.DataFrame({
-    #     "x_mm": sim_x,
-    #     "centerline": tow_centerline_sim,
-    #     "top_edge": sim_top,
-    #     "bottom_edge": sim_bottom,
-    #     "width": tow_widths_sim})
+    sim_centerline = sim_data["y"].to_numpy() + sim_data["center_CAM"].to_numpy()
+    sim_top_edge = sim_centerline + sim_data["width_LLS_B"].to_numpy()
+    sim_bottom_edge = sim_centerline - sim_data["width_LLS_B"].to_numpy()
+    sim_x = sim_data["x"].to_numpy()
+
+    sim_data = pd.DataFrame({
+        "x_mm": sim_x,
+        "centerline": sim_centerline,
+        "top_edge": sim_top_edge,
+        "bottom_edge": sim_bottom_edge,
+        "width": sim_top_edge - sim_bottom_edge})
 
     # --- Plot both ---
     if plot:
@@ -412,7 +416,7 @@ def compare_real_vs_simulated_gaps_overlaps(tow_length_mm=1000):
 def main():
     # plot_real_tow(6)
 
-    real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True)
+    real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True)
     # compare_real_vs_simulated_gaps_overlaps()
 
     # compare_simulated_vs_real_tow(8)
