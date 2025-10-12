@@ -451,8 +451,8 @@ def main():
     real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True)
     compare_real_vs_simulated_gaps_overlaps()
 
-    real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True)
-    compare_real_vs_RW_gaps_overlaps()
+    # real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True)
+    # compare_real_vs_RW_gaps_overlaps()
 
     # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
