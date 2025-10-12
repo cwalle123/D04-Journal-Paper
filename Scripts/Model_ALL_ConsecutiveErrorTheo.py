@@ -69,7 +69,6 @@ def weighted_linregress(x, y, weights):
 
     return slope, intercept, r_value, p_value_slope, stderr_slope
 
-
 def get_data_pairs(sensor: str, tows: list = list(np.arange(2, 32, 1))):
     """
     Gets the data for the specified sensors and puts it in the required form for the regression model.
@@ -122,7 +121,6 @@ def generate_starting_error(sensor: str):
 
     start_error = random.normalvariate(*start_range)
     return start_error
-
 
 def consecutive_error(sensor, used_tows: list = list(np.arange(2, 32, 1)), test_ratio: float=0.1, num_bins = 150, random_state=None, bins_show = False, plot_fit=True, fourPlots = False, axs = None, noTitle = True, return_plot_data=False):
     """
@@ -291,7 +289,7 @@ def consecutive_error(sensor, used_tows: list = list(np.arange(2, 32, 1)), test_
 
     return bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edge_indices, deviations_per_bin
 
-def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_edges, deviations_per_bin, use_truncnorm= True):
+def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_edges, deviations_per_bin, use_truncnorm= False):
     np.random.seed()
     error_path = [start_error]
     x_current = start_error
@@ -321,9 +319,10 @@ def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_ed
 
         # if necessary, truncates the distribution to only sample within 2 std's or the max/min of the data
         if use_truncnorm:
-            # Use truncated normal within ±2σ or max/min of data
+            # Use truncated normal within ±1σ or max/min of data
             from scipy.stats import truncnorm
             a, b = (min(deviations) - mu) / sigma , (max(deviations) - mu) / sigma
+            # a, b = -1, 1
             sampled_deviation = truncnorm(a, b, loc=mu, scale=sigma).rvs()
         else:
             # Use regular normal distribution
@@ -1350,7 +1349,6 @@ def plot_blobs(save_PDF = False):
 
     plt.show()
 
-
 ##############################################################################################################
 """"Run this file"""
 
@@ -1365,8 +1363,7 @@ def main():
     #plot_blobs(save_PDF=True)
     #consecutive_error("LT", bins_show=True, num_bins=20, fourPlots=True)
     bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edges, deviations_per_bin = consecutive_error("LT")
-    data = generate_error_path(0, 2000, slope, intercept, x_sorted, bin_edges, deviations_per_bin,
-                        use_truncnorm=False)
+    data = generate_error_path(0, 2000, slope, intercept, x_sorted, bin_edges, deviations_per_bin,use_truncnorm=False)
 
 if __name__ == "__main__":
     main()
