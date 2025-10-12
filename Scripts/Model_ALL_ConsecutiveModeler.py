@@ -374,7 +374,7 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
     D04_std = np.std(gap_overlap_df)
 
     # -------generating Random Walk data--------
-    RW_gap_df = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RW_gap_df, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
     RW_gap_df = np.array(RW_gap_df)
     RW_gap_data = []
     for i in range (tows_simulated-1):
@@ -555,7 +555,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     D04_std = np.std(D04_gap_data)
 
     # -------generating Random Walk data--------
-    RW_gap_df = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RW_gap_df, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
     RW_gap_df = np.array(RW_gap_df)
     RW_gap_data = []
     for i in range (tows_simulated-1):
