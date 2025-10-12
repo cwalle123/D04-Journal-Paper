@@ -16,6 +16,7 @@ from Handling_ALL_Functions import get_synced_data
 from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Model_ALL_Simulation import generate_multitow_layout
+from Model_ALL_RandomWalk import plot_tow_comparison
 from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse
 
 ##############################################################################################################
@@ -140,6 +141,91 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
         "top_edge": sim_top,
         "bottom_edge": sim_bottom,
         "width": tow_widths_sim})
+
+    # --- Plot both ---
+    if plot:
+        plt.figure(figsize=(10, 6))
+
+        # Real tow
+        plt.plot(real_data["x_centerline"], real_data["centerline"], "--", color="blue", label="Real centerline")
+        plt.plot(real_data["x_left_edge"], real_data["left_edge"], "-", color="blue", alpha=1, label="Real edges")
+        plt.plot(real_data["x_right_edge"], real_data["right_edge"], "-", color="blue", alpha=1)
+
+        # Simulated tow
+        plt.plot(sim_data["x_mm"], sim_data["centerline"], "--", color="gold", label="Sim centerline")
+        plt.plot(sim_data["x_mm"], sim_data["top_edge"], "-", color="gold", alpha=1, label="Sim edges")
+        plt.plot(sim_data["x_mm"], sim_data["bottom_edge"], "-", color="gold", alpha=1)
+
+        plt.xlabel("Tow length (mm)", fontsize=14)
+        plt.ylabel("Lateral Position (mm)", fontsize=14)
+        plt.legend()
+        plt.grid(True)
+
+        if scaled:
+            plt.axis("equal")
+
+        plt.tight_layout()
+        plt.show()
+
+    return real_data, sim_data
+
+
+def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
+    """
+    Overlay a simulated tow on a real tow.
+    Real tow is built from Traverse Data
+    Simulated tow is generated with RW data.
+
+    Parameters
+    ----------
+    tow : int
+        Tow index.
+    tow_length_mm : int, optional
+        Tow length in mm (default 1000).
+    scaled : bool, optional
+        If True, plot is shown with 1:1 scale (equal aspect ratio).
+    """
+
+    # --- Get real tow ---
+    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False)
+
+    # Extract edges
+    real_x_right = real_df["x_right"].to_numpy()
+    real_y_right = real_df["y_right"].to_numpy()
+    real_x_left = real_df["x_left"].to_numpy()
+    real_y_left = real_df["y_left"].to_numpy()
+
+    '''real_x = real_df["x_right"].to_numpy()
+    real_y_right = real_df["y_right"].to_numpy()
+    real_y_left = real_df["y_left"].to_numpy()'''
+
+    # Compute centerline
+    real_centerline = 0.5 * (real_y_left + real_y_right)
+    x_centerline = 0.5 * (real_x_right + real_x_left)
+
+    # Translate tow to start around where tow 1 would be for comparison!
+    real_offset = 112 + (tow - 1)*y_increment_traverse
+    real_centerline = real_centerline - real_offset
+    real_y_left = real_y_left - real_offset
+    real_y_right = real_y_right - real_offset
+
+    real_data = pd.DataFrame({
+        "x_right_edge": real_x_right,
+        "x_left_edge": real_x_left,
+        "centerline": real_centerline,
+        "x_centerline": x_centerline,
+        "left_edge": real_y_left,
+        "right_edge": real_y_right,
+        "width": real_y_left - real_y_right})
+
+    sim_data = plot_tow_comparison()
+
+    # sim_data = pd.DataFrame({
+    #     "x_mm": sim_x,
+    #     "centerline": tow_centerline_sim,
+    #     "top_edge": sim_top,
+    #     "bottom_edge": sim_bottom,
+    #     "width": tow_widths_sim})
 
     # --- Plot both ---
     if plot:
