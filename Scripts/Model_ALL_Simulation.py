@@ -78,7 +78,7 @@ def fit_starting_error_distribution(sensor: str, plot=True):
 
     return mu, sigma, a, b, first_values
 
-def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35, tow_length_mm=1000, cam_start_range=(-0.75, 0.75), lt_start_range=(-0.9, -0.7), llsb_start_range=(-0.21, -0.02), plot=False):
+def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35, tow_length_mm=1000, cam_start_range=(-0.75, 0.75), lt_start_range=(-0.9, -0.7), llsb_start_range=(-0.21, -0.02), plot=False, scaled=False):
     """
     Generate a multi-tow layout using real error models (CAM, LT, LLS_B).
     Returns gap/overlap DataFrames and percentages.
@@ -178,6 +178,8 @@ def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35,
         plt.ylabel("Tow position (mm)", fontsize=14)
         plt.legend(loc="lower center", bbox_to_anchor=(0.5, -0.18), ncol=3, fontsize=10, frameon=True)
         plt.grid(False)
+        if scaled:
+            plt.axis("equal")
         plt.tight_layout()
         plt.show()
 
@@ -187,72 +189,6 @@ def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35,
     print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
 
     return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
-
-##############################################################################################################
-"""Functions for checking values of the experimental data"""
-# (These apperently delete a lot of data!, only use as indicator for percentage of gap overlap)
-
-def calculate_real_gap_overlap_percentages(num_tows=5, tow_spacing_mm=6.35):
-    offsets = np.linspace(-(num_tows - 1) / 2, (num_tows - 1) / 2, num_tows) * tow_spacing_mm
-    top_lines = []
-    bottom_lines = []
-
-    for tow in range(2, 2 + num_tows):
-        df = get_synced_data(tow, spacesynced=True)
-
-        cam = df["center_CAM"].dropna().values
-        lt = df["error_LT"].dropna().values
-        width = df["width_LLS_B"].dropna().values
-
-        min_len = min(len(cam), len(lt), len(width))
-        cam = cam[:min_len]
-        lt = lt[:min_len]
-        width = width[:min_len]
-
-        centerline = cam + lt
-        top = centerline + 0.5 * width + offsets[tow - 2]
-        bottom = centerline - 0.5 * width + offsets[tow - 2]
-
-        top_lines.append(top)
-        bottom_lines.append(bottom)
-
-    # Compute gaps/overlaps only on valid shared ranges
-    gap_overlap_data = {}
-    total_gap_area = 0.0
-    total_overlap_area = 0.0
-
-    for i in range(num_tows - 1):
-        top_i = top_lines[i]
-        bottom_next = bottom_lines[i + 1]
-        common_len = min(len(top_i), len(bottom_next))
-
-        top_i = top_i[:common_len]
-        bottom_next = bottom_next[:common_len]
-
-        gap_overlap = bottom_next - top_i
-        col_name = f"Gap/overlap_Tow{i+1}_Tow{i+2}"
-        gap_overlap_data[col_name] = gap_overlap
-
-        gaps = np.where(gap_overlap > 0, gap_overlap, 0)
-        overlaps = np.where(gap_overlap < 0, -gap_overlap, 0)
-
-        total_gap_area += np.trapezoid(gaps)
-        total_overlap_area += np.trapezoid(overlaps)
-
-    #Total layout area between outermost top and bottom lines
-    topmost = top_lines[-1]
-    bottommost = bottom_lines[0]
-    common_len_total = min(len(topmost), len(bottommost))
-    total_area = np.trapezoid(topmost[:common_len_total] - bottommost[:common_len_total])
-
-    gap_percent = (total_gap_area / total_area) * 100 if total_area > 0 else 0
-    overlap_percent = (total_overlap_area / total_area) * 100 if total_area > 0 else 0
-
-    print(f"\n[REAL] Total layout area (unitless): {total_area:.2f}")
-    print(f"[REAL] Gap area: {total_gap_area:.2f} ({gap_percent:.2f}%)")
-    print(f"[REAL] Overlap area: {total_overlap_area:.2f} ({overlap_percent:.2f}%)")
-
-    return gap_overlap_data, gap_percent, overlap_percent
 
 def simulation_verification(num_simulations=100):
     """

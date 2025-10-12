@@ -57,7 +57,7 @@ def purge_cached_data():
 ##############################################################################################################
 """Functions for calling data"""
 
-def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -> pd.DataFrame:
+def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False, print_statement=False) -> pd.DataFrame:
     """
     Loads processed data for a given tow & sensor, with caching.
     Combines multiple arrays horizontally if needed.
@@ -75,7 +75,7 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
     if not helper and not overwrite:
         try:
             cached_array, cached_cols = load_cached_data(name)
-            print(f"[CACHE] Loaded '{name}' from cache")
+            if print_statement: print(f"[CACHE] Loaded '{name}' from cache")
             return pd.DataFrame(cached_array, columns=cached_cols)
         except FileNotFoundError:
             print(f"[CACHE] No cache found for '{name}'. Processing new data...")
@@ -201,10 +201,10 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False) -
             for idx in range(synced.shape[0]):
                 if not np.isnan(left_diff[idx]) and np.abs(left_diff[idx]) > spike_threshold:
                     keep_mask[idx] = False
-                    print(f"Tow {tow}: removed spike at x = {synced[idx, 4]:.2f} mm, Gap_left jump = {left_diff[idx]:.2f} mm")
+                    if print_statement: print(f"Tow {tow}: removed spike at x = {synced[idx, 4]:.2f} mm, Gap_left jump = {left_diff[idx]:.2f} mm")
                 if not np.isnan(right_diff[idx]) and np.abs(right_diff[idx]) > spike_threshold:
                     keep_mask[idx] = False
-                    print(f"Tow {tow}: removed spike at x = {synced[idx, 4]:.2f} mm, Gap_right jump = {right_diff[idx]:.2f} mm")
+                    if print_statement: print(f"Tow {tow}: removed spike at x = {synced[idx, 4]:.2f} mm, Gap_right jump = {right_diff[idx]:.2f} mm")
 
             synced = synced[keep_mask, :]
 
