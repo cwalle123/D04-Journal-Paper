@@ -16,7 +16,7 @@ from Handling_ALL_Functions import get_synced_data
 from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Model_ALL_Simulation import generate_multitow_layout
-from Model_ALL_RandomWalk import plot_tow_comparison
+from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow
 from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse
 
 ##############################################################################################################
@@ -217,11 +217,11 @@ def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False,
         "right_edge": real_y_right,
         "width": real_y_left - real_y_right})
 
-    sim_data = plot_tow_comparison()
+    sim_data = plot_RW_tows()
 
     sim_centerline = sim_data["y"].to_numpy() + sim_data["center_CAM"].to_numpy()
-    sim_top_edge = sim_centerline + sim_data["width_LLS_B"].to_numpy()
-    sim_bottom_edge = sim_centerline - sim_data["width_LLS_B"].to_numpy()
+    sim_top_edge = sim_centerline + 0.5*sim_data["width_LLS_B"].to_numpy()
+    sim_bottom_edge = sim_centerline - 0.5*sim_data["width_LLS_B"].to_numpy()
     sim_x = sim_data["x"].to_numpy()
 
     sim_data = pd.DataFrame({
@@ -410,14 +410,49 @@ def compare_real_vs_simulated_gaps_overlaps(tow_length_mm=1000):
         "sim_gap_percent": sim_gap_percent,
         "sim_overlap_percent": sim_overlap_percent}
 
+def compare_real_vs_RW_gaps_overlaps():
+    """
+    Compare real traverse tow layout gap/overlap percentages 
+    with simulated tow layout percentages (no plotting).
+
+    Parameters
+    ----------
+    tow_length_mm : int, optional
+        Tow length in mm (default 1000).
+    """
+
+    # Get real gap/overlap data from traverse layout
+    _, _, _, real_gap_percent, real_overlap_percent = traverse_tow_gaps_and_overlaps(plot=False)
+
+    # Generate a full simulated layout (like multitow layout generation)
+    print("=== Calculating Simulated Percentages (May take 3-5 minutes) ===")
+    _, _, _, sim_gap_percent, sim_overlap_percent = generate_RW_multitow(num_tows=30)
+
+    # --- Print comparison ---
+    print("\n=== Comparison Summary ===")
+    print(f"Real   Gap Percentage:      {real_gap_percent:.2f}%")
+    print(f"Simulated Gap Percentage:   {sim_gap_percent:.2f}%")
+    print(f"Real   Overlap Percentage:  {real_overlap_percent:.2f}%")
+    print(f"Simulated Overlap Percentage: {sim_overlap_percent:.2f}%")
+
+    # --- Return structured data for further analysis ---
+    return {
+        "real_gap_percent": real_gap_percent,
+        "real_overlap_percent": real_overlap_percent,
+        "sim_gap_percent": sim_gap_percent,
+        "sim_overlap_percent": sim_overlap_percent}
+
 ##############################################################################################################
 """Run this file"""
 
 def main():
     # plot_real_tow(6)
 
+    real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True)
+    compare_real_vs_simulated_gaps_overlaps()
+
     real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True)
-    # compare_real_vs_simulated_gaps_overlaps()
+    compare_real_vs_RW_gaps_overlaps()
 
     # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)

@@ -48,8 +48,10 @@ font_extra_large = 24
 ##############################################################################################################
 """Model Parameters"""
 
-Consecutive_Error_Bins = 470
-number_of_steps = 2440
+# Consecutive_Error_Bins = 470
+# number_of_steps = 2440
+Consecutive_Error_Bins = 150
+number_of_steps = 340
 NOMINAL_LT_Y = 0  # nominal value for LT y
 NOMINAL_LLS_A = 6.35  # nominal value for LLS A
 NOMINAL_LLS_B = 6.35  # nominal value for LLS B
