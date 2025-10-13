@@ -552,7 +552,7 @@ def analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min: int = 20
 def main():
     # find_best_nsteps_and_bins_edges()
 
-    best_bins, mse_curve = find_best_bins_fft_mse_real_vs_sim(tow=7,bins_min=20,bins_max=500,bins_step=5,zero_padding_factor=2)
+    best_bins, mse_curve = find_best_bins_fft_mse_real_vs_sim(tow=7,bins_min=2,bins_max=3000,bins_step=20,zero_padding_factor=2)
     # results = analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min=20,bins_max=500,bins_step=5,zero_padding_factor= 2)
 
 if __name__ == "__main__":
