@@ -36,7 +36,7 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True, force_steps: 
     y_centerline  = real_df["y_centerline"].to_numpy()
 
     if force_steps:
-        target_points = 340
+        target_points = 370
         n_points = len(x_centerline)
         if n_points > target_points:
             indices = np.linspace(0, n_points - 1, target_points, dtype=int)

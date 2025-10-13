@@ -13,6 +13,7 @@ import sys
 #Internal imports
 from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
+from Model_ALL_Validation_Tow_Visualiser import plot_simulated_vs_real_tow
 
 ##############################################################################################################
 """Functions"""
@@ -286,11 +287,273 @@ def find_best_nsteps_and_bins_edges(
 
     return mse_surface, optimal_steps, optimal_bins
 
+def find_best_bins_fft_mse_real_vs_sim(tow: int,bins_min: int = 20,bins_max: int = 500,bins_step: int = 20,zero_padding_factor: int = 2,tow_length_mm: float = 1000.0,show_plot: bool = True):
+    """
+    Sweep Consecutive_Error_Bins from bins_min to bins_max (inclusive, in bins_step increments),
+    compute FFT MSE between real and simulated tows, and find the optimal bin count.
+
+    After finding the optimal bin count, this function:
+        • Recomputes FFT for both real and simulated tows
+        • Displays amplitude and phase spectra side by side.
+
+    Returns
+    -------
+    best_bins : int
+        Bin count that yields the lowest FFT MSE.
+    mse_values : dict
+        Mapping {num_bins: mse_value}.
+    """
+
+    global Consecutive_Error_Bins  # use the global setting from your model
+
+    # Build the candidate bin list
+    bin_candidates = list(range(bins_min, bins_max + 1, bins_step))
+    mse_values = {}
+
+    print(f"[INFO] Evaluating Tow {tow} over bin range {bins_min}–{bins_max} (step={bins_step})")
+    print(f"[INFO] Total {len(bin_candidates)} candidate values.\n")
+
+    # --- Sweep over candidate bin values ---
+    for num_bins in bin_candidates:
+        Consecutive_Error_Bins = num_bins  # temporarily override global value
+
+        # --- Generate real & simulated data ---
+        real_data, sim_data = plot_simulated_vs_real_tow(
+            tow=tow,
+            tow_length_mm=tow_length_mm,
+            plot=False,
+            force_steps=True)
+
+        # --- Extract centerlines ---
+        real_y = real_data["centerline"].to_numpy()
+        sim_y = sim_data["centerline"].to_numpy()
+
+        # Align array lengths
+        n = min(len(real_y), len(sim_y))
+        real_y = real_y[:n]
+        sim_y = sim_y[:n]
+
+        dx = tow_length_mm / (n - 1)
+        fs = 1.0 / dx  # samples per mm
+
+        # --- FFTs ---
+        freq_real, amp_real = single_sided_fft(real_y, fs, pad_factor=zero_padding_factor)
+        freq_sim, amp_sim = single_sided_fft(sim_y, fs, pad_factor=zero_padding_factor)
+
+        # --- Interpolate to common frequency range and compute MSE ---
+        fmax = min(freq_real.max(), freq_sim.max())
+        mask = freq_real <= fmax
+        fr = freq_real[mask]
+        Ar = amp_real[mask]
+        As = np.interp(fr, freq_sim, amp_sim)
+        mse = mean_squared_error(Ar, As)
+
+        mse_values[num_bins] = mse
+        print(f"  → Bins={num_bins:<5d} | MSE={mse:.6e}")
+
+    # --- Determine best bin count ---
+    best_bins = min(mse_values, key=mse_values.get)
+    best_val = mse_values[best_bins]
+    print(f"\n✅ Optimal Consecutive_Error_Bins = {best_bins}  (MSE={best_val:.6e})")
+
+    # --- Optional Plot: MSE vs Bin Count ---
+    if show_plot:
+        plt.figure(figsize=(8, 5))
+        plt.plot(list(mse_values.keys()), list(mse_values.values()), "o-", lw=2)
+        plt.xlabel("Consecutive_Error_Bins")
+        plt.ylabel("Spectral MSE (Real vs Simulated Centerline)")
+        plt.title(f"Tow {tow} — FFT MSE vs Bin Count")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+
+    # --- Recompute FFTs for best bin setting (for visualization) ---
+    Consecutive_Error_Bins = best_bins
+    real_data, sim_data = plot_simulated_vs_real_tow(
+        tow=tow,
+        tow_length_mm=tow_length_mm,
+        plot=False,
+        force_steps=True)
+
+    real_y = real_data["centerline"].to_numpy()
+    sim_y = sim_data["centerline"].to_numpy()
+    n = min(len(real_y), len(sim_y))
+    real_y = real_y[:n]
+    sim_y = sim_y[:n]
+
+    dx = tow_length_mm / (n - 1)
+    fs = 1.0 / dx
+
+    # --- Compute complex FFTs for amplitude + phase ---
+    def full_fft(signal, fs, pad_factor):
+        n = len(signal)
+        n_pad = int(pad_factor * n)
+        padded = np.pad(signal, (0, n_pad - n), mode="constant") if n_pad > n else signal
+        freq = np.fft.fftfreq(len(padded), d=1.0 / fs)
+        fft_vals = np.fft.fft(padded)
+        pos = freq > 0
+        return freq[pos], fft_vals[pos]
+
+    freq_real, fft_real = full_fft(real_y, fs, zero_padding_factor)
+    freq_sim, fft_sim = full_fft(sim_y, fs, zero_padding_factor)
+
+    amp_real = 2.0 * np.abs(fft_real) / len(real_y)
+    amp_sim  = 2.0 * np.abs(fft_sim) / len(sim_y)
+    phase_real = np.angle(fft_real)
+    phase_sim  = np.angle(fft_sim)
+
+    # --- Plot amplitude + phase spectra ---
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+
+    # Amplitude
+    ax1.plot(freq_real, amp_real, color="blue", label="Real Tow")
+    ax1.plot(freq_sim, amp_sim, color="gold", label="Simulated Tow", alpha=0.8)
+    ax1.set_ylabel("Amplitude")
+    ax1.set_title(f"Tow {tow} — FFT Spectra at Optimal Bins = {best_bins}")
+    ax1.legend()
+    ax1.grid(True)
+
+    # Phase
+    ax2.plot(freq_real, phase_real, color="blue", label="Real Tow Phase")
+    ax2.plot(freq_sim, phase_sim, color="gold", label="Sim Tow Phase", alpha=0.8)
+    ax2.set_xlabel("Frequency [cycles/mm]")
+    ax2.set_ylabel("Phase [radians]")
+    ax2.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+    return best_bins, mse_values
+
+def analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min: int = 20,bins_max: int = 500,bins_step: int = 20,zero_padding_factor: int = 2,tow_length_mm: float = 1000.0):
+    """
+    Loops over all tows, finds the best Consecutive_Error_Bins for each based on FFT MSE,
+    computes mean and std of best bin counts, and plots a representative FFT amplitude & phase
+    comparison using the mean optimal bin count.
+
+    Parameters
+    ----------
+    tow_range : iterable
+        Range or list of tow indices to evaluate (default = range(1, 32)).
+    bins_min, bins_max, bins_step : int
+        Bin sweep parameters.
+    zero_padding_factor : int
+        FFT zero-padding factor.
+    tow_length_mm : float
+        Tow length (for sampling rate).
+
+    Returns
+    -------
+    results : dict
+        Contains:
+            - "best_bins_per_tow": dict of {tow: best_bins}
+            - "mean_best_bins": float
+            - "std_best_bins": float
+    """
+
+    global Consecutive_Error_Bins
+
+    best_bins_dict = {}
+    print(f"[INFO] Analyzing {len(tow_range)} tows...\n")
+
+    # --- Loop through all tows ---
+    for tow in tow_range:
+        print(f"→ Tow {tow}...")
+        best_bins, _ = find_best_bins_fft_mse_real_vs_sim(
+            tow=tow,
+            bins_min=bins_min,
+            bins_max=bins_max,
+            bins_step=bins_step,
+            zero_padding_factor=zero_padding_factor,
+            tow_length_mm=tow_length_mm,
+            show_plot=False)  # Disable per-tow plotting
+        
+        best_bins_dict[tow] = best_bins
+        print(f"   ✅ Best bins for Tow {tow}: {best_bins}\n")
+
+    # --- Compute stats ---
+    best_bins_array = np.array(list(best_bins_dict.values()))
+    mean_bins = np.mean(best_bins_array)
+    std_bins = np.std(best_bins_array)
+    print("========================================================")
+    print(f"✅ Mean Optimal Consecutive_Error_Bins: {mean_bins:.2f}")
+    print(f"✅ Std Dev of Optimal Bins: {std_bins:.2f}")
+    print("========================================================\n")
+
+    # --- Plot example FFT spectra using mean bin count ---
+    example_tow = tow_range[len(tow_range)//2]  # pick a midrange tow as representative
+    Consecutive_Error_Bins = int(round(mean_bins))
+
+    print(f"[INFO] Plotting example FFT for Tow {example_tow} using mean bins = {Consecutive_Error_Bins}")
+
+    real_data, sim_data = plot_simulated_vs_real_tow(
+        tow=example_tow,
+        tow_length_mm=tow_length_mm,
+        plot=False,
+        force_steps=True)
+
+    real_y = real_data["centerline"].to_numpy()
+    sim_y = sim_data["centerline"].to_numpy()
+    n = min(len(real_y), len(sim_y))
+    real_y = real_y[:n]
+    sim_y = sim_y[:n]
+
+    dx = tow_length_mm / (n - 1)
+    fs = 1.0 / dx
+
+    # --- Compute complex FFTs ---
+    def full_fft(signal, fs, pad_factor):
+        n = len(signal)
+        n_pad = int(pad_factor * n)
+        padded = np.pad(signal, (0, n_pad - n), mode="constant") if n_pad > n else signal
+        freq = np.fft.fftfreq(len(padded), d=1.0 / fs)
+        fft_vals = np.fft.fft(padded)
+        pos = freq > 0
+        return freq[pos], fft_vals[pos]
+
+    freq_real, fft_real = full_fft(real_y, fs, zero_padding_factor)
+    freq_sim, fft_sim = full_fft(sim_y, fs, zero_padding_factor)
+
+    amp_real = 2.0 * np.abs(fft_real) / len(real_y)
+    amp_sim = 2.0 * np.abs(fft_sim) / len(sim_y)
+    phase_real = np.angle(fft_real)
+    phase_sim = np.angle(fft_sim)
+
+    # --- Plot amplitude + phase spectra ---
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    fig.suptitle(f"Example Tow {example_tow} — FFT Spectra @ Mean Bins = {int(round(mean_bins))}", fontsize=13)
+
+    # Amplitude plot
+    ax1.plot(freq_real, amp_real, label="Real Tow", color="blue")
+    ax1.plot(freq_sim, amp_sim, label="Simulated Tow", color="gold", alpha=0.8)
+    ax1.set_ylabel("Amplitude")
+    ax1.legend()
+    ax1.grid(True)
+
+    # Phase plot
+    ax2.plot(freq_real, phase_real, label="Real Tow Phase", color="blue")
+    ax2.plot(freq_sim, phase_sim, label="Sim Tow Phase", color="gold", alpha=0.8)
+    ax2.set_xlabel("Frequency [cycles/mm]")
+    ax2.set_ylabel("Phase [radians]")
+    ax2.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+    # --- Return results ---
+    return {
+        "best_bins_per_tow": best_bins_dict,
+        "mean_best_bins": mean_bins,
+        "std_best_bins": std_bins}
+
 ##############################################################################################################
 """Run this file"""
 
 def main():
-    find_best_nsteps_and_bins_edges()
+    # find_best_nsteps_and_bins_edges()
+
+    best_bins, mse_curve = find_best_bins_fft_mse_real_vs_sim(tow=7,bins_min=20,bins_max=500,bins_step=5,zero_padding_factor=2)
+    # results = analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min=20,bins_max=500,bins_step=5,zero_padding_factor= 2)
 
 if __name__ == "__main__":
     main()
