@@ -230,19 +230,22 @@ def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, qu
     # Smooth regression line across full X range
     x_line = np.linspace(all_x.min(), all_x.max(), 200).reshape(-1, 1)
     y_line = reg.predict(x_line)
+    
+    # Small Z offset to make bin means and regression line visible above raw data
+    z_offset = np.abs(max(all_y) * 0.01)
 
     # Create figure
     fig = plt.figure(figsize=(10,6))
     ax = fig.add_subplot(111, projection='3d')
 
     # Scatter raw data
-    ax.scatter(all_x, all_y, np.zeros_like(all_x), alpha=0.2, s=10, color="blue", label="Data")
+    ax.scatter(all_x, all_y, np.zeros_like(all_x), alpha=0.1, s=10, color="blue", label="Data")
 
     # Scatter bin means
-    ax.scatter(bin_means_x, bin_means_y, marker='s', s=40, color="red", label="Bin means")
+    ax.scatter(bin_means_x.flatten(), bin_means_y, np.full_like(bin_means_y, z_offset), marker='s', s=40, color="red", label="Bin means")
 
     # Smooth regression line in XY plane
-    ax.plot(x_line.flatten(), y_line, zs=0, zdir='z', color='red', linewidth=2, label="Regression line")
+    ax.plot(x_line.flatten(), y_line, zs=z_offset, zdir='z', color='red', linewidth=2, label="Regression line")
 
     # Plot per-bin residual distributions
     for xi, yi, si in zip(bin_means_x, bin_means_y, bin_stds):
@@ -251,7 +254,7 @@ def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, qu
         z_vals = pdf / np.max(pdf) * si * 3  # scale for visibility
         ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5)
         verts = [list(zip(np.full_like(y_vals, xi), y_vals, z_vals))]
-        poly = art3d.Poly3DCollection(verts, alpha=0.25, facecolor='mediumspringgreen')
+        poly = art3d.Poly3DCollection(verts, alpha=0.1, facecolor='mediumspringgreen')
         ax.add_collection3d(poly)
 
     # Labels and title
