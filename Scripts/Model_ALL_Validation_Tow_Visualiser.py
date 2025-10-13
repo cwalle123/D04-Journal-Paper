@@ -521,7 +521,7 @@ def main():
     # real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True, force_steps = True)
     # compare_real_vs_simulated_gaps_overlaps()
 
-    compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=350, histogram_bins_multitow=100)
+    compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=150, histogram_bins_multitow=100)
 
     # real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True, force_steps = True)
     # compare_real_vs_RW_gaps_overlaps()
