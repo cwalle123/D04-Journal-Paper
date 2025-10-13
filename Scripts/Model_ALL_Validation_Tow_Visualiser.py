@@ -8,14 +8,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import random
-from scipy.stats import norm
+from scipy.stats import norm, pareto
 
 #Internal imports
 from Data_ALL_importer import LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array
 from Handling_ALL_Functions import get_synced_data
-from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps
+from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps, traverse_tow_gaps_and_overlaps_lengths
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
-from Model_ALL_Simulation import generate_multitow_layout
+from Model_ALL_Simulation import generate_multitow_layout, generate_multitow_layout_lengths
 from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow
 from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse
 
@@ -455,14 +455,73 @@ def compare_real_vs_RW_gaps_overlaps():
         "sim_gap_percent": sim_gap_percent,
         "sim_overlap_percent": sim_overlap_percent}
 
+def compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=350, histogram_bins_multitow=100):
+    """
+    Compare gaps and overlaps between traverse tows and simulated multi-tows.
+    Generates two plots: one for gaps, one for overlaps.
+    """
+
+    # --- Run traverse tow analysis ---
+    gap_traverse, overlap_traverse, gap_fit_traverse, overlap_fit_traverse = traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=histogram_bins_traverse)
+
+    # --- Run simulated multi-tow analysis ---
+    _, gap_sim, overlap_sim, gap_fit_sim, overlap_fit_sim = generate_multitow_layout_lengths(num_tows=30, plot=False, histogram_bins=histogram_bins_multitow)
+
+    # --- Create figure with 2 subplots ---
+    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+
+    # --- Helper to overlay Pareto fit ---
+    def plot_pareto_overlay(ax, data, fit, bins, color, label):
+        if len(data) == 0:
+            return
+        counts, bin_edges, _ = ax.hist(data, bins=bins, alpha=0.5, color=color, density=False, label=label, edgecolor="black")
+        x = np.linspace(min(data), max(data), 400)
+        pdf = pareto.pdf(x, fit["shape"], loc=fit["loc"], scale=fit["scale"])
+        bin_width = bin_edges[1] - bin_edges[0]
+        pdf_scaled = pdf * len(data) * bin_width
+        ax.plot(x, pdf_scaled, color=color, linestyle='--', linewidth=2, label=f"{label} Pareto α={fit['shape']:.2f}")
+        ax.axvline(fit["mean"], color=color, linestyle='--', linewidth=1.5, label=f"{label} mean={fit['mean']:.2f}")
+
+    # --- Gaps subplot ---
+    plot_pareto_overlay(ax[0], gap_traverse, gap_fit_traverse, histogram_bins_traverse, 'blue', 'Traverse Tows')
+    plot_pareto_overlay(ax[0], gap_sim, gap_fit_sim, histogram_bins_multitow, 'orange', 'Simulated Multi-Tows')
+    ax[0].set_xlabel("Gap Length (mm)")
+    ax[0].set_ylabel("Count")
+    ax[0].set_title("Gap Length Comparison with Pareto Fits")
+    ax[0].legend(fontsize=9)
+    ax[0].grid(True, linestyle=":")
+
+    # --- Overlaps subplot ---
+    plot_pareto_overlay(ax[1], overlap_traverse, overlap_fit_traverse, histogram_bins_traverse, 'blue', 'Traverse Tows')
+    plot_pareto_overlay(ax[1], overlap_sim, overlap_fit_sim, histogram_bins_multitow, 'orange', 'Simulated Multi-Tows')
+    ax[1].set_xlabel("Overlap Length (mm)")
+    ax[1].set_ylabel("Count")
+    ax[1].set_title("Overlap Length Comparison with Pareto Fits")
+    ax[1].legend(fontsize=9)
+    ax[1].grid(True, linestyle=":")
+
+    plt.tight_layout()
+    plt.show()
+
+    # --- Print summaries ---
+    print("--- Traverse Tows ---")
+    print(f"Gaps: N={len(gap_traverse)}, mean={gap_fit_traverse['mean']:.2f} mm, std={gap_fit_traverse['std']:.2f} mm")
+    print(f"Overlaps: N={len(overlap_traverse)}, mean={overlap_fit_traverse['mean']:.2f} mm, std={overlap_fit_traverse['std']:.2f} mm\n")
+
+    print("--- Simulated Multi-Tows ---")
+    print(f"Gaps: N={len(gap_sim)}, mean={gap_fit_sim['mean']:.2f} mm, std={gap_fit_sim['std']:.2f} mm")
+    print(f"Overlaps: N={len(overlap_sim)}, mean={overlap_fit_sim['mean']:.2f} mm, std={overlap_fit_sim['std']:.2f} mm\n")
+
 ##############################################################################################################
 """Run this file"""
 
 def main():
     # plot_real_tow(6)
 
-    real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True, force_steps = True)
-    compare_real_vs_simulated_gaps_overlaps()
+    # real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True, force_steps = True)
+    # compare_real_vs_simulated_gaps_overlaps()
+
+    compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=350, histogram_bins_multitow=100)
 
     # real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True, force_steps = True)
     # compare_real_vs_RW_gaps_overlaps()

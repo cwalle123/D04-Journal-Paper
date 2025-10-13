@@ -11,9 +11,10 @@ from mpl_toolkits.mplot3d import Axes3D
 import sys
 
 #Internal imports
-from Data_ALL_traverse import traverse_tow_constructor
+from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps_lengths
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Model_ALL_Validation_Tow_Visualiser import plot_simulated_vs_real_tow
+from Model_ALL_Simulation import generate_multitow_layout_lengths
 
 ##############################################################################################################
 """Functions"""
@@ -546,14 +547,103 @@ def analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min: int = 20
         "mean_best_bins": mean_bins,
         "std_best_bins": std_bins}
 
+def lenghts_consecutive_error_bins_mse(
+    real_hist_bins=350,
+    sim_hist_bins=100,
+    tow_length_mm=1000,
+    num_tows=30,
+    bin_start=5,
+    bin_end=501,
+    bin_step=5,
+    verbose=True,
+    plot=True):
+    """
+    Optimize Consecutive_Error_Bins using MSE, testing bins in steps and plotting MSE vs bins.
+    
+    Args:
+        real_hist_bins: histogram bins for real traverse tow data
+        sim_hist_bins: histogram bins for simulated multi-tow data
+        tow_length_mm: length of simulated tows
+        num_tows: number of simulated tows
+        bin_start: starting number of consecutive error bins
+        bin_end: maximum number of consecutive error bins (exclusive)
+        bin_step: step size for bin search
+        verbose: print progress
+        plot: whether to plot MSE vs bins
+    
+    Returns:
+        best_bin: optimal number of consecutive error bins
+        results: dict with MSEs for each tested bin count
+    """
+
+    # --- Get real traverse tow distributions ---
+    gap_real, overlap_real, _, _ = traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=real_hist_bins)
+
+    results = {}
+    tested_bins = []
+
+    for bins in range(bin_start, bin_end, bin_step):
+        # --- Simulate multi-tow ---
+        _, gap_sim, overlap_sim, _, _ = generate_multitow_layout_lengths(
+            num_tows=num_tows,
+            tow_length_mm=tow_length_mm,
+            plot=False,
+            histogram_bins=sim_hist_bins,
+            Consecutive_Error_Bins=bins)
+
+        # --- Compute MSE for gaps ---
+        min_gap = min(gap_real.min(), gap_sim.min())
+        max_gap = max(gap_real.max(), gap_sim.max())
+        gap_edges = np.linspace(min_gap, max_gap, real_hist_bins + 1)
+        hist_gap_real, _ = np.histogram(gap_real, bins=gap_edges)
+        hist_gap_sim, _ = np.histogram(gap_sim, bins=gap_edges)
+        mse_gap = np.mean((hist_gap_real - hist_gap_sim) ** 2)
+
+        # --- Compute MSE for overlaps ---
+        min_overlap = min(overlap_real.min(), overlap_sim.min())
+        max_overlap = max(overlap_real.max(), overlap_sim.max())
+        overlap_edges = np.linspace(min_overlap, max_overlap, real_hist_bins + 1)
+        hist_overlap_real, _ = np.histogram(overlap_real, bins=overlap_edges)
+        hist_overlap_sim, _ = np.histogram(overlap_sim, bins=overlap_edges)
+        mse_overlap = np.mean((hist_overlap_real - hist_overlap_sim) ** 2)
+
+        total_mse = mse_gap + mse_overlap
+        results[bins] = {"mse_gap": mse_gap, "mse_overlap": mse_overlap, "total_mse": total_mse}
+        tested_bins.append(bins)
+
+        if verbose:
+            print(f"Bins={bins}, MSE_gap={mse_gap:.3f}, MSE_overlap={mse_overlap:.3f}, Total={total_mse:.3f}")
+
+    # --- Find best bin ---
+    best_bin = min(results, key=lambda k: results[k]["total_mse"])
+    if verbose:
+        print(f"\nOptimal Consecutive_Error_Bins (MSE): {best_bin} with total MSE={results[best_bin]['total_mse']:.3f}")
+
+    # --- Plot MSE vs bins ---
+    if plot:
+        total_mse_values = [results[b]["total_mse"] for b in tested_bins]
+        plt.figure(figsize=(8, 5))
+        plt.plot(tested_bins, total_mse_values, 'o-', color='blue')
+        plt.axvline(best_bin, color='red', linestyle='--', label=f"Optimal bins={best_bin}")
+        plt.xlabel("Consecutive Error Bins")
+        plt.ylabel("Total MSE (Gaps + Overlaps)")
+        plt.title("Optimization of Consecutive Error Bins")
+        plt.legend()
+        plt.grid(True, linestyle=":")
+        plt.tight_layout()
+        plt.show()
+
+    return best_bin, results
+
 ##############################################################################################################
 """Run this file"""
 
 def main():
     # find_best_nsteps_and_bins_edges()
 
-    best_bins, mse_curve = find_best_bins_fft_mse_real_vs_sim(tow=7,bins_min=2,bins_max=3000,bins_step=20,zero_padding_factor=2)
+    # best_bins, mse_curve = find_best_bins_fft_mse_real_vs_sim(tow=7,bins_min=2,bins_max=3000,bins_step=20,zero_padding_factor=2)
     # results = analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min=20,bins_max=500,bins_step=5,zero_padding_factor= 2)
+    lenghts_consecutive_error_bins_mse()
 
 if __name__ == "__main__":
     main()

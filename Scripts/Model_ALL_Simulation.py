@@ -201,7 +201,8 @@ def generate_multitow_layout_lengths(
     llsb_start_range=(-0.21, -0.02),
     plot=False,
     scaled=False,
-    histogram_bins=30):
+    histogram_bins=30,
+    Consecutive_Error_Bins=Consecutive_Error_Bins):
     """
     Generate a multi-tow layout using real error models (CAM, LT, LLS_B),
     compute *lengths* of gaps and overlaps, and fit Pareto distributions.
