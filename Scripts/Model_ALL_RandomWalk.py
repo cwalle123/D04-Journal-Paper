@@ -305,8 +305,8 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         RW_data = pd.DataFrame({
             "x_mm": x_walk_data,
             "centerline": tow_centerline_data,
-            "top_edge": top_edge_paths,
-            "bottom_edge": bottom_edge_paths
+            "top_edge": tow_top_edge,
+            "bottom_edge": tow_bottom_edge
         })
 
     # creating the gap_overlap_data
