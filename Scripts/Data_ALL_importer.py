@@ -463,11 +463,11 @@ def layup_stepsize_check(type: str):
     LT_stepsize = float(LT_steps / tow_length)
 
     # Print report
-    print(f'The chosen comparisontype is {type}')
-    print(f'For CAM, the {type} amount of datapoints per tow is {CAM_steps}. This equates to {CAM_steps} / {tow_length} = {CAM_stepsize} datapoints per mm')
-    print(f'For LLS A, the {type} amount of datapoints per tow is {LLS_A_steps}. This equates to {LLS_A_steps} / {tow_length} = {LLS_A_stepsize} datapoints per mm')
-    print(f'For LLS B, the {type} amount of datapoints per tow is {LLS_B_steps}. This equates to {LLS_B_steps} / {tow_length} = {LLS_B_stepsize} datapoints per mm')
-    print(f'For LT, the {type} amount of datapoints per tow is {LT_steps}. This equates to {LT_steps} / {tow_length} = {LT_stepsize} datapoints per mm')
+    print(f'The chosen comparisontype is "{type}"')
+    print(f'For CAM, the {type} amount of datapoints per tow is {CAM_steps}. This equates to {CAM_stepsize} datapoints per mm or a stepsize of {1/CAM_stepsize} mm.')
+    print(f'For LLS A, the {type} amount of datapoints per tow is {LLS_A_steps}. This equates to {LLS_A_stepsize} datapoints per mm or a stepsize of {1/LLS_A_stepsize} mm.')
+    print(f'For LLS B, the {type} amount of datapoints per tow is {LLS_B_steps}. This equates to {LLS_B_stepsize} datapoints per mm or a stepsize of {1/LLS_B_stepsize} mm.')
+    print(f'For LT, the {type} amount of datapoints per tow is {LT_steps}. This equates to {LT_stepsize} datapoints per mm or a stepsize of {1/LT_stepsize} mm.')
 
 
 ##############################################################################################################

@@ -250,18 +250,36 @@ def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, qu
         ax.plot(x_line.flatten(), y_line, zs=z_offset, zdir='z', color='red', linewidth=2, label="Regression line")
 
         # Plot per-bin residual distributions
-        i = 0 #Only assign a label to the first residual distribution to avoid cluttering the legend.
+        i = 0  # Only assign a label to the first residual distribution to avoid cluttering the legend.
         for xi, yi, si in zip(bin_means_x, bin_means_y, bin_stds):
-            y_vals = yi + np.linspace(-3*si, 3*si, 100)
+            # Compute y and z for the residual PDF
+            y_vals = yi + np.linspace(-3 * si, 3 * si, 100)
             pdf = norm.pdf(y_vals, yi, si)
             z_vals = pdf / np.max(pdf) * si * 3  # scale for visibility
-            if i == 0:
-                ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5, label="Residual distributions")
-            elif i > 0:
-                ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5)
-            verts = [list(zip(np.full_like(y_vals, xi), y_vals, z_vals))]
-            poly = art3d.Poly3DCollection(verts, alpha=0.1, facecolor='mediumspringgreen')
-            ax.add_collection3d(poly)
+
+            # Plot the residual curve (center line)
+            ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5, label="Residual distributions" if i == 0 else "")
+
+            # Ribbon thickness along x-axis
+            thickness = (upper_y - lower_y) / n_bins
+            x_front = xi - thickness / 2
+            x_back = xi + thickness / 2
+
+            # --- Front and back faces (like your original polygons) ---
+            verts_front = [list(zip(np.full_like(y_vals, x_front), y_vals, z_vals))]
+            verts_back  = [list(zip(np.full_like(y_vals, x_back), y_vals, z_vals))]
+
+            poly_front = art3d.Poly3DCollection(verts_front, alpha=0.2, facecolor='mediumspringgreen', edgecolor='none')
+            poly_back = art3d.Poly3DCollection(verts_back, alpha=0.2, facecolor='mediumspringgreen', edgecolor='none')
+
+            ax.add_collection3d(poly_front)
+            ax.add_collection3d(poly_back)
+
+            # --- Filled thickness (the ribbon between front and back) ---
+            X, Y = np.meshgrid([x_front, x_back], y_vals)
+            Z = np.tile(z_vals, (2, 1)).T  # same z-values on both faces
+
+            ax.plot_surface(X, Y, Z, color='mediumspringgreen', alpha=0.2, linewidth=0, shade=True)
             i += 1
 
         # Labels and title
