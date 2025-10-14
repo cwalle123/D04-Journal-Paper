@@ -53,9 +53,11 @@ def generate_random_sampling_data(sensor: str, steps: int=400, tows: int=1, plot
     return generated_tows
 
 
-def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35):
+def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000):
     tow_offset = 0
     top_edge_paths, bottom_edge_paths = [], []
+
+    x_sampling_data = np.linspace(0, tow_length_mm, n_steps)
 
     LT_RS_data = generate_random_sampling_data("LT", steps=n_steps, tows=num_tows)
     CAM_RS_data = generate_random_sampling_data("CAM", steps=n_steps, tows=num_tows)
@@ -75,6 +77,13 @@ def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=
         bottom_edge_paths.append(tow_bottom_edge)
         tow_offset += tow_spacing_mm
 
+        RS_data = pd.DataFrame({
+            "x_mm": x_sampling_data,
+            "centerline": tow_centerline_data,
+            "top_edge": top_edge_paths,
+            "bottom_edge": bottom_edge_paths,
+        })
+
     # creating the gap_overlap_data
     gap_overlap_dict = {
         f"Gap/overlap_Tow{tow_index + 1}_Tow{tow_index + 2}": bottom_edge_paths[tow_index + 1] - top_edge_paths[
@@ -83,7 +92,7 @@ def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=
     }
     gap_overlap_df = pd.DataFrame(gap_overlap_dict)
 
-    return gap_overlap_df
+    return gap_overlap_df, RS_data
 
 
 

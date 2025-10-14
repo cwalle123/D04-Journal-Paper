@@ -294,6 +294,13 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         bottom_edge_paths.append(tow_bottom_edge)
         tow_offset += tow_spacing_mm
 
+        RW_data = pd.DataFrame({
+            "x_mm": x_walk_data,
+            "centerline": tow_centerline_data,
+            "top_edge": top_edge_paths,
+            "bottom_edge": bottom_edge_paths
+        })
+
     # creating the gap_overlap_data
     gap_overlap_dict = {
         f"Gap/overlap_Tow{tow_index + 1}_Tow{tow_index + 2}": bottom_edge_paths[tow_index + 1] - top_edge_paths[
@@ -322,7 +329,7 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
     print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
     print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
 
-    return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
+    return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_data
 
 
 
