@@ -53,9 +53,7 @@ def generate_random_sampling_data(sensor: str, steps: int=400, tows: int=1, plot
     return generated_tows
 
 
-def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000):
-def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, method: str="Sidd"):
-    tow_offset = 0
+def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000, method: str="Sidd"):
     top_edge_paths, bottom_edge_paths = [], []
 
     x_sampling_data = np.linspace(0, tow_length_mm, n_steps)
