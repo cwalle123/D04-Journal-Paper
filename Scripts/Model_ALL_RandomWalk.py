@@ -287,6 +287,9 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
         tow_width_data = tow_width_mm + np.array(LLSB_walk_data)
 
+        print(f'Tow centerline: {tow_centerline_data}')
+        print(f'Tow width: {tow_width_data}')
+
         tow_top_edge = tow_centerline_data + 0.5 * tow_width_data
         tow_bottom_edge = tow_centerline_data - 0.5 * tow_width_data
 
@@ -558,13 +561,14 @@ def check_burn_in(sensor, steps, n_hists):
 
 def main():
     #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
-    plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
+    #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM", plot=True)
     #plot_animated_walk_hist("CAM", 31)
     #print(get_n_steps("CAM"))
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)
     #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
+    generate_RW_multitow(num_tows=1)
 
 
 if __name__ == "__main__":
