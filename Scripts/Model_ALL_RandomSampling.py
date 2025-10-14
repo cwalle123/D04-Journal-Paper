@@ -80,8 +80,8 @@ def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=
         RS_data = pd.DataFrame({
             "x_mm": x_sampling_data,
             "centerline": tow_centerline_data,
-            "top_edge": top_edge_paths,
-            "bottom_edge": bottom_edge_paths,
+            "top_edge": tow_top_edge,
+            "bottom_edge": tow_bottom_edge,
         })
 
     # creating the gap_overlap_data
