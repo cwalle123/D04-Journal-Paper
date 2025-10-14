@@ -287,12 +287,27 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
         tow_width_data = tow_width_mm + np.array(LLSB_walk_data)
 
+        print(f'Tow centerline: {tow_centerline_data}')
+        print(f'Tow width: {tow_width_data}')
+
         tow_top_edge = tow_centerline_data + 0.5 * tow_width_data
         tow_bottom_edge = tow_centerline_data - 0.5 * tow_width_data
 
         top_edge_paths.append(tow_top_edge)
         bottom_edge_paths.append(tow_bottom_edge)
         tow_offset += tow_spacing_mm
+
+        print(f'Length of x: {len(x_walk_data)}')
+        print(f'Length of centerline: {len(tow_centerline_data)}')
+        print(f'Length of top: {len(tow_top_edge)}')
+        print(f'Length of bottom: {len(tow_bottom_edge)}')
+
+        RW_data = pd.DataFrame({
+            "x_mm": x_walk_data,
+            "centerline": tow_centerline_data,
+            "top_edge": tow_top_edge,
+            "bottom_edge": tow_bottom_edge
+        })
 
     # creating the gap_overlap_data
     gap_overlap_dict = {
@@ -322,7 +337,7 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
     print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
     print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
 
-    return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
+    return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_data
 
 
 
@@ -468,7 +483,7 @@ def plot_RW_tows(proposal_type: str="RWM", plot_individual_histograms: bool=Fals
 
     #real_data = get_actual_Dataframe(2)
 
-    tow_visualizer_alt([walk_dataframe], [0], ["random walk", "Real"], False)
+    # tow_visualizer_alt([walk_dataframe], [0], ["random walk", "Real"], False)
 
     return walk_dataframe
 
@@ -546,13 +561,14 @@ def check_burn_in(sensor, steps, n_hists):
 
 def main():
     #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
-    plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
+    #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM", plot=True)
     #plot_animated_walk_hist("CAM", 31)
     #print(get_n_steps("CAM"))
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)
     #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
+    generate_RW_multitow(num_tows=1)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
 from sklearn.linear_model import LinearRegression
+from mpl_toolkits.mplot3d import Axes3D, art3d
 
 #Internal imports
 from Handling_ALL_Functions import get_synced_data
@@ -126,7 +127,7 @@ def plot_all_tows_consecutive_scatter(sensor: str, n_tows: int = 31):
     plt.grid(True, alpha=0.3)
     plt.show()
 
-def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, quantile_clip: float = 0.01, min_bin_count: int = 10):
+def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, quantile_clip: float = 0.01, min_bin_count: int = 10, plot_type: str = None):
     """
     Model consecutive error data for all tows of a given sensor, ignoring outliers.
 
@@ -179,7 +180,7 @@ def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, qu
 
     bin_means_x = np.array(bin_means_x).reshape(-1, 1)
     bin_means_y = np.array(bin_means_y)
-
+    
     # Regression line (fit on bin means)
     reg = LinearRegression().fit(bin_means_x, bin_means_y)
     y_pred = reg.predict(bin_means_x)
@@ -188,34 +189,105 @@ def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, qu
     y_pred_all = reg.predict(all_x.reshape(-1, 1))
     residuals = all_y - y_pred_all
 
+    # Standard deviation per bin
+    bin_stds = []
+    for i in range(n_bins):
+        mask = (bin_indices == i)
+        if np.sum(mask) >= min_bin_count:
+            local_residuals = all_y[mask] - y_pred_all[mask]
+            bin_stds.append(np.std(local_residuals))
+    bin_stds = np.array(bin_stds)
+
     # Fit normal distribution to residuals
     mu, sigma = norm.fit(residuals)
+    
+    if plot_type == "2d":
+        # Plot results
+        plt.figure(figsize=(10, 6))
+        plt.scatter(all_x, all_y, alpha=0.2, s=10, label="Data", color="blue")
+        plt.scatter(bin_means_x, bin_means_y, marker='s',  s=40, color="red", label="Bin means")
+        plt.plot(bin_means_x, y_pred, color="red", linewidth=2, label="Regression line")
+        plt.title(f"{sensor} Consecutive Error Model (All {n_tows} Tows, Outliers Removed)")
+        plt.xlabel(f"{sensor} Error (n)")
+        plt.ylabel(f"{sensor} Error (n+1)")
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.show()
 
-    # Plot results
-    plt.figure(figsize=(10, 6))
-    plt.scatter(all_x, all_y, alpha=0.2, s=10, label="Data", color="blue")
-    plt.scatter(bin_means_x, bin_means_y, marker='s',  s=40, color="red", label="Bin means")
-    plt.plot(bin_means_x, y_pred, color="red", linewidth=2, label="Regression line")
-    plt.title(f"{sensor} Consecutive Error Model (All {n_tows} Tows, Outliers Removed)")
-    plt.xlabel(f"{sensor} Error (n)")
-    plt.ylabel(f"{sensor} Error (n+1)")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.show()
+        # Plot residual distribution
+        plt.figure(figsize=(8, 4))
+        plt.hist(residuals, bins=50, density=True, alpha=0.6, color="blue")
+        x_vals = np.linspace(residuals.min(), residuals.max(), 200)
+        plt.plot(x_vals, norm.pdf(x_vals, mu, sigma), "r-", lw=2,
+                label=f"Normal fit (μ={mu:.2f}, σ={sigma:.2f})")
+        plt.title(f"{sensor} Residual Distribution (Outliers Removed)")
+        plt.xlabel("Residual")
+        plt.ylabel("Density")
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.show()
+    
+    if plot_type == "3d":
+        # 3D visualization
+        # Smooth regression line across full X range
+        x_line = np.linspace(all_x.min(), all_x.max(), 200).reshape(-1, 1)
+        y_line = reg.predict(x_line)
+        
+        # Small Z offset to make bin means and regression line visible above raw data
+        z_offset = np.abs(max(all_y) * 0.01)
 
-    # Plot residual distribution
-    plt.figure(figsize=(8, 4))
-    plt.hist(residuals, bins=50, density=True, alpha=0.6, color="blue")
-    x_vals = np.linspace(residuals.min(), residuals.max(), 200)
-    plt.plot(x_vals, norm.pdf(x_vals, mu, sigma), "r-", lw=2,
-             label=f"Normal fit (μ={mu:.2f}, σ={sigma:.2f})")
-    plt.title(f"{sensor} Residual Distribution (Outliers Removed)")
-    plt.xlabel("Residual")
-    plt.ylabel("Density")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.show()
+        # Create figure
+        fig = plt.figure(figsize=(10,6))
+        ax = fig.add_subplot(111, projection='3d')
 
+        # Scatter raw data
+        ax.scatter(all_x, all_y, np.zeros_like(all_x), alpha=0.1, s=10, color="blue", label="Data")
+
+        # Scatter bin means
+        ax.scatter(bin_means_x.flatten(), bin_means_y, np.full_like(bin_means_y, z_offset), marker='s', s=40, color="red", label="Bin means")
+
+        # Smooth regression line in XY plane
+        ax.plot(x_line.flatten(), y_line, zs=z_offset, zdir='z', color='red', linewidth=2, label="Regression line")
+
+        # Plot per-bin residual distributions
+        i = 0  # Only assign a label to the first residual distribution to avoid cluttering the legend.
+        for xi, yi, si in zip(bin_means_x, bin_means_y, bin_stds):
+            # Compute y and z for the residual PDF
+            y_vals = yi + np.linspace(-3 * si, 3 * si, 100)
+            pdf = norm.pdf(y_vals, yi, si)
+            z_vals = pdf / np.max(pdf) * si * 3  # scale for visibility
+
+            # Plot the residual curve (center line)
+            ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5, label="Residual distributions" if i == 0 else "")
+
+            # Ribbon thickness along x-axis
+            thickness = (upper_y - lower_y) / n_bins
+            x_front = xi - thickness / 2
+            x_back = xi + thickness / 2
+
+            # Front and back faces
+            verts_front = [list(zip(np.full_like(y_vals, x_front), y_vals, z_vals))]
+            verts_back  = [list(zip(np.full_like(y_vals, x_back), y_vals, z_vals))]
+            poly_front = art3d.Poly3DCollection(verts_front, alpha=0.2, facecolor='mediumspringgreen', edgecolor='none')
+            poly_back = art3d.Poly3DCollection(verts_back, alpha=0.2, facecolor='mediumspringgreen', edgecolor='none')
+            ax.add_collection3d(poly_front)
+            ax.add_collection3d(poly_back)
+            X, Y = np.meshgrid([x_front, x_back], y_vals)
+            Z = np.tile(z_vals, (2, 1)).T
+
+            ax.plot_surface(X, Y, Z, color='mediumspringgreen', alpha=0.2, linewidth=0, shade=True)
+            i += 1
+
+        # Labels and title
+        ax.set_xlabel(f"{sensor} Error (n)")
+        ax.set_ylabel(f"{sensor} Error (n+1)")
+        ax.set_zlabel("Residual PDF")
+
+        # Legend and layout
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+    
     return {
         "regression_coef": reg.coef_[0],
         "regression_intercept": reg.intercept_,
@@ -332,9 +404,9 @@ def model_consecutive_errors_all_sensors(n_tows: int = 31, n_bins: int = 40, qua
 def main():
     tow = 3
     # plot_LT_consecutive_error(tow)
-    # plot_all_tows_consecutive_scatter("CAM")
-    # model_consecutive_errors("LT")
-    model_consecutive_errors_all_sensors()
+    # plot_all_tows_consecutive_scatter("LT")
+    model_consecutive_errors("LT", plot_type="3d", n_bins=5)
+    # model_consecutive_errors_all_sensors()
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

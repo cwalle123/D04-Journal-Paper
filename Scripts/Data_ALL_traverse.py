@@ -7,6 +7,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.stats import pareto
 
 # Internal imports
 from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse, tow_width_specified
@@ -86,8 +87,6 @@ def traverse_tow_constructor(tow: int, normalize: bool = False):
     top_edge = top_edge[:min_len]
 
     # --- Calculate y edges and centerline ---
-    #y_bottom_edge = y_bottom + bottom_edge
-    #y_top_edge = y_top + top_edge
     y_bottom_edge = y_bottom - bottom_edge
     y_top_edge = y_top - top_edge
     y_centerline = (y_bottom_edge + y_top_edge)/2
@@ -184,6 +183,109 @@ def traverse_tow_gaps_and_overlaps(plot=True):
         plt.show()
 
     return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
+
+def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30):
+    """
+    Compute lengths of gaps and overlaps between normalized traverse tows (2–30),
+    applying +12.5 mm offset per tow index after tow 2.
+    Optionally plot histograms and fit Pareto distributions.
+    """
+
+    top_edge_paths, bottom_edge_paths = [], []
+    x_vals_list = []
+
+    # --- Collect traverse tow edges with offsets ---
+    for tow in range(2, 31):  # Tow 2..30
+        traverse_tow = traverse_tow_constructor(tow, normalize=True)
+        if traverse_tow is None:
+            continue
+
+        offset_mm = (tow - 2) * tow_width_specified  # e.g., 12.5 mm
+        x_vals_list.append(traverse_tow["x_centerline"].to_numpy())
+        top_edge_paths.append(traverse_tow["y_left"].to_numpy() + offset_mm)
+        bottom_edge_paths.append(traverse_tow["y_right"].to_numpy() + offset_mm)
+
+    # --- Truncate all arrays to the global minimum length ---
+    min_len = min(len(arr) for arr in x_vals_list)
+    x_vals = x_vals_list[0][:min_len]
+    top_edge_paths = [arr[:min_len] for arr in top_edge_paths]
+    bottom_edge_paths = [arr[:min_len] for arr in bottom_edge_paths]
+
+    # --- Compute gap/overlap arrays between adjacent tows ---
+    gap_overlap_list = [
+        bottom_edge_paths[i + 1] - top_edge_paths[i] for i in range(len(top_edge_paths) - 1)
+    ]
+
+    # --- Helper to extract continuous segment lengths ---
+    def extract_lengths(values, positive=True):
+        mask = values > 0 if positive else values < 0
+        lengths = []
+        run_length = 0
+        for i in range(len(mask)):
+            if mask[i]:
+                run_length += 1
+            elif run_length > 0:
+                lengths.append(run_length)
+                run_length = 0
+        if run_length > 0:
+            lengths.append(run_length)
+        dx = x_vals[1] - x_vals[0] if len(x_vals) > 1 else 1
+        return np.array(lengths) * dx
+
+    # --- Extract lengths for all tow pairs ---
+    gap_lengths, overlap_lengths = [], []
+    for gap_overlap in gap_overlap_list:
+        gap_lengths.extend(extract_lengths(gap_overlap, positive=True))
+        overlap_lengths.extend(extract_lengths(gap_overlap, positive=False))
+
+    gap_lengths = np.array(gap_lengths)
+    overlap_lengths = np.array(overlap_lengths)
+
+    # --- Pareto fit helper ---
+    def fit_pareto(data):
+        if len(data) == 0:
+            return {"shape": 0, "loc": 0, "scale": 0, "mean": 0, "std": 0}
+        shape, loc, scale = pareto.fit(data, floc=0)
+        mean = pareto.mean(shape, loc=loc, scale=scale)
+        std = pareto.std(shape, loc=loc, scale=scale)
+        return {"shape": shape, "loc": loc, "scale": scale, "mean": mean, "std": std}
+
+    gap_fit = fit_pareto(gap_lengths)
+    overlap_fit = fit_pareto(overlap_lengths)
+
+    # --- Plot histograms ---
+    if plot:
+        fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+        for i, (data, title, fit) in enumerate([
+            (gap_lengths, "Gap Lengths (Pareto Fit)", gap_fit),
+            (overlap_lengths, "Overlap Lengths (Pareto Fit)", overlap_fit)
+        ]):
+            if len(data):
+                counts, bins, _ = ax[i].hist(
+                    data,
+                    bins=histogram_bins,
+                    density=False,
+                    alpha=0.7,
+                    edgecolor="black",
+                    label="Empirical counts"
+                )
+                x = np.linspace(min(data), max(data), 400)
+                pdf = pareto.pdf(x, fit["shape"], loc=fit["loc"], scale=fit["scale"])
+                bin_width = bins[1] - bins[0]
+                pdf_scaled = pdf * len(data) * bin_width
+                ax[i].plot(x, pdf_scaled, "r-", linewidth=2, label=f"Pareto α={fit['shape']:.2f}")
+                ax[i].axvline(fit["mean"], color="blue", linestyle="--", linewidth=1.5,
+                              label=f"Mean={fit['mean']:.2f} mm")
+                ax[i].set_xlabel("Length (mm)")
+                ax[i].set_ylabel("Count")
+                ax[i].set_title(title)
+                ax[i].legend(fontsize=9)
+                ax[i].grid(True, linestyle=":")
+
+        plt.tight_layout()
+        plt.show()
+
+    return gap_lengths, overlap_lengths, gap_fit, overlap_fit
 
 def LT_velocity_check(tow: int):
     # --- Load data ---
@@ -447,7 +549,7 @@ def main():
     # GAP_velocity_check(5)
     # plot_all_tows_trimmed()
     # print(traverse_tow_constructor(5))
-    traverse_tow_gaps_and_overlaps()
+    traverse_tow_gaps_and_overlaps_lengths(histogram_bins=350)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

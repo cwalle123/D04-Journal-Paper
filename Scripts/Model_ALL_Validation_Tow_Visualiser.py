@@ -8,21 +8,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import random
-from scipy.stats import norm
+from scipy.stats import norm, pareto
 
 #Internal imports
 from Data_ALL_importer import LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array
 from Handling_ALL_Functions import get_synced_data
-from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps
+from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps, traverse_tow_gaps_and_overlaps_lengths
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
-from Model_ALL_Simulation import generate_multitow_layout
+from Model_ALL_Simulation import generate_multitow_layout, generate_multitow_layout_lengths
 from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow
-from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse
+from Model_ALL_RandomSampling import generate_RS_multitow
+from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse, y_increment_programmed, font_extra_small, font_small, font_medium, font_large, font_extra_large
 
 ##############################################################################################################
 """Functions"""
 
-def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
+def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True, force_steps: bool = False):
     """
     Plot a real tow profile using Traverse interpolated data
     """
@@ -34,6 +35,19 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     y_left = real_df["y_left"].to_numpy()
     x_centerline  = real_df["x_centerline"].to_numpy()
     y_centerline  = real_df["y_centerline"].to_numpy()
+
+    if force_steps:
+        target_points = 370
+        n_points = len(x_centerline)
+        if n_points > target_points:
+            indices = np.linspace(0, n_points - 1, target_points, dtype=int)
+            x_right = x_right[indices]
+            y_right = y_right[indices]
+            x_left = x_left[indices]
+            y_left = y_left[indices]
+            x_centerline = x_centerline[indices]
+            y_centerline = y_centerline[indices]
+            real_df = real_df.iloc[indices].reset_index(drop=True)
 
     if plot:
         plt.figure(figsize=(10, 3))
@@ -50,7 +64,7 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
 
     return real_df
 
-def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
+def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True, force_steps: bool = False):
     """
     Overlay a simulated tow on a real tow.
     Real tow is built from Traverse Data
@@ -67,7 +81,7 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     """
 
     # --- Get real tow ---
-    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False)
+    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False, force_steps=force_steps)
 
     # Extract edges
     real_x_right = real_df["x_right"].to_numpy()
@@ -169,7 +183,7 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
 
     return real_data, sim_data
 
-def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True):
+def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True, force_steps: bool = False):
     """
     Overlay a simulated tow on a real tow.
     Real tow is built from Traverse Data
@@ -186,7 +200,7 @@ def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False,
     """
 
     # --- Get real tow ---
-    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False)
+    real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm, plot=False, force_steps=force_steps)
 
     # Extract edges
     real_x_right = real_df["x_right"].to_numpy()
@@ -203,7 +217,7 @@ def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False,
     x_centerline = 0.5 * (real_x_right + real_x_left)
 
     # Translate tow to start around where tow 1 would be for comparison!
-    real_offset = 112 + (tow - 1)*y_increment_traverse
+    real_offset = 111.7 + (tow - 1)*y_increment_traverse
     real_centerline = real_centerline - real_offset
     real_y_left = real_y_left - real_offset
     real_y_right = real_y_right - real_offset
@@ -257,6 +271,94 @@ def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False,
         plt.show()
 
     return real_data, sim_data
+
+def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: bool = False, offset: float=y_increment_programmed):
+    """
+    Make a figure with tows below each other obtained from the 4 different methods for visual comparison.
+    """
+    
+    # Extract real tow
+    real_df = traverse_tow_constructor(tow, normalize=True)
+    print(real_df)
+    x_real_right = real_df["x_right"].to_numpy()
+    y_real_right = real_df["y_right"].to_numpy() + 3 * y_increment_programmed
+    x_real_left = real_df["x_left"].to_numpy()
+    y_real_left = real_df["y_left"].to_numpy() + 3 * y_increment_programmed
+    x_real_centerline  = real_df["x_centerline"].to_numpy()
+    y_real_centerline  = real_df["y_centerline"].to_numpy() + 3 * y_increment_programmed
+
+    #Uniformly drop datapoints to get to target_points steps per meter of tow
+    if force_steps:
+        target_points = 370
+        n_points = len(x_real_centerline)
+        if n_points > target_points:
+            indices = np.linspace(0, n_points - 1, target_points, dtype=int)
+            x_real_right = x_real_right[indices]
+            y_real_right = y_real_right[indices]
+            x_real_left = x_real_left[indices]
+            y_real_left = y_real_left[indices]
+            x_real_centerline = x_real_centerline[indices]
+            y_real_centerline = y_real_centerline[indices]
+            real_df = real_df.iloc[indices].reset_index(drop=True)
+
+    # Extract D04 tow
+    _, sim_df = plot_simulated_vs_real_tow(tow, tow_length_mm=tow_length_mm, scaled=False, plot=False)
+    print(sim_df)
+    x_D04_right = sim_df["x_mm"].to_numpy()
+    y_D04_right = sim_df["bottom_edge"].to_numpy() + 2 * y_increment_programmed
+    x_D04_left = sim_df["x_mm"].to_numpy()
+    y_D04_left = sim_df["top_edge"].to_numpy() + 2 * y_increment_programmed
+    x_D04_centerline  = sim_df["x_mm"].to_numpy()
+    y_D04_centerline  = sim_df["centerline"].to_numpy() + 2 * y_increment_programmed
+
+    # Extract RW tow
+    _, _, _, _, _, RW_df = generate_RW_multitow(num_tows=1)
+    print(RW_df)
+    x_RW_right = RW_df["x_mm"].to_numpy() 
+    y_RW_right = RW_df["bottom_edge"].to_numpy() + y_increment_programmed
+    x_RW_left = RW_df["x_mm"].to_numpy()
+    y_RW_left = RW_df["top_edge"].to_numpy() + y_increment_programmed
+    x_RW_centerline  = RW_df["x_mm"].to_numpy()
+    y_RW_centerline  = RW_df["centerline"].to_numpy() + y_increment_programmed
+
+    # Extract RS tow
+    _, RS_df = generate_RS_multitow(num_tows=1, n_steps=370)
+    print(RS_df)
+    x_RS_right = RS_df["x_mm"].to_numpy()
+    y_RS_right = RS_df["bottom_edge"].to_numpy()
+    x_RS_left = RS_df["x_mm"].to_numpy()
+    y_RS_left = RS_df["top_edge"].to_numpy()
+    x_RS_centerline  = RS_df["x_mm"].to_numpy()
+    y_RS_centerline  = RS_df["centerline"].to_numpy()
+
+    plt.figure(figsize=(10,6))
+    # Real tow
+    plt.plot(x_real_centerline, y_real_centerline, "--", color="blue", label="Real centerline")
+    plt.plot(x_real_left, y_real_left, "-", color="blue", label="Real edges")
+    plt.plot(x_real_right, y_real_right, "-", color="blue")
+
+    # Simulated tow
+    plt.plot(x_D04_centerline, y_D04_centerline, "--", color="orange", label="D04 centerline")
+    plt.plot(x_D04_left, y_D04_left, "-", color="orange", label="D04 edges")
+    plt.plot(x_D04_right, y_D04_right, "-", color="orange")
+
+    # Random Walk tow
+    plt.plot(x_RW_centerline, y_RW_centerline, "--", color="red", label="RW centerline")
+    plt.plot(x_RW_left, y_RW_left, "-", color="red", label="RW edges")
+    plt.plot(x_RW_right, y_RW_right, "-", color="red")
+
+    # Random sampling tow
+    plt.plot(x_RS_centerline, y_RS_centerline, "--", color="green", label="RS centerline")
+    plt.plot(x_RS_left, y_RS_left, "-", color="green", label="RS edges")
+    plt.plot(x_RS_right, y_RS_right, "-", color="green")
+
+    plt.legend()
+    plt.title("Comparison of tows obtained from the 4 different methods")
+    plt.xlabel("X (mm)", fontsize=font_large)
+    plt.ylabel("Y (mm)", fontsize=font_large)
+    plt.grid()
+    plt.tight_layout()
+    plt.show()
 
 def compare_simulated_vs_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     """
@@ -442,20 +544,80 @@ def compare_real_vs_RW_gaps_overlaps():
         "sim_gap_percent": sim_gap_percent,
         "sim_overlap_percent": sim_overlap_percent}
 
+def compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=350, histogram_bins_multitow=100):
+    """
+    Compare gaps and overlaps between traverse tows and simulated multi-tows.
+    Generates two plots: one for gaps, one for overlaps.
+    """
+
+    # --- Run traverse tow analysis ---
+    gap_traverse, overlap_traverse, gap_fit_traverse, overlap_fit_traverse = traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=histogram_bins_traverse)
+
+    # --- Run simulated multi-tow analysis ---
+    _, gap_sim, overlap_sim, gap_fit_sim, overlap_fit_sim = generate_multitow_layout_lengths(num_tows=30, plot=False, histogram_bins=histogram_bins_multitow)
+
+    # --- Create figure with 2 subplots ---
+    fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+
+    # --- Helper to overlay Pareto fit ---
+    def plot_pareto_overlay(ax, data, fit, bins, color, label):
+        if len(data) == 0:
+            return
+        counts, bin_edges, _ = ax.hist(data, bins=bins, alpha=0.5, color=color, density=False, label=label, edgecolor="black")
+        x = np.linspace(min(data), max(data), 400)
+        pdf = pareto.pdf(x, fit["shape"], loc=fit["loc"], scale=fit["scale"])
+        bin_width = bin_edges[1] - bin_edges[0]
+        pdf_scaled = pdf * len(data) * bin_width
+        ax.plot(x, pdf_scaled, color=color, linestyle='--', linewidth=2, label=f"{label} Pareto α={fit['shape']:.2f}")
+        ax.axvline(fit["mean"], color=color, linestyle='--', linewidth=1.5, label=f"{label} mean={fit['mean']:.2f}")
+
+    # --- Gaps subplot ---
+    plot_pareto_overlay(ax[0], gap_traverse, gap_fit_traverse, histogram_bins_traverse, 'blue', 'Traverse Tows')
+    plot_pareto_overlay(ax[0], gap_sim, gap_fit_sim, histogram_bins_multitow, 'orange', 'Simulated Multi-Tows')
+    ax[0].set_xlabel("Gap Length (mm)")
+    ax[0].set_ylabel("Count")
+    ax[0].set_title("Gap Length Comparison with Pareto Fits")
+    ax[0].legend(fontsize=9)
+    ax[0].grid(True, linestyle=":")
+
+    # --- Overlaps subplot ---
+    plot_pareto_overlay(ax[1], overlap_traverse, overlap_fit_traverse, histogram_bins_traverse, 'blue', 'Traverse Tows')
+    plot_pareto_overlay(ax[1], overlap_sim, overlap_fit_sim, histogram_bins_multitow, 'orange', 'Simulated Multi-Tows')
+    ax[1].set_xlabel("Overlap Length (mm)")
+    ax[1].set_ylabel("Count")
+    ax[1].set_title("Overlap Length Comparison with Pareto Fits")
+    ax[1].legend(fontsize=9)
+    ax[1].grid(True, linestyle=":")
+
+    plt.tight_layout()
+    plt.show()
+
+    # --- Print summaries ---
+    print("--- Traverse Tows ---")
+    print(f"Gaps: N={len(gap_traverse)}, mean={gap_fit_traverse['mean']:.2f} mm, std={gap_fit_traverse['std']:.2f} mm")
+    print(f"Overlaps: N={len(overlap_traverse)}, mean={overlap_fit_traverse['mean']:.2f} mm, std={overlap_fit_traverse['std']:.2f} mm\n")
+
+    print("--- Simulated Multi-Tows ---")
+    print(f"Gaps: N={len(gap_sim)}, mean={gap_fit_sim['mean']:.2f} mm, std={gap_fit_sim['std']:.2f} mm")
+    print(f"Overlaps: N={len(overlap_sim)}, mean={overlap_fit_sim['mean']:.2f} mm, std={overlap_fit_sim['std']:.2f} mm\n")
+
 ##############################################################################################################
 """Run this file"""
 
 def main():
     # plot_real_tow(6)
 
-    real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True)
-    compare_real_vs_simulated_gaps_overlaps()
+    # real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True, force_steps = True)
+    # compare_real_vs_simulated_gaps_overlaps()
 
-    real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True)
-    compare_real_vs_RW_gaps_overlaps()
+    # compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=150, histogram_bins_multitow=100)
+
+    # real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True, force_steps = True)
+    # compare_real_vs_RW_gaps_overlaps()
 
     # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
+    plot_real_vs_D04_vs_RW_vs_RS_tow(2)
 
 if __name__ == "__main__":
     main()
