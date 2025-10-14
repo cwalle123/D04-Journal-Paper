@@ -6,6 +6,7 @@
 # External imports
 import pandas as pd
 import numpy  as np
+import numpy.ma as ma
 import os
 from pathlib import Path
 
@@ -382,6 +383,93 @@ def Traverse_Gap_excel_to_array(tows_nrs: int):
 
     return arr, ['Gap_time', 'Gap_leftedge', 'Gap_rightedge', 'Gap_gap']
 
+def layup_stepsize_check(type: str):
+    """
+    Check data step size parameters
+    Arguments:
+    type: str: average, largest, smallest 
+    """
+    base_path = r"Synced data from Siddharth\ExportedCSVs\Layup data\Distilled"
+    CAM_infix = r"camera"
+    LLS_A_infix = r"lls a"
+    LLS_B_infix = r"lls b"
+    LT_infix = r"tracker"
+    x_column = "X_mm"
+    CAM_lengths, LLS_A_lengths, LLS_B_lengths, LT_lengths = [], [], [], []
+    tow_length = 1000 # mm
+
+    # CAM
+    for tow_num in range(1,32):
+        file_name = f"Camera_distilled_Run{tow_num:02d}_Run.csv"
+        file_path = os.path.join(base_path, CAM_infix, file_name)
+        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+        CAM_data = df[[x_column]].to_numpy()
+        CAM_truncated = CAM_data[(CAM_data > 0) & (CAM_data <= 1000)]
+        CAM_length = len(CAM_truncated)
+        CAM_lengths.append(CAM_length)
+    
+    # LLS A
+    for tow_num in range(1,32):
+        file_name = f"LLSA_distilled_Run{tow_num:02d}_Run.csv"
+        file_path = os.path.join(base_path, LLS_A_infix, file_name)
+        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+        LLS_A_data = df[[x_column]].to_numpy()
+        LLS_A_truncated = LLS_A_data[(LLS_A_data > 0) & (LLS_A_data <= 1000)]
+        LLS_A_length = len(LLS_A_truncated)
+        LLS_A_lengths.append(LLS_A_length)
+    
+    # LLS B
+    for tow_num in range(1,32):
+        file_name = f"LLSB_distilled_Run{tow_num:02d}_Run.csv"
+        file_path = os.path.join(base_path, LLS_B_infix, file_name)
+        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+        LLS_B_data = df[[x_column]].to_numpy()
+        LLS_B_truncated = LLS_B_data[(LLS_B_data > 0) & (LLS_B_data <= 1000)]
+        LLS_B_length = len(LLS_B_truncated)
+        LLS_B_lengths.append(LLS_B_length)
+    
+    # LT
+    for tow_num in range(1,32):
+        file_name = f"Tracker_distilled_Run{tow_num:02d}_Run.csv"
+        file_path = os.path.join(base_path, LT_infix, file_name)
+        df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
+        LT_data = df[[x_column]].to_numpy()
+        LT_truncated = LT_data[(LT_data > 0) & (LT_data <= 1000)]
+        LT_length = len(LT_truncated)
+        LT_lengths.append(LT_length)
+
+    # Calculate relevant results
+    if type == "average":
+        CAM_steps = np.mean(CAM_lengths)
+        LLS_A_steps = np.mean(LLS_A_lengths)
+        LLS_B_steps = np.mean(LLS_B_lengths)
+        LT_steps = np.mean(LT_lengths)
+    
+    elif type == "largest":
+        CAM_steps = max(CAM_lengths)
+        LLS_A_steps = max(LLS_A_lengths)
+        LLS_B_steps = max(LLS_B_lengths)
+        LT_steps = max(LT_lengths)
+
+    elif type == "smallest":
+        CAM_steps = min(CAM_lengths)
+        LLS_A_steps = min(LLS_A_lengths)
+        LLS_B_steps = min(LLS_B_lengths)
+        LT_steps = min(LT_lengths)
+    
+    CAM_stepsize = float(CAM_steps / tow_length)
+    LLS_A_stepsize = float(LLS_A_steps / tow_length)
+    LLS_B_stepsize = float(LLS_B_steps / tow_length)
+    LT_stepsize = float(LT_steps / tow_length)
+
+    # Print report
+    print(f'The chosen comparisontype is {type}')
+    print(f'For CAM, the {type} amount of datapoints per tow is {CAM_steps}. This equates to {CAM_steps} / {tow_length} = {CAM_stepsize} datapoints per mm')
+    print(f'For LLS A, the {type} amount of datapoints per tow is {LLS_A_steps}. This equates to {LLS_A_steps} / {tow_length} = {LLS_A_stepsize} datapoints per mm')
+    print(f'For LLS B, the {type} amount of datapoints per tow is {LLS_B_steps}. This equates to {LLS_B_steps} / {tow_length} = {LLS_B_stepsize} datapoints per mm')
+    print(f'For LT, the {type} amount of datapoints per tow is {LT_steps}. This equates to {LT_steps} / {tow_length} = {LT_stepsize} datapoints per mm')
+
+
 ##############################################################################################################
 """Run this file"""
 
@@ -391,10 +479,10 @@ def main():
     #print(names)
     #print(np.shape(x))
 
-    arr, data = Traverse_Gap_excel_to_array(4)
-    print(arr)
-    print(data)
-    
+    #arr, data = Traverse_Gap_excel_to_array(4)
+    #print(arr)
+    #print(data)
+    layup_stepsize_check("average")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

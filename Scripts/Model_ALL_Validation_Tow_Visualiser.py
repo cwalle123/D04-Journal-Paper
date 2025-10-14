@@ -322,7 +322,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     y_RW_centerline  = RW_df["centerline"].to_numpy() + y_increment_programmed
 
     # Extract RS tow
-    _, RS_df = generate_RS_multitow(num_tows=1)
+    _, RS_df = generate_RS_multitow(num_tows=1, n_steps=370)
     print(RS_df)
     x_RS_right = RS_df["x_mm"].to_numpy()
     y_RS_right = RS_df["bottom_edge"].to_numpy()
