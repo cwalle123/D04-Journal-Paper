@@ -18,7 +18,7 @@ from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_pat
 from Model_ALL_Simulation import generate_multitow_layout, generate_multitow_layout_lengths
 from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow
 from Model_ALL_RandomSampling import generate_RS_multitow
-from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse, y_increment_programmed
+from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse, y_increment_programmed, font_extra_small, font_small, font_medium, font_large, font_extra_large
 
 ##############################################################################################################
 """Functions"""
@@ -278,7 +278,8 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     """
     
     # Extract real tow
-    real_df = traverse_tow_constructor(tow)
+    real_df = traverse_tow_constructor(tow, normalize=True)
+    print(real_df)
     x_real_right = real_df["x_right"].to_numpy()
     y_real_right = real_df["y_right"].to_numpy()
     x_real_left = real_df["x_left"].to_numpy()
@@ -327,7 +328,33 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     x_RS_centerline  = RS_df["x_mm"].to_numpy()
     y_RS_centerline  = RS_df["centerline"].to_numpy()
 
-    
+    # Real tow
+    plt.plot(x_real_centerline, y_real_centerline, "--", color="blue", label="Real centerline")
+    plt.plot(x_real_left, y_real_left, "-", color="blue", label="Real edges")
+    plt.plot(x_real_right, y_real_right, "-", color="blue")
+
+    # Simulated tow
+    plt.plot(x_D04_centerline, y_D04_centerline, "--", color="orange", label="D04 centerline")
+    plt.plot(x_D04_left, y_D04_left, "-", color="orange", label="D04 edges")
+    plt.plot(x_D04_right, y_D04_right, "-", color="gold")
+
+    # Random Walk tow
+    plt.plot(x_RW_centerline, y_RW_centerline, "--", color="red", label="RW centerline")
+    plt.plot(x_RW_left, y_RW_left, "-", color="red", label="RW edges")
+    plt.plot(x_RW_right, y_RW_right, "-", color="red")
+
+    # Random sampling tow
+    plt.plot(x_RS_centerline, y_RS_centerline, "--", color="green", label="RS centerline")
+    plt.plot(x_RS_left, y_RS_left, "-", color="green", label="RS edges")
+    plt.plot(x_RS_right, y_RS_right, "-", color="green")
+
+    plt.legend()
+    plt.xlabel("X (mm)", fontsize=font_large)
+    plt.ylabel("Y (mm)", fontsize=font_large)
+    plt.grid()
+    plt.tight_layout()
+    plt.show()
+
 def compare_simulated_vs_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     """
     Compare simulated and real tow edges by calculating average lateral error.
@@ -578,13 +605,14 @@ def main():
     # real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True, force_steps = True)
     # compare_real_vs_simulated_gaps_overlaps()
 
-    compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=150, histogram_bins_multitow=100)
+    # compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=150, histogram_bins_multitow=100)
 
     # real_df, sim_df = plot_simulated_vs_RW_tow(6, plot = True, force_steps = True)
     # compare_real_vs_RW_gaps_overlaps()
 
     # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
+    plot_real_vs_D04_vs_RW_vs_RS_tow(2)
 
 if __name__ == "__main__":
     main()
