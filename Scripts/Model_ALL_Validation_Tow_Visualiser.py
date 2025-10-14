@@ -303,6 +303,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
 
     # Extract D04 tow
     _, sim_df = plot_simulated_vs_real_tow(tow, tow_length_mm=tow_length_mm, scaled=False, plot=False)
+    print(sim_df)
     x_D04_right = sim_df["x_mm"].to_numpy()
     y_D04_right = sim_df["bottom_edge"].to_numpy()
     x_D04_left = sim_df["x_mm"].to_numpy()
@@ -312,6 +313,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
 
     # Extract RW tow
     _, _, _, _, _, RW_df = generate_RW_multitow(num_tows=1)
+    print(RW_df)
     x_RW_right = RW_df["x_mm"].to_numpy()
     y_RW_right = RW_df["bottom_edge"].to_numpy()
     x_RW_left = RW_df["x_mm"].to_numpy()
@@ -321,6 +323,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
 
     # Extract RS tow
     _, RS_df = generate_RS_multitow(num_tows=1)
+    print(RS_df)
     x_RS_right = RS_df["x_mm"].to_numpy()
     y_RS_right = RS_df["bottom_edge"].to_numpy()
     x_RS_left = RS_df["x_mm"].to_numpy()

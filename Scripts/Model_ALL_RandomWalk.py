@@ -294,6 +294,11 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         bottom_edge_paths.append(tow_bottom_edge)
         tow_offset += tow_spacing_mm
 
+        print(f'Length of x: {len(x_walk_data)}')
+        print(f'Length of centerline: {len(tow_centerline_data)}')
+        print(f'Length of top: {len(top_edge_paths)}')
+        print(f'Length of bottom: {len(bottom_edge_paths)}')
+
         RW_data = pd.DataFrame({
             "x_mm": x_walk_data,
             "centerline": tow_centerline_data,
