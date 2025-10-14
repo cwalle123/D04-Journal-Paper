@@ -66,6 +66,7 @@ def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=
     else:
         LLSB_RS_data = generate_random_sampling_data("LLS_B", steps=n_steps, tows=num_tows)
 
+    tow_offset = 0
     for tow in range(num_tows):
 
 
@@ -143,9 +144,10 @@ def generate_siddharth_width(steps: int=400, tows: int=1, plot_histogram=False):
 
 def main():
     #generate_random_sampling_data("LLS_B", steps=400, tows=300, plot_histogram=True)
-    #gap_overlap_df = generate_RS_multitow(31, n_steps=400, tow_spacing_mm=12.5, tow_width_mm=6.35)
+    gap_overlap_df, RS_data = generate_RS_multitow(31, n_steps=400, tow_spacing_mm=12.5, tow_width_mm=6.35)
+    print(gap_overlap_df, RS_data)
     #print(gap_overlap_df)
-    generate_siddharth_width(tows=50, plot_histogram=True)
+    #generate_siddharth_width(tows=30, plot_histogram=True)
 
 
 if __name__ == "__main__":
