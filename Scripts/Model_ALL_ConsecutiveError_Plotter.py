@@ -265,19 +265,15 @@ def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, qu
             x_front = xi - thickness / 2
             x_back = xi + thickness / 2
 
-            # --- Front and back faces (like your original polygons) ---
+            # Front and back faces
             verts_front = [list(zip(np.full_like(y_vals, x_front), y_vals, z_vals))]
             verts_back  = [list(zip(np.full_like(y_vals, x_back), y_vals, z_vals))]
-
             poly_front = art3d.Poly3DCollection(verts_front, alpha=0.2, facecolor='mediumspringgreen', edgecolor='none')
             poly_back = art3d.Poly3DCollection(verts_back, alpha=0.2, facecolor='mediumspringgreen', edgecolor='none')
-
             ax.add_collection3d(poly_front)
             ax.add_collection3d(poly_back)
-
-            # --- Filled thickness (the ribbon between front and back) ---
             X, Y = np.meshgrid([x_front, x_back], y_vals)
-            Z = np.tile(z_vals, (2, 1)).T  # same z-values on both faces
+            Z = np.tile(z_vals, (2, 1)).T
 
             ax.plot_surface(X, Y, Z, color='mediumspringgreen', alpha=0.2, linewidth=0, shade=True)
             i += 1
