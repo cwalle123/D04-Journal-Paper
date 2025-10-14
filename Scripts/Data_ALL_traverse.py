@@ -87,8 +87,6 @@ def traverse_tow_constructor(tow: int, normalize: bool = False):
     top_edge = top_edge[:min_len]
 
     # --- Calculate y edges and centerline ---
-    #y_bottom_edge = y_bottom + bottom_edge
-    #y_top_edge = y_top + top_edge
     y_bottom_edge = y_bottom - bottom_edge
     y_top_edge = y_top - top_edge
     y_centerline = (y_bottom_edge + y_top_edge)/2

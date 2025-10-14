@@ -17,7 +17,7 @@ from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_ov
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Model_ALL_Simulation import generate_multitow_layout, generate_multitow_layout_lengths
 from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow
-from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse
+from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse, y_increment_programmed
 
 ##############################################################################################################
 """Functions"""
@@ -270,6 +270,30 @@ def plot_simulated_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False,
         plt.show()
 
     return real_data, sim_data
+
+def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: bool = False, offset: float=y_increment_programmed):
+    # Extract real tow from traverse data
+    real_df = traverse_tow_constructor(tow)
+    x_right = real_df["x_right"].to_numpy()
+    y_right = real_df["y_right"].to_numpy()
+    x_left = real_df["x_left"].to_numpy()
+    y_left = real_df["y_left"].to_numpy()
+    x_centerline  = real_df["x_centerline"].to_numpy()
+    y_centerline  = real_df["y_centerline"].to_numpy()
+
+    #Uniformly drop datapoints to get to target_points steps per meter of tow
+    if force_steps:
+        target_points = 370
+        n_points = len(x_centerline)
+        if n_points > target_points:
+            indices = np.linspace(0, n_points - 1, target_points, dtype=int)
+            x_right = x_right[indices]
+            y_right = y_right[indices]
+            x_left = x_left[indices]
+            y_left = y_left[indices]
+            x_centerline = x_centerline[indices]
+            y_centerline = y_centerline[indices]
+            real_df = real_df.iloc[indices].reset_index(drop=True)
 
 def compare_simulated_vs_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     """

@@ -127,7 +127,7 @@ def plot_all_tows_consecutive_scatter(sensor: str, n_tows: int = 31):
     plt.grid(True, alpha=0.3)
     plt.show()
 
-def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, quantile_clip: float = 0.01, min_bin_count: int = 10):
+def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, quantile_clip: float = 0.01, min_bin_count: int = 10, plot_type: str = None):
     """
     Model consecutive error data for all tows of a given sensor, ignoring outliers.
 
@@ -200,73 +200,75 @@ def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, qu
 
     # Fit normal distribution to residuals
     mu, sigma = norm.fit(residuals)
-
-    # Plot results
-    plt.figure(figsize=(10, 6))
-    plt.scatter(all_x, all_y, alpha=0.2, s=10, label="Data", color="blue")
-    plt.scatter(bin_means_x, bin_means_y, marker='s',  s=40, color="red", label="Bin means")
-    plt.plot(bin_means_x, y_pred, color="red", linewidth=2, label="Regression line")
-    plt.title(f"{sensor} Consecutive Error Model (All {n_tows} Tows, Outliers Removed)")
-    plt.xlabel(f"{sensor} Error (n)")
-    plt.ylabel(f"{sensor} Error (n+1)")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.show()
-
-    # Plot residual distribution
-    plt.figure(figsize=(8, 4))
-    plt.hist(residuals, bins=50, density=True, alpha=0.6, color="blue")
-    x_vals = np.linspace(residuals.min(), residuals.max(), 200)
-    plt.plot(x_vals, norm.pdf(x_vals, mu, sigma), "r-", lw=2,
-             label=f"Normal fit (μ={mu:.2f}, σ={sigma:.2f})")
-    plt.title(f"{sensor} Residual Distribution (Outliers Removed)")
-    plt.xlabel("Residual")
-    plt.ylabel("Density")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.show()
-
-    # 3D visualization
-    # Smooth regression line across full X range
-    x_line = np.linspace(all_x.min(), all_x.max(), 200).reshape(-1, 1)
-    y_line = reg.predict(x_line)
     
-    # Small Z offset to make bin means and regression line visible above raw data
-    z_offset = np.abs(max(all_y) * 0.01)
+    if plot_type == "2d":
+        # Plot results
+        plt.figure(figsize=(10, 6))
+        plt.scatter(all_x, all_y, alpha=0.2, s=10, label="Data", color="blue")
+        plt.scatter(bin_means_x, bin_means_y, marker='s',  s=40, color="red", label="Bin means")
+        plt.plot(bin_means_x, y_pred, color="red", linewidth=2, label="Regression line")
+        plt.title(f"{sensor} Consecutive Error Model (All {n_tows} Tows, Outliers Removed)")
+        plt.xlabel(f"{sensor} Error (n)")
+        plt.ylabel(f"{sensor} Error (n+1)")
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.show()
 
-    # Create figure
-    fig = plt.figure(figsize=(10,6))
-    ax = fig.add_subplot(111, projection='3d')
+        # Plot residual distribution
+        plt.figure(figsize=(8, 4))
+        plt.hist(residuals, bins=50, density=True, alpha=0.6, color="blue")
+        x_vals = np.linspace(residuals.min(), residuals.max(), 200)
+        plt.plot(x_vals, norm.pdf(x_vals, mu, sigma), "r-", lw=2,
+                label=f"Normal fit (μ={mu:.2f}, σ={sigma:.2f})")
+        plt.title(f"{sensor} Residual Distribution (Outliers Removed)")
+        plt.xlabel("Residual")
+        plt.ylabel("Density")
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.show()
+    
+    if plot_type == "3d":
+        # 3D visualization
+        # Smooth regression line across full X range
+        x_line = np.linspace(all_x.min(), all_x.max(), 200).reshape(-1, 1)
+        y_line = reg.predict(x_line)
+        
+        # Small Z offset to make bin means and regression line visible above raw data
+        z_offset = np.abs(max(all_y) * 0.01)
 
-    # Scatter raw data
-    ax.scatter(all_x, all_y, np.zeros_like(all_x), alpha=0.1, s=10, color="blue", label="Data")
+        # Create figure
+        fig = plt.figure(figsize=(10,6))
+        ax = fig.add_subplot(111, projection='3d')
 
-    # Scatter bin means
-    ax.scatter(bin_means_x.flatten(), bin_means_y, np.full_like(bin_means_y, z_offset), marker='s', s=40, color="red", label="Bin means")
+        # Scatter raw data
+        ax.scatter(all_x, all_y, np.zeros_like(all_x), alpha=0.1, s=10, color="blue", label="Data")
 
-    # Smooth regression line in XY plane
-    ax.plot(x_line.flatten(), y_line, zs=z_offset, zdir='z', color='red', linewidth=2, label="Regression line")
+        # Scatter bin means
+        ax.scatter(bin_means_x.flatten(), bin_means_y, np.full_like(bin_means_y, z_offset), marker='s', s=40, color="red", label="Bin means")
 
-    # Plot per-bin residual distributions
-    for xi, yi, si in zip(bin_means_x, bin_means_y, bin_stds):
-        y_vals = yi + np.linspace(-3*si, 3*si, 100)
-        pdf = norm.pdf(y_vals, yi, si)
-        z_vals = pdf / np.max(pdf) * si * 3  # scale for visibility
-        ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5)
-        verts = [list(zip(np.full_like(y_vals, xi), y_vals, z_vals))]
-        poly = art3d.Poly3DCollection(verts, alpha=0.1, facecolor='mediumspringgreen')
-        ax.add_collection3d(poly)
+        # Smooth regression line in XY plane
+        ax.plot(x_line.flatten(), y_line, zs=z_offset, zdir='z', color='red', linewidth=2, label="Regression line")
 
-    # Labels and title
-    ax.set_xlabel(f"{sensor} Error (n)")
-    ax.set_ylabel(f"{sensor} Error (n+1)")
-    ax.set_zlabel("Residual PDF")
-    ax.set_title(f"{sensor} Consecutive Error Model with Per-Bin Residual Distributions (3D View)")
+        # Plot per-bin residual distributions
+        for xi, yi, si in zip(bin_means_x, bin_means_y, bin_stds):
+            y_vals = yi + np.linspace(-3*si, 3*si, 100)
+            pdf = norm.pdf(y_vals, yi, si)
+            z_vals = pdf / np.max(pdf) * si * 3  # scale for visibility
+            ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5)
+            verts = [list(zip(np.full_like(y_vals, xi), y_vals, z_vals))]
+            poly = art3d.Poly3DCollection(verts, alpha=0.1, facecolor='mediumspringgreen')
+            ax.add_collection3d(poly)
 
-    # Legend and layout
-    ax.legend()
-    plt.tight_layout()
-    plt.show()
+        # Labels and title
+        ax.set_xlabel(f"{sensor} Error (n)")
+        ax.set_ylabel(f"{sensor} Error (n+1)")
+        ax.set_zlabel("Residual PDF")
+        ax.set_title(f"{sensor} Consecutive Error Model with Per-Bin Residual Distributions (3D View)")
+
+        # Legend and layout
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
     
     return {
         "regression_coef": reg.coef_[0],
