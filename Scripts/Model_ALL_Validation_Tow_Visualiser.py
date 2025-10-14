@@ -281,11 +281,11 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     real_df = traverse_tow_constructor(tow, normalize=True)
     print(real_df)
     x_real_right = real_df["x_right"].to_numpy()
-    y_real_right = real_df["y_right"].to_numpy()
+    y_real_right = real_df["y_right"].to_numpy() + 3 * y_increment_programmed
     x_real_left = real_df["x_left"].to_numpy()
-    y_real_left = real_df["y_left"].to_numpy()
+    y_real_left = real_df["y_left"].to_numpy() + 3 * y_increment_programmed
     x_real_centerline  = real_df["x_centerline"].to_numpy()
-    y_real_centerline  = real_df["y_centerline"].to_numpy()
+    y_real_centerline  = real_df["y_centerline"].to_numpy() + 3 * y_increment_programmed
 
     #Uniformly drop datapoints to get to target_points steps per meter of tow
     if force_steps:
@@ -305,21 +305,21 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     _, sim_df = plot_simulated_vs_real_tow(tow, tow_length_mm=tow_length_mm, scaled=False, plot=False)
     print(sim_df)
     x_D04_right = sim_df["x_mm"].to_numpy()
-    y_D04_right = sim_df["bottom_edge"].to_numpy()
+    y_D04_right = sim_df["bottom_edge"].to_numpy() + 2 * y_increment_programmed
     x_D04_left = sim_df["x_mm"].to_numpy()
-    y_D04_left = sim_df["top_edge"].to_numpy()
+    y_D04_left = sim_df["top_edge"].to_numpy() + 2 * y_increment_programmed
     x_D04_centerline  = sim_df["x_mm"].to_numpy()
-    y_D04_centerline  = sim_df["centerline"].to_numpy()
+    y_D04_centerline  = sim_df["centerline"].to_numpy() + 2 * y_increment_programmed
 
     # Extract RW tow
     _, _, _, _, _, RW_df = generate_RW_multitow(num_tows=1)
     print(RW_df)
-    x_RW_right = RW_df["x_mm"].to_numpy()
-    y_RW_right = RW_df["bottom_edge"].to_numpy()
+    x_RW_right = RW_df["x_mm"].to_numpy() 
+    y_RW_right = RW_df["bottom_edge"].to_numpy() + y_increment_programmed
     x_RW_left = RW_df["x_mm"].to_numpy()
-    y_RW_left = RW_df["top_edge"].to_numpy()
+    y_RW_left = RW_df["top_edge"].to_numpy() + y_increment_programmed
     x_RW_centerline  = RW_df["x_mm"].to_numpy()
-    y_RW_centerline  = RW_df["centerline"].to_numpy()
+    y_RW_centerline  = RW_df["centerline"].to_numpy() + y_increment_programmed
 
     # Extract RS tow
     _, RS_df = generate_RS_multitow(num_tows=1)
@@ -331,6 +331,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     x_RS_centerline  = RS_df["x_mm"].to_numpy()
     y_RS_centerline  = RS_df["centerline"].to_numpy()
 
+    plt.figure(figsize=(10,6))
     # Real tow
     plt.plot(x_real_centerline, y_real_centerline, "--", color="blue", label="Real centerline")
     plt.plot(x_real_left, y_real_left, "-", color="blue", label="Real edges")
@@ -339,7 +340,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     # Simulated tow
     plt.plot(x_D04_centerline, y_D04_centerline, "--", color="orange", label="D04 centerline")
     plt.plot(x_D04_left, y_D04_left, "-", color="orange", label="D04 edges")
-    plt.plot(x_D04_right, y_D04_right, "-", color="gold")
+    plt.plot(x_D04_right, y_D04_right, "-", color="orange")
 
     # Random Walk tow
     plt.plot(x_RW_centerline, y_RW_centerline, "--", color="red", label="RW centerline")
@@ -352,6 +353,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     plt.plot(x_RS_right, y_RS_right, "-", color="green")
 
     plt.legend()
+    plt.title("Comparison of tows obtained from the 4 different methods")
     plt.xlabel("X (mm)", fontsize=font_large)
     plt.ylabel("Y (mm)", fontsize=font_large)
     plt.grid()
