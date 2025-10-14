@@ -53,13 +53,17 @@ def generate_random_sampling_data(sensor: str, steps: int=400, tows: int=1, plot
     return generated_tows
 
 
-def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35):
+def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, method: str="Sidd"):
     tow_offset = 0
     top_edge_paths, bottom_edge_paths = [], []
 
     LT_RS_data = generate_random_sampling_data("LT", steps=n_steps, tows=num_tows)
     CAM_RS_data = generate_random_sampling_data("CAM", steps=n_steps, tows=num_tows)
-    LLSB_RS_data = generate_random_sampling_data("LLS_B", steps=n_steps, tows=num_tows)
+
+    if method == "Sidd":
+        LLSB_RS_data = generate_siddharth_width(steps=n_steps, tows=num_tows)
+    else:
+        LLSB_RS_data = generate_random_sampling_data("LLS_B", steps=n_steps, tows=num_tows)
 
     for tow in range(num_tows):
 
@@ -86,12 +90,54 @@ def generate_RS_multitow(num_tows: int, n_steps: int=400, tow_spacing_mm: float=
     return gap_overlap_df
 
 
+def generate_siddharth_width(steps: int=400, tows: int=1, plot_histogram=False):
+    LLS_A_data = generate_random_sampling_data("LLS_A", steps=steps, tows=tows)
+    modified_data = np.zeros_like(LLS_A_data)
+
+    data, weights = get_data("LLS_B")
+    best = best_fit_distribution(np.array(data), weights=np.array(weights))
+    dist, params = best['dist'], best['params']
+    distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
+
+    for tow in range(tows):
+        for step in range(steps):
+            value_bigger = False
+            while value_bigger == False:
+                new_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
+                if new_value > LLS_A_data[tow, step]:
+                    modified_data[tow, step] = new_value
+                    value_bigger = True
+
+    if plot_histogram:
+        LLS_B_raw_data = generate_random_sampling_data("LLS_B", steps=steps, tows=tows)
+        LLS_A_list, modified_list, LLS_B_raw_list = [], [], []
+        for tow in range(tows):
+            LLS_A_list += list(LLS_A_data[tow])
+            modified_list += list(modified_data[tow])
+            LLS_B_raw_list += list(LLS_B_raw_data[tow])
+
+
+        x_pdf = np.linspace(-1.2, 1.2, 100)
+        y_pdf = distribution(x_pdf)
+
+        # making the histogram
+        plt.plot(x_pdf, y_pdf, label='probability-distribution')
+        plt.hist(modified_list, density=True, bins=30, alpha=0.5, label='Siddharth method width data')
+        plt.hist(LLS_B_raw_list, density=True, bins=30, alpha=0.5, label='raw LLS_B generated data')
+        plt.hist(LLS_A_list, density=True, bins=30, alpha=0.2, label='LLS_A generated data')
+        plt.title("Histogram of generated paths w. probability-distribution")
+        plt.xlim(-0.7, 0.3)
+        plt.legend()
+        plt.show()
+
+    return modified_data
 
 
 def main():
-    generate_random_sampling_data("LLS_B", steps=400, tows=300, plot_histogram=True)
+    #generate_random_sampling_data("LLS_B", steps=400, tows=300, plot_histogram=True)
     #gap_overlap_df = generate_RS_multitow(31, n_steps=400, tow_spacing_mm=12.5, tow_width_mm=6.35)
     #print(gap_overlap_df)
+    generate_siddharth_width(tows=50, plot_histogram=True)
 
 
 if __name__ == "__main__":
