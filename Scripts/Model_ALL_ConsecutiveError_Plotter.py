@@ -250,20 +250,24 @@ def model_consecutive_errors(sensor: str, n_tows: int = 31, n_bins: int = 40, qu
         ax.plot(x_line.flatten(), y_line, zs=z_offset, zdir='z', color='red', linewidth=2, label="Regression line")
 
         # Plot per-bin residual distributions
+        i = 0 #Only assign a label to the first residual distribution to avoid cluttering the legend.
         for xi, yi, si in zip(bin_means_x, bin_means_y, bin_stds):
             y_vals = yi + np.linspace(-3*si, 3*si, 100)
             pdf = norm.pdf(y_vals, yi, si)
             z_vals = pdf / np.max(pdf) * si * 3  # scale for visibility
-            ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5)
+            if i == 0:
+                ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5, label="Residual distributions")
+            elif i > 0:
+                ax.plot(np.full_like(y_vals, xi), y_vals, z_vals, color='green', lw=1.5)
             verts = [list(zip(np.full_like(y_vals, xi), y_vals, z_vals))]
             poly = art3d.Poly3DCollection(verts, alpha=0.1, facecolor='mediumspringgreen')
             ax.add_collection3d(poly)
+            i += 1
 
         # Labels and title
         ax.set_xlabel(f"{sensor} Error (n)")
         ax.set_ylabel(f"{sensor} Error (n+1)")
         ax.set_zlabel("Residual PDF")
-        ax.set_title(f"{sensor} Consecutive Error Model with Per-Bin Residual Distributions (3D View)")
 
         # Legend and layout
         ax.legend()
@@ -387,7 +391,7 @@ def main():
     tow = 3
     # plot_LT_consecutive_error(tow)
     # plot_all_tows_consecutive_scatter("LT")
-    model_consecutive_errors("LT")
+    model_consecutive_errors("LT", plot_type="3d", n_bins=5)
     # model_consecutive_errors_all_sensors()
 
 if __name__ == "__main__":
