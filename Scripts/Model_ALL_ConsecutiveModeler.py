@@ -192,13 +192,13 @@ def run_model(generate_varying_bin_plots: bool=False, return_data: bool=True):
             start_llsb = generate_starting_error("LLS_B")
 
             # generating data
-            LT_error_list = generate_error_path(start_lt, n_steps, LT_dist[1], LT_dist[2], LT_dist[-3], LT_dist[-2],
+            LT_error_list = generate_error_path(start_lt, n_steps, LT_dist[0], LT_dist[1], LT_dist[2], LT_dist[-3], LT_dist[-2],
                                                 LT_dist[-1])
-            CAM_error_list = generate_error_path(start_cam, n_steps, CAM_dist[1], CAM_dist[2], CAM_dist[-3], CAM_dist[-2],
+            CAM_error_list = generate_error_path(start_cam, n_steps, CAM_dist[0], CAM_dist[1], CAM_dist[2], CAM_dist[-3], CAM_dist[-2],
                                                  CAM_dist[-1])
-            LLSA_error_list = generate_error_path(start_llsa, n_steps, LLSA_dist[1], LLSA_dist[2], LLSA_dist[-3],
+            LLSA_error_list = generate_error_path(start_llsa, n_steps,LLSA_dist[0], LLSA_dist[1], LLSA_dist[2], LLSA_dist[-3],
                                                   LLSA_dist[-2], LLSA_dist[-1])
-            LLSB_error_list = generate_error_path(start_llsb, n_steps, LLSB_dist[1], LLSB_dist[2], LLSB_dist[-3],
+            LLSB_error_list = generate_error_path(start_llsb, n_steps, LLSB_dist[0], LLSB_dist[1], LLSB_dist[2], LLSB_dist[-3],
                                                   LLSB_dist[-2], LLSB_dist[-1])
 
 
