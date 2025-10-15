@@ -12,7 +12,7 @@ import scipy.stats as stats
 from scipy.stats import pareto
 
 # Internal imports
-from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_error_path_smooth
+from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Handling_ALL_Functions import get_synced_data
 from constants import number_of_steps, Consecutive_Error_Bins
 
