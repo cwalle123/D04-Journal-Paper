@@ -37,7 +37,7 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True, force_steps: 
     y_centerline  = real_df["y_centerline"].to_numpy()
 
     if force_steps:
-        target_points = 370
+        target_points = number_of_steps
         n_points = len(x_centerline)
         if n_points > target_points:
             indices = np.linspace(0, n_points - 1, target_points, dtype=int)
@@ -544,14 +544,14 @@ def compare_real_vs_RW_gaps_overlaps():
         "sim_gap_percent": sim_gap_percent,
         "sim_overlap_percent": sim_overlap_percent}
 
-def compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=350, histogram_bins_multitow=100):
+def compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=350, histogram_bins_multitow=100, force_steps=False):
     """
     Compare gaps and overlaps between traverse tows and simulated multi-tows.
     Generates two plots: one for gaps, one for overlaps.
     """
 
     # --- Run traverse tow analysis ---
-    gap_traverse, overlap_traverse, gap_fit_traverse, overlap_fit_traverse = traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=histogram_bins_traverse)
+    gap_traverse, overlap_traverse, gap_fit_traverse, overlap_fit_traverse = traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=histogram_bins_traverse, force_steps=force_steps)
 
     # --- Run simulated multi-tow analysis ---
     _, gap_sim, overlap_sim, gap_fit_sim, overlap_fit_sim = generate_multitow_layout_lengths(num_tows=30, plot=False, histogram_bins=histogram_bins_multitow)
@@ -607,8 +607,8 @@ def compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=350,
 def main():
     # plot_real_tow(6)
 
-    # real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True, force_steps = True)
-    # compare_real_vs_simulated_gaps_overlaps()
+    real_df, sim_df = plot_simulated_vs_real_tow(6, plot = True, force_steps = True)
+    compare_real_vs_simulated_gaps_overlaps()
 
     # compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins_traverse=150, histogram_bins_multitow=100)
 
@@ -617,7 +617,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
-    plot_real_vs_D04_vs_RW_vs_RS_tow(2)
+    # plot_real_vs_D04_vs_RW_vs_RS_tow(2)
 
 if __name__ == "__main__":
     main()

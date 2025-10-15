@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import pareto
 
 # Internal imports
-from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse, tow_width_specified
+from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse, tow_width_specified, number_of_steps
 from Handling_ALL_Functions import get_synced_data
 from Data_ALL_importer import Traverse_LT_excel_to_array, Traverse_Gap_excel_to_array
 
@@ -112,7 +112,7 @@ def traverse_tow_constructor(tow: int, normalize: bool = False):
 def traverse_tow_gaps_and_overlaps(plot=True):
     """
     Collect normalized traverse tow data (tows 2–30).
-    Apply +12.5 mm offset per tow index after tow 2.
+    Apply +6.35 mm offset per tow index after tow 2.
     Compute gap/overlap percentages between adjacent tows.
     """
 
@@ -184,11 +184,17 @@ def traverse_tow_gaps_and_overlaps(plot=True):
 
     return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
 
-def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30):
+def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_steps=False):
     """
     Compute lengths of gaps and overlaps between normalized traverse tows (2–30),
-    applying +12.5 mm offset per tow index after tow 2.
+    applying +6.35 mm offset per tow index after tow 2.
     Optionally plot histograms and fit Pareto distributions.
+    
+    Args:
+        plot (bool): Whether to plot histograms of gap and overlap lengths.
+        histogram_bins (int): Number of bins for histograms.
+        force_steps (bool): If True, resample all tows to a fixed number of steps.
+        number_of_steps (int): Target number of samples per tow if force_steps=True.
     """
 
     top_edge_paths, bottom_edge_paths = [], []
@@ -200,7 +206,18 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30):
         if traverse_tow is None:
             continue
 
-        offset_mm = (tow - 2) * tow_width_specified  # e.g., 12.5 mm
+        # --- Apply force_steps logic here ---
+        if force_steps:
+            target_points = number_of_steps
+            n_points = len(traverse_tow["x_centerline"])
+            if n_points > target_points:
+                indices = np.linspace(0, n_points - 1, target_points, dtype=int)
+                for col in ["x_right", "y_right", "x_left", "y_left", "x_centerline", "y_centerline"]:
+                    if col in traverse_tow.columns:
+                        traverse_tow[col] = traverse_tow[col].iloc[indices].reset_index(drop=True)
+                traverse_tow = traverse_tow.reset_index(drop=True)
+
+        offset_mm = (tow - 2) * tow_width_specified  # e.g., 6.35 mm
         x_vals_list.append(traverse_tow["x_centerline"].to_numpy())
         top_edge_paths.append(traverse_tow["y_left"].to_numpy() + offset_mm)
         bottom_edge_paths.append(traverse_tow["y_right"].to_numpy() + offset_mm)

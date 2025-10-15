@@ -12,7 +12,7 @@ import scipy.stats as stats
 from scipy.stats import pareto
 
 # Internal imports
-from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
+from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_error_path_smooth
 from Handling_ALL_Functions import get_synced_data
 from constants import number_of_steps, Consecutive_Error_Bins
 
@@ -202,7 +202,7 @@ def generate_multitow_layout_lengths(
     plot=False,
     scaled=False,
     histogram_bins=30,
-    Consecutive_Error_Bins=Consecutive_Error_Bins):
+    num_bins=Consecutive_Error_Bins):
     """
     Generate a multi-tow layout using real error models (CAM, LT, LLS_B),
     compute *lengths* of gaps and overlaps, and fit Pareto distributions.
@@ -214,7 +214,6 @@ def generate_multitow_layout_lengths(
     """
 
     # --- Setup ---
-    num_bins = Consecutive_Error_Bins
     n_steps = number_of_steps
 
     # --- Load error models ---

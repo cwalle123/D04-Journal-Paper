@@ -553,10 +553,11 @@ def lenghts_consecutive_error_bins_mse(
     tow_length_mm=1000,
     num_tows=30,
     bin_start=5,
-    bin_end=501,
-    bin_step=5,
+    bin_end=750,
+    bin_step=10,
     verbose=True,
-    plot=True):
+    plot=True,
+    force_steps=True):
     """
     Optimize Consecutive_Error_Bins using MSE, testing bins in steps and plotting MSE vs bins.
     
@@ -577,7 +578,7 @@ def lenghts_consecutive_error_bins_mse(
     """
 
     # --- Get real traverse tow distributions ---
-    gap_real, overlap_real, _, _ = traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=real_hist_bins)
+    gap_real, overlap_real, _, _ = traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=real_hist_bins, force_steps=force_steps)
 
     results = {}
     tested_bins = []
@@ -589,7 +590,7 @@ def lenghts_consecutive_error_bins_mse(
             tow_length_mm=tow_length_mm,
             plot=False,
             histogram_bins=sim_hist_bins,
-            Consecutive_Error_Bins=bins)
+            num_bins=bins)
 
         # --- Compute MSE for gaps ---
         min_gap = min(gap_real.min(), gap_sim.min())
@@ -622,12 +623,18 @@ def lenghts_consecutive_error_bins_mse(
     # --- Plot MSE vs bins ---
     if plot:
         total_mse_values = [results[b]["total_mse"] for b in tested_bins]
-        plt.figure(figsize=(8, 5))
-        plt.plot(tested_bins, total_mse_values, 'o-', color='blue')
+        mse_gap_values = [results[b]["mse_gap"] for b in tested_bins]
+        mse_overlap_values = [results[b]["mse_overlap"] for b in tested_bins]
+
+        plt.figure(figsize=(9, 6))
+        plt.plot(tested_bins, mse_gap_values, 'o-', color='green', label='MSE (Gaps)')
+        plt.plot(tested_bins, mse_overlap_values, 's--', color='orange', label='MSE (Overlaps)')
+        plt.plot(tested_bins, total_mse_values, 'd-', color='blue', label='Total MSE')
+
         plt.axvline(best_bin, color='red', linestyle='--', label=f"Optimal bins={best_bin}")
         plt.xlabel("Consecutive Error Bins")
-        plt.ylabel("Total MSE (Gaps + Overlaps)")
-        plt.title("Optimization of Consecutive Error Bins")
+        plt.ylabel("Mean Squared Error")
+        plt.title("MSE vs Consecutive Error Bins (Gaps, Overlaps, and Total)")
         plt.legend()
         plt.grid(True, linestyle=":")
         plt.tight_layout()
