@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from mpl_toolkits.mplot3d import Axes3D
 import sys
+from scipy.stats import pareto
 
 #Internal imports
 from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps_lengths
@@ -547,94 +548,143 @@ def analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min: int = 20
         "mean_best_bins": mean_bins,
         "std_best_bins": std_bins}
 
-def lenghts_consecutive_error_bins_mse(
-    real_hist_bins=350,
-    sim_hist_bins=100,
-    tow_length_mm=1000,
-    num_tows=30,
-    bin_start=5,
-    bin_end=750,
-    bin_step=10,
-    verbose=True,
-    plot=True,
-    force_steps=True):
+def lengths_consecutive_error_bins_mse(histogram_bins=100, tow_length_mm=1000, num_tows=30, bin_start=5, bin_end=650, bin_step=10, verbose=True, plot=True, force_steps=True):
     """
-    Optimize Consecutive_Error_Bins using MSE, testing bins in steps and plotting MSE vs bins.
-    
-    Args:
-        real_hist_bins: histogram bins for real traverse tow data
-        sim_hist_bins: histogram bins for simulated multi-tow data
-        tow_length_mm: length of simulated tows
-        num_tows: number of simulated tows
-        bin_start: starting number of consecutive error bins
-        bin_end: maximum number of consecutive error bins (exclusive)
-        bin_step: step size for bin search
-        verbose: print progress
-        plot: whether to plot MSE vs bins
-    
-    Returns:
-        best_bin: optimal number of consecutive error bins
-        results: dict with MSEs for each tested bin count
+    Optimize Consecutive_Error_Bins using Pareto-fit MSE comparison.
+
+    For each number of bins:
+        1. Computes real and simulated gap/overlap lengths.
+        2. Fits Pareto distributions to both.
+        3. Computes MSE between real and simulated Pareto PDFs (for gaps + overlaps).
+        4. Returns and plots the optimal number of bins with minimum total MSE.
     """
 
-    # --- Get real traverse tow distributions ---
-    gap_real, overlap_real, _, _ = traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=real_hist_bins, force_steps=force_steps)
-
+    # --- Get real traverse tow data ---
+    gap_real, overlap_real, _, _ = traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=histogram_bins, force_steps=force_steps)
+    
     results = {}
     tested_bins = []
 
+    # --- Helper to fit Pareto safely ---
+    def fit_pareto(data):
+        shape, loc, scale = pareto.fit(data, floc=0)
+        return shape, loc, scale
+
+    # --- Fit real Pareto distributions once ---
+    gap_real_fit = fit_pareto(gap_real)
+    overlap_real_fit = fit_pareto(overlap_real)
+
     for bins in range(bin_start, bin_end, bin_step):
-        # --- Simulate multi-tow ---
+        # --- Simulate multi-tow with this number of consecutive bins ---
         _, gap_sim, overlap_sim, _, _ = generate_multitow_layout_lengths(
             num_tows=num_tows,
             tow_length_mm=tow_length_mm,
             plot=False,
-            histogram_bins=sim_hist_bins,
+            histogram_bins=histogram_bins,
             num_bins=bins)
 
-        # --- Compute MSE for gaps ---
-        min_gap = min(gap_real.min(), gap_sim.min())
-        max_gap = max(gap_real.max(), gap_sim.max())
-        gap_edges = np.linspace(min_gap, max_gap, real_hist_bins + 1)
-        hist_gap_real, _ = np.histogram(gap_real, bins=gap_edges)
-        hist_gap_sim, _ = np.histogram(gap_sim, bins=gap_edges)
-        mse_gap = np.mean((hist_gap_real - hist_gap_sim) ** 2)
+        # --- Fit Pareto to simulated data ---
+        gap_sim_fit = fit_pareto(gap_sim)
+        overlap_sim_fit = fit_pareto(overlap_sim)
 
-        # --- Compute MSE for overlaps ---
-        min_overlap = min(overlap_real.min(), overlap_sim.min())
-        max_overlap = max(overlap_real.max(), overlap_sim.max())
-        overlap_edges = np.linspace(min_overlap, max_overlap, real_hist_bins + 1)
-        hist_overlap_real, _ = np.histogram(overlap_real, bins=overlap_edges)
-        hist_overlap_sim, _ = np.histogram(overlap_sim, bins=overlap_edges)
-        mse_overlap = np.mean((hist_overlap_real - hist_overlap_sim) ** 2)
+        # --- Define shared x-ranges for comparison ---
+        x_gap = np.linspace(
+            min(gap_real.min(), gap_sim.min()),
+            max(gap_real.max(), gap_sim.max()),
+            400)
+        x_overlap = np.linspace(
+            min(overlap_real.min(), overlap_sim.min()),
+            max(overlap_real.max(), overlap_sim.max()),
+            400)
 
+        # --- Compute Pareto PDFs ---
+        pdf_gap_real = pareto.pdf(x_gap, *gap_real_fit)
+        pdf_gap_sim = pareto.pdf(x_gap, *gap_sim_fit)
+        pdf_overlap_real = pareto.pdf(x_overlap, *overlap_real_fit)
+        pdf_overlap_sim = pareto.pdf(x_overlap, *overlap_sim_fit)
+
+        # --- Normalize PDFs to sum to 1 for fair MSE ---
+        # pdf_gap_real /= np.trapz(pdf_gap_real, x_gap)
+        # pdf_gap_sim /= np.trapz(pdf_gap_sim, x_gap)
+        # pdf_overlap_real /= np.trapz(pdf_overlap_real, x_overlap)
+        # pdf_overlap_sim /= np.trapz(pdf_overlap_sim, x_overlap)
+
+        # --- Compute MSEs between Pareto PDFs ---
+        mse_gap = np.mean((pdf_gap_real - pdf_gap_sim) ** 2)
+        mse_overlap = np.mean((pdf_overlap_real - pdf_overlap_sim) ** 2)
         total_mse = mse_gap + mse_overlap
-        results[bins] = {"mse_gap": mse_gap, "mse_overlap": mse_overlap, "total_mse": total_mse}
+
+        results[bins] = {
+            "mse_gap": mse_gap,
+            "mse_overlap": mse_overlap,
+            "total_mse": total_mse,
+            "gap_fit": gap_sim_fit,
+            "overlap_fit": overlap_sim_fit}
         tested_bins.append(bins)
 
         if verbose:
-            print(f"Bins={bins}, MSE_gap={mse_gap:.3f}, MSE_overlap={mse_overlap:.3f}, Total={total_mse:.3f}")
+            print(f"Bins={bins}, MSE_gap={mse_gap:.6f}, MSE_overlap={mse_overlap:.6f}, Total={total_mse:.6f}")
 
-    # --- Find best bin ---
+    # --- Find the best bin configuration ---
     best_bin = min(results, key=lambda k: results[k]["total_mse"])
+    best_result = results[best_bin]
     if verbose:
-        print(f"\nOptimal Consecutive_Error_Bins (MSE): {best_bin} with total MSE={results[best_bin]['total_mse']:.3f}")
+        print(f"\n✅ Optimal Consecutive_Error_Bins = {best_bin} "
+              f"(Total MSE={best_result['total_mse']:.6f})")
 
-    # --- Plot MSE vs bins ---
+    # --- Plot Pareto fits for the best bin configuration ---
     if plot:
+        # Recompute simulated data for the best bin
+        _, gap_sim_best, overlap_sim_best, _, _ = generate_multitow_layout_lengths(
+            num_tows=num_tows,
+            tow_length_mm=tow_length_mm,
+            plot=False,
+            histogram_bins=histogram_bins,
+            num_bins=best_bin)
+
+        gap_sim_fit = best_result["gap_fit"]
+        overlap_sim_fit = best_result["overlap_fit"]
+
+        x_gap = np.linspace(min(gap_real.min(), gap_sim_best.min()),
+                            max(gap_real.max(), gap_sim_best.max()), 400)
+        x_overlap = np.linspace(min(overlap_real.min(), overlap_sim_best.min()),
+                                max(overlap_real.max(), overlap_sim_best.max()), 400)
+
+        fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+
+        def plot_pareto_fit(ax, x, real_data, sim_data, fit_real, fit_sim, title):
+            ax.hist(real_data, bins=histogram_bins, density=True, alpha=0.5,
+                    color="blue", label="Real", edgecolor="black")
+            ax.hist(sim_data, bins=histogram_bins, density=True, alpha=0.5,
+                    color="orange", label="Simulated", edgecolor="black")
+
+            pdf_real = pareto.pdf(x, *fit_real)
+            pdf_sim = pareto.pdf(x, *fit_sim)
+            ax.plot(x, pdf_real, "b--", lw=2, label=f"Real Pareto α={fit_real[0]:.2f}")
+            ax.plot(x, pdf_sim, "r--", lw=2, label=f"Sim Pareto α={fit_sim[0]:.2f}")
+
+            ax.set_title(title)
+            ax.set_xlabel("Length (mm)")
+            ax.set_ylabel("Density")
+            ax.legend()
+            ax.grid(True, linestyle=":")
+
+        plot_pareto_fit(ax[0], x_gap, gap_real, gap_sim_best,
+                        gap_real_fit, gap_sim_fit, f"Gaps Comparison (Best bins={best_bin})")
+        plot_pareto_fit(ax[1], x_overlap, overlap_real, overlap_sim_best,
+                        overlap_real_fit, overlap_sim_fit, f"Overlaps Comparison (Best bins={best_bin})")
+
+        plt.tight_layout()
+        plt.show()
+
+        # Also plot MSE evolution
         total_mse_values = [results[b]["total_mse"] for b in tested_bins]
-        mse_gap_values = [results[b]["mse_gap"] for b in tested_bins]
-        mse_overlap_values = [results[b]["mse_overlap"] for b in tested_bins]
-
         plt.figure(figsize=(9, 6))
-        plt.plot(tested_bins, mse_gap_values, 'o-', color='green', label='MSE (Gaps)')
-        plt.plot(tested_bins, mse_overlap_values, 's--', color='orange', label='MSE (Overlaps)')
-        plt.plot(tested_bins, total_mse_values, 'd-', color='blue', label='Total MSE')
-
+        plt.plot(tested_bins, total_mse_values, 'o-', color='purple', label='Total MSE (Pareto PDFs)')
         plt.axvline(best_bin, color='red', linestyle='--', label=f"Optimal bins={best_bin}")
         plt.xlabel("Consecutive Error Bins")
-        plt.ylabel("Mean Squared Error")
-        plt.title("MSE vs Consecutive Error Bins (Gaps, Overlaps, and Total)")
+        plt.ylabel("Mean Squared Error (Pareto PDF)")
+        plt.title("MSE vs Consecutive Error Bins (Pareto-fit Comparison)")
         plt.legend()
         plt.grid(True, linestyle=":")
         plt.tight_layout()
@@ -650,7 +700,7 @@ def main():
 
     # best_bins, mse_curve = find_best_bins_fft_mse_real_vs_sim(tow=7,bins_min=2,bins_max=3000,bins_step=20,zero_padding_factor=2)
     # results = analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min=20,bins_max=500,bins_step=5,zero_padding_factor= 2)
-    lenghts_consecutive_error_bins_mse()
+    lengths_consecutive_error_bins_mse()
 
 if __name__ == "__main__":
     main()
