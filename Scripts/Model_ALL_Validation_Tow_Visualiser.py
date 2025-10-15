@@ -135,13 +135,13 @@ def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = Fals
     start_lt = random.uniform(-0.9, -0.7)
     start_llsb = random.uniform(-0.21, -0.02)
 
-    cam_path = generate_error_path(start_cam, n_steps, slope_cam, intercept_cam,
+    cam_path = generate_error_path(start_cam, n_steps, bin_stats_cam, slope_cam, intercept_cam,
                                    x_sorted_cam, bin_edges_cam, devs_cam)
-    lt_path = generate_error_path(start_lt, n_steps, slope_lt, intercept_lt,
+    lt_path = generate_error_path(start_lt, n_steps, bin_stats_lt, slope_lt, intercept_lt,
                                   x_sorted_lt, bin_edges_lt, devs_lt)
     tow_centerline_sim = cam_path + lt_path
 
-    width_error = generate_error_path(start_llsb, n_steps, slope_llsb, intercept_llsb,
+    width_error = generate_error_path(start_llsb, n_steps, bin_stats_llsb, slope_llsb, intercept_llsb,
                                       x_sorted_llsb, bin_edges_llsb, devs_llsb)
     tow_widths_sim = 6.35 + width_error  # nominal width + error
 

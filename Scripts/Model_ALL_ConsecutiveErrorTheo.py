@@ -270,8 +270,8 @@ def consecutive_error(sensor, used_tows: list = list(np.arange(2, 32, 1)), test_
         x_mean = x_mean_bins[i]
         y_mean = y_mean_bins[i]
         # mu, std = stats.norm.fit(bin_devs)
-        mu = np.average(bin_deviations, weights=bin_weights)    # mean of deviations of bin
-        std = math.sqrt(np.average((bin_deviations - mu) ** 2, weights=bin_weights))    # standard deviation of deviations of bin
+        mu = np.average(bin_deviations, weights=bin_weights)    # mean of deviations of bin, weights=bin_weights
+        std = math.sqrt(np.average((bin_deviations - mu) ** 2, weights=bin_weights))    # standard deviation of deviations of bin, weights=bin_weights
         variance = std ** 2
 
         bin_stats.append({
@@ -289,7 +289,7 @@ def consecutive_error(sensor, used_tows: list = list(np.arange(2, 32, 1)), test_
 
     return bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edge_indices, deviations_per_bin
 
-def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_edges, deviations_per_bin, use_truncnorm= False):
+def generate_error_path(start_error, n_steps, bin_stats_df, slope, intercept, x_sorted, bin_edges, deviations_per_bin, use_truncnorm= False):
     np.random.seed()
     error_path = [start_error]
     x_current = start_error
@@ -315,18 +315,19 @@ def generate_error_path(start_error, n_steps, slope, intercept, x_sorted, bin_ed
 
         # Get deviation stats and sample a deviation
         deviations = deviations_per_bin[bin_index]
-        mu, sigma = stats.norm.fit(deviations)
+        mean = bin_stats_df["deviation_mean"][bin_index]
+        std = math.sqrt(bin_stats_df["deviation_variance"][bin_index])
 
         # if necessary, truncates the distribution to only sample within 2 std's or the max/min of the data
         if use_truncnorm:
             # Use truncated normal within ±1σ or max/min of data
             from scipy.stats import truncnorm
-            a, b = (min(deviations) - mu) / sigma , (max(deviations) - mu) / sigma
+            a, b = (min(deviations) - mean) / std , (max(deviations) - mean) / std
             # a, b = -1, 1
-            sampled_deviation = truncnorm(a, b, loc=mu, scale=sigma).rvs()
+            sampled_deviation = truncnorm(a, b, loc=mean, scale=std).rvs()
         else:
             # Use regular normal distribution
-            sampled_deviation = np.random.normal(mu, sigma)
+            sampled_deviation = np.random.normal(mean, std)
         # Next error
         next_error = y_pred + sampled_deviation
         error_path.append(next_error)
@@ -1363,7 +1364,7 @@ def main():
     #plot_blobs(save_PDF=True)
     #consecutive_error("LT", bins_show=True, num_bins=20, fourPlots=True)
     bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edges, deviations_per_bin = consecutive_error("LT")
-    data = generate_error_path(0, 2000, slope, intercept, x_sorted, bin_edges, deviations_per_bin,use_truncnorm=False)
+    data = generate_error_path(0, 2000, bin_stats_df, slope, intercept, x_sorted, bin_edges, deviations_per_bin,use_truncnorm=False)
 
 if __name__ == "__main__":
     main()

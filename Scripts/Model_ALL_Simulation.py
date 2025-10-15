@@ -114,14 +114,14 @@ def generate_multitow_layout(num_tows=5, tow_spacing_mm=6.35, tow_width_mm=6.35,
         start_llsb = random.uniform(*llsb_start_range)
 
         # Generate centerline errors
-        cam_path = generate_error_path(start_cam, n_steps, slope_cam, intercept_cam,
+        cam_path = generate_error_path(start_cam, n_steps, bin_stats_cam, slope_cam, intercept_cam,
                                        x_sorted_cam, bin_edges_cam, devs_cam)
-        lt_path = generate_error_path(start_lt, n_steps, slope_lt, intercept_lt,
+        lt_path = generate_error_path(start_lt, n_steps, bin_stats_lt, slope_lt, intercept_lt,
                                       x_sorted_lt, bin_edges_lt, devs_lt)
         tow_centerline = offset + cam_path + lt_path
 
         # Generate width errors
-        width_error = generate_error_path(start_llsb, n_steps, slope_llsb, intercept_llsb,
+        width_error = generate_error_path(start_llsb, n_steps, bin_stats_llsb, slope_llsb, intercept_llsb,
                                           x_sorted_llsb, bin_edges_llsb, devs_llsb)
         tow_widths = tow_width_mm + width_error
 
@@ -236,11 +236,11 @@ def generate_multitow_layout_lengths(
         start_lt = random.uniform(*lt_start_range)
         start_llsb = random.uniform(*llsb_start_range)
 
-        cam_path = generate_error_path(start_cam, n_steps, slope_cam, intercept_cam,
+        cam_path = generate_error_path(start_cam, n_steps, bin_stats_cam, slope_cam, intercept_cam,
                                        x_sorted_cam, bin_edges_cam, devs_cam)
-        lt_path = generate_error_path(start_lt, n_steps, slope_lt, intercept_lt,
+        lt_path = generate_error_path(start_lt, n_steps, bin_stats_lt, slope_lt, intercept_lt,
                                       x_sorted_lt, bin_edges_lt, devs_lt)
-        width_error = generate_error_path(start_llsb, n_steps, slope_llsb, intercept_llsb,
+        width_error = generate_error_path(start_llsb, n_steps, bin_stats_llsb, slope_llsb, intercept_llsb,
                                           x_sorted_llsb, bin_edges_llsb, devs_llsb)
 
         tow_centerline = offset + cam_path + lt_path

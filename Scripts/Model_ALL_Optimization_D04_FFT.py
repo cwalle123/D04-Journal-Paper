@@ -116,9 +116,9 @@ def simulate_edges_like_visualizer(
     start_lt    = random.uniform(-0.90, -0.70)
     start_llsb  = random.uniform(-0.21, -0.02)
 
-    cam_path   = generate_error_path(start_cam,  n_steps, slope_cam,  intercept_cam,  x_sorted_cam,  bin_edges_cam,  devs_cam)
-    lt_path    = generate_error_path(start_lt,   n_steps, slope_lt,   intercept_lt,   x_sorted_lt,   bin_edges_lt,   devs_lt)
-    width_err  = generate_error_path(start_llsb, n_steps, slope_llsb, intercept_llsb, x_sorted_llsb, bin_edges_llsb, devs_llsb)
+    cam_path   = generate_error_path(start_cam,  n_steps, bin_stats_cam, slope_cam,  intercept_cam,  x_sorted_cam,  bin_edges_cam,  devs_cam)
+    lt_path    = generate_error_path(start_lt,   n_steps, bin_stats_lt, slope_lt,   intercept_lt,   x_sorted_lt,   bin_edges_lt,   devs_lt)
+    width_err  = generate_error_path(start_llsb, n_steps, bin_stats_llsb, slope_llsb, intercept_llsb, x_sorted_llsb, bin_edges_llsb, devs_llsb)
 
     centerline = cam_path + lt_path
     widths     = nominal_width_mm + width_err
