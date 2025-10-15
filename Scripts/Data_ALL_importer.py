@@ -395,7 +395,8 @@ def layup_stepsize_check(type: str):
     LLS_B_infix = r"lls b"
     LT_infix = r"tracker"
     x_column = "X_mm"
-    CAM_lengths, LLS_A_lengths, LLS_B_lengths, LT_lengths = [], [], [], []
+    CAM_lengths_truncated, LLS_A_lengths_truncated, LLS_B_lengths_truncated, LT_lengths_truncated = [], [], [], []
+    CAM_tow_lengths, LLS_A_tow_lengths, LLS_B_tow_lengths, LT_tow_lengths = [], [], [], []
     tow_length = 1000 # mm
 
     # CAM
@@ -405,8 +406,10 @@ def layup_stepsize_check(type: str):
         df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
         CAM_data = df[[x_column]].to_numpy()
         CAM_truncated = CAM_data[(CAM_data > 0) & (CAM_data <= 1000)]
-        CAM_length = len(CAM_truncated)
-        CAM_lengths.append(CAM_length)
+        CAM_length_truncated = len(CAM_truncated)
+        CAM_lengths_truncated.append(CAM_length_truncated)
+        CAM_tow_length = max(CAM_truncated) - min(CAM_truncated)
+        CAM_tow_lengths.append(CAM_tow_length)
     
     # LLS A
     for tow_num in range(1,32):
@@ -415,8 +418,10 @@ def layup_stepsize_check(type: str):
         df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
         LLS_A_data = df[[x_column]].to_numpy()
         LLS_A_truncated = LLS_A_data[(LLS_A_data > 0) & (LLS_A_data <= 1000)]
-        LLS_A_length = len(LLS_A_truncated)
-        LLS_A_lengths.append(LLS_A_length)
+        LLS_A_length_truncated = len(LLS_A_truncated)
+        LLS_A_lengths_truncated.append(LLS_A_length_truncated)
+        LLS_A_tow_length = max(LLS_A_truncated) - min(LLS_A_truncated)
+        LLS_A_tow_lengths.append(LLS_A_tow_length)
     
     # LLS B
     for tow_num in range(1,32):
@@ -425,8 +430,10 @@ def layup_stepsize_check(type: str):
         df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
         LLS_B_data = df[[x_column]].to_numpy()
         LLS_B_truncated = LLS_B_data[(LLS_B_data > 0) & (LLS_B_data <= 1000)]
-        LLS_B_length = len(LLS_B_truncated)
-        LLS_B_lengths.append(LLS_B_length)
+        LLS_B_length_truncated = len(LLS_B_truncated)
+        LLS_B_lengths_truncated.append(LLS_B_length_truncated)
+        LLS_B_tow_length = max(LLS_B_truncated) - min(LLS_B_truncated)
+        LLS_B_tow_lengths.append(LLS_B_tow_length)
     
     # LT
     for tow_num in range(1,32):
@@ -435,32 +442,46 @@ def layup_stepsize_check(type: str):
         df = pd.read_excel(file_path) if file_path.lower().endswith('.xlsx') else pd.read_csv(file_path)
         LT_data = df[[x_column]].to_numpy()
         LT_truncated = LT_data[(LT_data > 0) & (LT_data <= 1000)]
-        LT_length = len(LT_truncated)
-        LT_lengths.append(LT_length)
+        LT_length_truncated = len(LT_truncated)
+        LT_lengths_truncated.append(LT_length_truncated)
+        LT_tow_length = max(LT_truncated) - min(LT_truncated)
+        LT_tow_lengths.append(LT_tow_length)
 
     # Calculate relevant results
     if type == "average":
-        CAM_steps = np.mean(CAM_lengths)
-        LLS_A_steps = np.mean(LLS_A_lengths)
-        LLS_B_steps = np.mean(LLS_B_lengths)
-        LT_steps = np.mean(LT_lengths)
+        CAM_steps = np.mean(CAM_lengths_truncated)
+        LLS_A_steps = np.mean(LLS_A_lengths_truncated)
+        LLS_B_steps = np.mean(LLS_B_lengths_truncated)
+        LT_steps = np.mean(LT_lengths_truncated)
+        CAM_stepsize = float(CAM_steps / np.mean(CAM_tow_lengths))
+        LLS_A_stepsize = float(LLS_A_steps / np.mean(LLS_A_tow_lengths))
+        LLS_B_stepsize = float(LLS_B_steps / np.mean(LLS_B_tow_lengths))
+        LT_stepsize = float(LT_steps / np.mean(LT_tow_lengths))
     
     elif type == "largest":
-        CAM_steps = max(CAM_lengths)
-        LLS_A_steps = max(LLS_A_lengths)
-        LLS_B_steps = max(LLS_B_lengths)
-        LT_steps = max(LT_lengths)
+        CAM_steps = max(CAM_lengths_truncated)
+        LLS_A_steps = max(LLS_A_lengths_truncated)
+        LLS_B_steps = max(LLS_B_lengths_truncated)
+        LT_steps = max(LT_lengths_truncated)
+        CAM_stepsize = max(np.divide(CAM_lengths_truncated, CAM_tow_lengths))
+        LLS_A_stepsize = max(np.divide(LLS_A_lengths_truncated, LLS_A_tow_lengths))
+        LLS_B_stepsize = max(np.divide(LLS_B_lengths_truncated, LLS_B_tow_lengths))
+        LT_stepsize = max(np.divide(LT_lengths_truncated, LT_tow_lengths))
 
     elif type == "smallest":
-        CAM_steps = min(CAM_lengths)
-        LLS_A_steps = min(LLS_A_lengths)
-        LLS_B_steps = min(LLS_B_lengths)
-        LT_steps = min(LT_lengths)
+        CAM_steps = min(CAM_lengths_truncated)
+        LLS_A_steps = min(LLS_A_lengths_truncated)
+        LLS_B_steps = min(LLS_B_lengths_truncated)
+        LT_steps = min(LT_lengths_truncated)
+        CAM_stepsize = min(np.divide(CAM_lengths_truncated, CAM_tow_lengths))
+        LLS_A_stepsize = min(np.divide(LLS_A_lengths_truncated, LLS_A_tow_lengths))
+        LLS_B_stepsize = min(np.divide(LLS_B_lengths_truncated, LLS_B_tow_lengths))
+        LT_stepsize = min(np.divide(LT_lengths_truncated, LT_tow_lengths))
     
-    CAM_stepsize = float(CAM_steps / tow_length)
-    LLS_A_stepsize = float(LLS_A_steps / tow_length)
-    LLS_B_stepsize = float(LLS_B_steps / tow_length)
-    LT_stepsize = float(LT_steps / tow_length)
+    CAM_stepsize_specified_tow_length = CAM_steps / tow_length
+    LLS_A_stepsize_specified_tow_length = LLS_A_steps / tow_length
+    LLS_B_stepsize_specified_tow_length = LLS_B_steps / tow_length
+    LT_stepsize_specified_tow_length = LT_steps / tow_length
 
     # Print report
     print(f'The chosen comparisontype is "{type}"')
@@ -468,7 +489,10 @@ def layup_stepsize_check(type: str):
     print(f'For LLS A, the {type} amount of datapoints per tow is {LLS_A_steps}. This equates to {LLS_A_stepsize} datapoints per mm or a stepsize of {1/LLS_A_stepsize} mm.')
     print(f'For LLS B, the {type} amount of datapoints per tow is {LLS_B_steps}. This equates to {LLS_B_stepsize} datapoints per mm or a stepsize of {1/LLS_B_stepsize} mm.')
     print(f'For LT, the {type} amount of datapoints per tow is {LT_steps}. This equates to {LT_stepsize} datapoints per mm or a stepsize of {1/LT_stepsize} mm.')
-
+    print(f'When taking a full tow of {tow_length} mm, for CAM the stepsize comes down to {1 / CAM_stepsize_specified_tow_length}')
+    print(f'When taking a full tow of {tow_length} mm, for LLS A the stepsize comes down to {1 / LLS_A_stepsize_specified_tow_length}')
+    print(f'When taking a full tow of {tow_length} mm, for LLS B the stepsize comes down to {1 / LLS_B_stepsize_specified_tow_length}')
+    print(f'When taking a full tow of {tow_length} mm, for LT the stepsize comes down to {1 / LT_stepsize_specified_tow_length}')
 
 ##############################################################################################################
 """Run this file"""
@@ -482,7 +506,7 @@ def main():
     #arr, data = Traverse_Gap_excel_to_array(4)
     #print(arr)
     #print(data)
-    layup_stepsize_check("average")
+    layup_stepsize_check("largest")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
