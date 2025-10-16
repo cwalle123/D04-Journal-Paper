@@ -1,5 +1,8 @@
 """
 Vis_D04_3D_Anim_AllBins_Pure.py
+--------------------------------
+Now uses the same initialization logic as Model_ALL_Simulation.py
+→ starting error is obtained from generate_starting_error(sensor)
 
 Pure rendering:
 - Renders ALL bins (num_bins shown == num_bins set).
@@ -7,8 +10,6 @@ Pure rendering:
 - No center line in the curtain (optional faint side edges to perceive thickness).
 - No axis padding/locking; Matplotlib autoscale is used.
 - Data-faithful: no sigma exaggeration, no smoothing.
-
-Defaults: num_bins=10, n_steps=373
 """
 
 import math, inspect
@@ -17,11 +18,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-# ---- D04 core imports (file must live next to the Scripts modules) ----
+# ---- D04 core imports ----
 from Model_ALL_ConsecutiveErrorTheo import (
     consecutive_error,
     generate_error_path,
-    generate_starting_error,
+    generate_starting_error,   # identical to Model_ALL_Simulation
 )
 
 # ----------------------------
@@ -114,19 +115,14 @@ def _draw_ground_plane(ax, x_min, x_max, y_min, y_max, alpha=0.06):
     ax.plot_surface(X, Y, Z, color=COLORS["slab"], alpha=alpha, zorder=0)
 
 # ----------------------------
-# Curtain builder (true width; no center line)
+# Curtain builder
 # ----------------------------
 def _build_bin_curtain(ax,
                        x_sorted: np.ndarray, bin_edges: np.ndarray, i: int,
                        slope: float, intercept: float,
                        mu_i: float, sd_i: float,
                        base_alpha: float) -> Dict[str, object]:
-    """
-    Ribbon surface for the bin using TRUE bounds.
-    - No min-width inflation.
-    - No shifting/padding.
-    - No center line; only faint side edges to show thickness.
-    """
+    """Ribbon surface for the bin using TRUE bounds (no padding/min-thickness)."""
     x_min = x_sorted[bin_edges[i]]
     x_max = x_sorted[bin_edges[i + 1]]
     x_center = 0.5 * (x_min + x_max)
@@ -144,13 +140,12 @@ def _build_bin_curtain(ax,
         alpha=base_alpha, color=COLORS["curtain_base"], shade=True
     )
 
-    # OPTIONAL: faint side edges (help read thickness); comment these two lines to remove.
+    # faint side edges only
     ax.plot(np.full_like(y_grid, x_min), y_grid, z_pdf,
             linewidth=STYLE["edge_line_width"], alpha=0.5, color=COLORS["edge_line"])
     ax.plot(np.full_like(y_grid, x_max), y_grid, z_pdf,
             linewidth=STYLE["edge_line_width"], alpha=0.5, color=COLORS["edge_line"])
 
-    # mean marker at z=0
     mean = ax.scatter([x_center], [y_center], [0.0],
                       s=STYLE["mean_marker_size"], color=COLORS["mean_base"], marker="s")
     return {"surface": surf, "mean": mean}
@@ -162,7 +157,6 @@ def build_all_bins_figure(sensor, xt, yt, slope, intercept, x_sorted, bin_edges,
     nb = len(bin_edges) - 1
     edges = _edge_values(x_sorted, bin_edges)
 
-    # subsample cloud only for speed
     if len(xt) > DENSITY["max_cloud_points"]:
         idx = np.linspace(0, len(xt) - 1, DENSITY["max_cloud_points"], dtype=int)
         xt_plot, yt_plot = xt[idx], yt[idx]
@@ -173,18 +167,17 @@ def build_all_bins_figure(sensor, xt, yt, slope, intercept, x_sorted, bin_edges,
     ax  = fig.add_subplot(111, projection="3d")
     _style_axes(ax, f"D04 Bin Neighborhoods – {sensor}", sensor)
 
-    # ground plane using current data extents (autoscale, no padding)
     x_gp0, x_gp1 = xt_plot.min(), xt_plot.max()
     y_gp0, y_gp1 = min(yt_plot.min(), (slope*xt_plot+intercept).min()), max(yt_plot.max(), (slope*xt_plot+intercept).max())
     _draw_ground_plane(ax, x_gp0, x_gp1, y_gp0, y_gp1, alpha=0.06)
 
-    # scatter & regression
-    ax.scatter(xt_plot, yt_plot, np.zeros_like(xt_plot), s=1, alpha=STYLE["scatter_alpha"], color=COLORS["scatter"])
+    ax.scatter(xt_plot, yt_plot, np.zeros_like(xt_plot), s=1,
+               alpha=STYLE["scatter_alpha"], color=COLORS["scatter"])
     x_line = np.linspace(edges[0], edges[-1], 250)
     y_line = slope * x_line + intercept
-    ax.plot(x_line, y_line, np.zeros_like(x_line), color=COLORS["regression"], linewidth=STYLE["reg_line_width"])
+    ax.plot(x_line, y_line, np.zeros_like(x_line),
+            color=COLORS["regression"], linewidth=STYLE["reg_line_width"])
 
-    # ALL curtains (exactly nb == num_bins)
     artists_by_bin: Dict[int, Dict[str, object]] = {}
     for i in range(nb):
         mu_i  = float(bin_stats_df.iloc[i]["deviation_mean"])
@@ -204,9 +197,11 @@ def build_all_bins_figure(sensor, xt, yt, slope, intercept, x_sorted, bin_edges,
 def animate(fig, ax, xt, yt, x_sorted, bin_edges, artists_by_bin, edges):
     bins = np.array([_locate_bin(x, x_sorted, bin_edges) for x in xt])
 
-    point, = ax.plot([xt[0]], [yt[0]], [0.0], marker="o", markersize=6, color=COLORS["curtain_hi"], linestyle="None")
+    point, = ax.plot([xt[0]], [yt[0]], [0.0], marker="o", markersize=6,
+                     color=COLORS["curtain_hi"], linestyle="None")
     trail, = ax.plot([], [], [], color=COLORS["curtain_hi"], linewidth=STYLE["trail_width"])
-    hud = ax.text2D(0.02, 0.96, "", transform=ax.transAxes, fontsize=STYLE["hud_fontsize"], color=COLORS["curtain_hi"])
+    hud = ax.text2D(0.02, 0.96, "", transform=ax.transAxes,
+                    fontsize=STYLE["hud_fontsize"], color=COLORS["curtain_hi"])
     current = {"i": None}
 
     def _dim(i):
@@ -257,25 +252,34 @@ def animate(fig, ax, xt, yt, x_sorted, bin_edges, artists_by_bin, edges):
                          interval=ANIM["interval_ms"], blit=False)
 
 # ----------------------------
-# Runner
+# Runner (identical seeding logic as Model_ALL_Simulation)
 # ----------------------------
 def run(sensor: str = "CAM",
         used_tows: Optional[list] = None,
         num_bins: int = 10,
         n_steps: int = 373,
-        test_ratio: float = 0.5):
+        test_ratio: float = 0.5,
+        seed: Optional[int] = None):
+    """Visualizes the same process that Model_ALL_Simulation.py simulates."""
+    if seed is not None:
+        import random
+        np.random.seed(seed)
+        random.seed(seed)
+
     if used_tows is None:
         used_tows = list(range(2, 10))
 
-    # Build D04 model with EXACT num_bins
+    # Fit model
     (bin_stats_df, slope, intercept, _r, _p, _se,
      x_sorted, bin_edges, deviations_per_bin) = consecutive_error(
         sensor, used_tows=used_tows, test_ratio=test_ratio,
         num_bins=num_bins, bins_show=False, plot_fit=False
     )
 
-    # Simulate
+    # --- identical to Model_ALL_Simulation.py start logic ---
     start_value = generate_starting_error(sensor)
+
+    # Generate path
     path = _call_generate_error_path(
         start_value, n_steps, slope, intercept,
         x_sorted, bin_edges, deviations_per_bin, bin_stats_df
@@ -284,28 +288,24 @@ def run(sensor: str = "CAM",
     xt, yt = path[:-1], path[1:]
 
     fig, ax, artists_by_bin, edges = build_all_bins_figure(
-    sensor, xt, yt, slope, intercept, x_sorted, bin_edges, bin_stats_df
-)
+        sensor, xt, yt, slope, intercept, x_sorted, bin_edges, bin_stats_df
+    )
 
-    # Create the animation
+    # Create and save animation
     anim = animate(fig, ax, xt, yt, x_sorted, bin_edges, artists_by_bin, edges)
 
     # --- SAVE TO GIF ---
     from matplotlib.animation import PillowWriter
-    import os
     from pathlib import Path
-
-    # Save to your Downloads folder
     downloads = Path.home() / "Downloads"
     gif_path = downloads / "D04_bins_3D.gif"
 
     anim.save(gif_path, writer=PillowWriter(fps=5))
     print(f"\n✅ Saved animation to:\n{gif_path}\n")
 
-    # (optional) also show the live window
     plt.show()
 
 
 if __name__ == "__main__":
     # Exactly 10 curtains; exactly 373 steps
-    run(sensor="CAM", used_tows=list(range(2,10)), num_bins=10, n_steps=373)
+    run(sensor="CAM", used_tows=list(range(2,10)), num_bins=10, n_steps=373, seed=42)
