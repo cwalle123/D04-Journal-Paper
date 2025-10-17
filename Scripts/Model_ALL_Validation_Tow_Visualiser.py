@@ -353,7 +353,6 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     plt.plot(x_RS_right, y_RS_right, "-", color="green")
 
     plt.legend()
-    plt.title("Comparison of tows obtained from the 4 different methods")
     plt.xlabel("X (mm)", fontsize=font_large)
     plt.ylabel("Y (mm)", fontsize=font_large)
     plt.grid()
