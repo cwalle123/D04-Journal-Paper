@@ -41,11 +41,15 @@ def fit_starting_error_distribution(sensor: str, plot=True):
 
     for tow in range(2, 32):  # tows 2-31
         df = get_synced_data(tow, sensor_type=sensor, overwrite=False, helper=False)
+        if sensor == "LT":
+            df = df[(df["x"] >= 0) & (df["x"] <= 1000)]
 
         if col_name in df.columns and not df[col_name].isna().all():
             # Take first non-NaN value
+            print(df)
             value = df[col_name].dropna().values[0]
             first_values.append(value)
+            print(value)
 
     if len(first_values) == 0:
         raise ValueError(f"No valid first values found for sensor '{sensor}'")
@@ -442,11 +446,11 @@ def main():
 
     # generate_multitow_layout(5, plot=True)
 
-    generate_multitow_layout_lengths(50, plot=True, histogram_bins=100)
+    #generate_multitow_layout_lengths(50, plot=True, histogram_bins=100)
 
     #simulation_verification(20)
 
-    #mean, std, start_values = fit_starting_error_distribution("LLS_A")
+    mu, sigma, a, b, first_values = fit_starting_error_distribution("LT")
     # start_values = np.array(start_values)
     #print(mean)
 

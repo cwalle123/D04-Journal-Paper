@@ -110,16 +110,20 @@ def get_data_pairs(sensor: str, tows: list = list(np.arange(2, 32, 1))):
 def generate_starting_error(sensor: str):
     '''This function generates a random starting error for the specified sensor'''
     if sensor == "LLS_A":
-        start_range = (-0.43, -0.16)
+        #start_range = (-0.43, -0.16), these were for the uniform distributions ###
+        mean, std = -0.29, 0.07
     elif sensor == "LLS_B":
-        start_range = (-0.21, -0.02)
+        #start_range = (-0.21, -0.02)
+        mean, std = -0.12, 0.05
     elif sensor == "CAM":
-        start_range = (-0.75, 0.75)
+        #start_range = (-0.75, 0.75)
+        mean, std = 0.01, 0.48
     elif sensor == "LT":
-        start_range = (-0.9, -0.7)
+        #start_range = (-0.9, -0.7)
+        mean, std = -0.86, 0.06
     else: print("Invalid sensor type.")
 
-    start_error = random.normalvariate(*start_range)
+    start_error = random.normalvariate(mean, std)
     return start_error
 
 def consecutive_error(sensor, used_tows: list = list(np.arange(2, 32, 1)), test_ratio: float=0.1, num_bins = 150, random_state=None, bins_show = False, plot_fit=True, fourPlots = False, axs = None, noTitle = True, return_plot_data=False):
@@ -317,6 +321,7 @@ def generate_error_path(start_error, n_steps, bin_stats_df, slope, intercept, x_
         deviations = deviations_per_bin[bin_index]
         mean = bin_stats_df["deviation_mean"][bin_index]
         std = math.sqrt(bin_stats_df["deviation_variance"][bin_index])
+        print(bin_index)
 
         # if necessary, truncates the distribution to only sample within 2 std's or the max/min of the data
         if use_truncnorm:
@@ -1363,8 +1368,9 @@ def main():
 
     #plot_blobs(save_PDF=True)
     #consecutive_error("LT", bins_show=True, num_bins=20, fourPlots=True)
-    bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edges, deviations_per_bin = consecutive_error("LT")
-    data = generate_error_path(0, 2000, bin_stats_df, slope, intercept, x_sorted, bin_edges, deviations_per_bin,use_truncnorm=False)
+    bin_stats_df, slope, intercept, r_value, p_value, std_err, x_sorted, bin_edges, deviations_per_bin = consecutive_error("LLS_B")
+    start_error = generate_starting_error("LLS_B")
+    data = generate_error_path(start_error, 370, bin_stats_df, slope, intercept, x_sorted, bin_edges, deviations_per_bin,use_truncnorm=False)
 
 if __name__ == "__main__":
     main()
