@@ -66,61 +66,48 @@ def get_n_steps(sensor):
 
     return int(np.average(lengths))
 
-def propose_new_RWM_value(x_current, dist_std, sensor):    # random walk metropolis (RWM), using normal dist???
+def propose_new_RWM_value(x_current, dist_std):    # random walk metropolis (RWM), using normal dist???
     mean = 0
-    # setting the std for each sensor
-    #if sensor == "LLS_A": std_factor = 0.7
-    #elif sensor == "LLS_B": std_factor = 0.7
-    #elif sensor == "CAM": std_factor = 0.15
-    #elif sensor == "LT": std_factor = 0.35
-
-    #std_factor = 2.4  # for optimal exploration of dist -> accepetance rate = 44%, NOT ACCURATE! only CAM & LLS
-
     proposal = x_current + np.random.normal(mean, dist_std)  # this uses std to recreate real tow 'waviness'
     return proposal
 
-def propose_new_MALA_value(x_current, dist_std):   # Metropolis-adjuster Langevian algorithm (MALA)
-    proposal = 1
-    return proposal
 
+def fit_random_walk(sensor: str):
+    n_steps = get_n_steps(sensor)
+    data, weights = get_data(sensor, format='merged')
 
-def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plot_histogram: bool=False,
-                         plot_path: bool=False, comparison: bool=False, return_pdf: bool=False, burn_in_period: int=0,
-                         plot_covergence_params: bool=False):
+    best = best_fit_distribution(np.array(data), weights=np.array(weights))
+    dist, params = best['dist'], best['params']
+    target_distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
+
+    proposal_std = get_proposal_distribution(sensor)
+
+    return n_steps, proposal_std, target_distribution, dist, params
+
+def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target_dist, dist, params, proposal_type: str="RWM",
+                         plot_histogram: bool=False, plot_path: bool=False, comparison: bool=False, return_pdf: bool=False,
+                         burn_in_period: int=0, plot_covergence_params: bool=False):
     '''
     This function generates a random walk according to the specified sensor.
     '''
-    if n_steps is None:
-        n_steps = get_n_steps(sensor)
 
     # adding the burn in period to the #steps
     actual_steps = n_steps + burn_in_period
 
-    # setting up the distribution which is being mimicked
-    data, weights = get_data(sensor)
-
-    best = best_fit_distribution(np.array(data), weights=np.array(weights))
-    dist, params = best['dist'], best['params']
-    distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
-
     start_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
-    #start_value = generate_starting_error(sensor)
     generated_path = []
     x_current = start_value
-    sensor_std = get_proposal_distribution(sensor)
 
     accepted, rejected = 0, 0
     for step in range(actual_steps-1):
 
         if proposal_type == "RWM":
-            x_proposal = propose_new_RWM_value(x_current, sensor_std, sensor)
-        elif proposal_type == "MALA":
-            x_proposal = propose_new_MALA_value(x_current, float(params[-1]))
+            x_proposal = propose_new_RWM_value(x_current, proposal_std)
         else:
          print("Error, invalid type")
 
         # code to accept or reject the proposed new value
-        alpha = distribution(x_proposal) / distribution(x_current)      # alpha = acceptance probability
+        alpha = target_dist(x_proposal) / target_dist(x_current)      # alpha = acceptance probability
         U = random.uniform(0, 1)
 
         if alpha >= U:  # we accept the proposed value
@@ -145,13 +132,13 @@ def generate_random_walk(sensor: str, proposal_type: str, n_steps: int=None, plo
 
     # plot-plot-plot #
     x_pdf = np.linspace(-1.2, 1.2, 100)
-    y_pdf = distribution(x_pdf)
+    y_pdf = target_dist(x_pdf)
 
     if plot_histogram:
         plt.plot(x_pdf, y_pdf, label='probability-distribution')
         plt.hist(generated_path, density=True, bins=30, label='generated path')
         #plt.hist(data, density=True, bins=50, label='data')
-        plt.title("Histogram of generated path w. probability-distribution" + sensor)
+        plt.title("Histogram of generated path w. probability-distribution of "+sensor)
         plt.xlim(-1.2, 1.2)
         plt.legend()
         plt.show()
@@ -260,19 +247,20 @@ def get_proposal_distribution(sensor, plot: bool=False):
 
 
 def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000, proposal_type: str="RWM"):
+    # fitting random walk to experimental data
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LT")
+    print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
 
     tow_offset = 0
     top_edge_paths, bottom_edge_paths = [], []
     for n in range(num_tows):
-        LT_steps = get_n_steps("LT")
-        CAM_steps = get_n_steps("CAM")
-        LLS_B_steps = get_n_steps("LLS_B")
-        print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
 
-        # getting randomn walk data
-        LT_walk_data = generate_random_walk("LT", proposal_type=proposal_type, n_steps=LT_steps)
-        CAM_walk_data = generate_random_walk("CAM", proposal_type=proposal_type, n_steps=CAM_steps)
-        LLSB_walk_data = generate_random_walk("LLS_B", proposal_type=proposal_type, n_steps=LLS_B_steps)
+        # generating random walk data
+        LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params, proposal_type=proposal_type)
+        CAM_walk_data = generate_random_walk("CAM", CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params, proposal_type=proposal_type)
+        LLSB_walk_data = generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params, proposal_type=proposal_type)
 
         # determine what the smallest number of steps is for the errors and use this is the global number of steps
         n_steps = CAM_steps
@@ -287,8 +275,8 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
         tow_width_data = tow_width_mm + np.array(LLSB_walk_data)
 
-        print(f'Tow centerline: {tow_centerline_data}')
-        print(f'Tow width: {tow_width_data}')
+        #print(f'Tow centerline: {tow_centerline_data}')
+        #print(f'Tow width: {tow_width_data}')
 
         tow_top_edge = tow_centerline_data + 0.5 * tow_width_data
         tow_bottom_edge = tow_centerline_data - 0.5 * tow_width_data
@@ -297,10 +285,10 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         bottom_edge_paths.append(tow_bottom_edge)
         tow_offset += tow_spacing_mm
 
-        print(f'Length of x: {len(x_walk_data)}')
-        print(f'Length of centerline: {len(tow_centerline_data)}')
-        print(f'Length of top: {len(tow_top_edge)}')
-        print(f'Length of bottom: {len(tow_bottom_edge)}')
+        #print(f'Length of x: {len(x_walk_data)}')
+        #print(f'Length of centerline: {len(tow_centerline_data)}')
+        #print(f'Length of top: {len(tow_top_edge)}')
+        #print(f'Length of bottom: {len(tow_bottom_edge)}')
 
         RW_data = pd.DataFrame({
             "x_mm": x_walk_data,
@@ -458,10 +446,15 @@ def plot_RW_tows(proposal_type: str="RWM", plot_individual_histograms: bool=Fals
     LLS_B_steps = get_n_steps("LLS_B")
     print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
 
+    # fitting random walk to experimental data
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LT")
+
     # getting randomn walk data
-    LT_walk_data = generate_random_walk("LT", proposal_type=proposal_type, n_steps=LT_steps, plot_histogram=plot_individual_histograms)
-    CAM_walk_data = generate_random_walk("CAM", proposal_type=proposal_type, n_steps=CAM_steps, plot_histogram=plot_individual_histograms)
-    LLSB_walk_data = generate_random_walk("LLS_B", proposal_type=proposal_type, n_steps=LLS_B_steps, plot_histogram=plot_individual_histograms)
+    LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params, proposal_type=proposal_type, plot_histogram=plot_individual_histograms)
+    CAM_walk_data = generate_random_walk("CAM", CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params, proposal_type=proposal_type, plot_histogram=plot_individual_histograms)
+    LLSB_walk_data = generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params, proposal_type=proposal_type, plot_histogram=plot_individual_histograms)
     LLSB_walk_data = [x + tow_width_specified for x in LLSB_walk_data]
 
     # determine what the smallest number of steps is for the errors and use this is the global number of steps
@@ -504,7 +497,8 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     HIST_BINS = np.linspace(-1.2, 1.2, 100)
 
     # Histogram our data with numpy.
-    data, x_pdf, y_pdf = generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type, return_pdf=True, burn_in_period=0)
+    n_steps, proposal_std, target_dist, dist, params = fit_random_walk(sensor)
+    data, x_pdf, y_pdf = generate_random_walk(sensor, n_steps, proposal_std, target_dist, dist, params, proposal_type=proposal_type, return_pdf=True)
     n, _ = np.histogram(data, HIST_BINS, density=True)
 
     # To animate the histogram, we need an ``animate`` function, which generates
@@ -514,7 +508,7 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     def animate(frame_number, bar_container):
         nonlocal data
         # Simulate new data coming in.
-        data += generate_random_walk(sensor=sensor, n_steps=n_steps, proposal_type=proposal_type, burn_in_period=0)
+        data += generate_random_walk(sensor, n_steps, proposal_std, target_dist, dist, params, proposal_type=proposal_type, return_pdf=True)
         n, _ = np.histogram(data, HIST_BINS, density=True)
         for count, rect in zip(n, bar_container.patches):
             rect.set_height(count)
@@ -552,12 +546,6 @@ def plot_LLS_hist():
     plt.hist(data, bins=200, density=True)
     plt.show()
 
-def check_burn_in(sensor, steps, n_hists):
-    for i in range(n_hists):
-        generate_random_walk(sensor, "RWM", n_steps=steps, burn_in_period=0, plot_histogram=True)
-
-    # LT=17200 ,CAM=, LLSA= , LLSB=
-
 
 def main():
     #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
@@ -568,7 +556,7 @@ def main():
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)
     #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
-    generate_RW_multitow(num_tows=1)
+    generate_RW_multitow(num_tows=100)
 
 
 if __name__ == "__main__":
