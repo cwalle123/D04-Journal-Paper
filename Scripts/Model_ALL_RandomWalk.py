@@ -450,6 +450,135 @@ def plot_LLS_hist():
     plt.hist(data, bins=200, density=True)
     plt.show()
 
+def analyze_tow_spacing_effect(
+    spacing_values_mm: list = None,
+    num_simulations: int = 10,
+    num_tows_per_simulation: int = 2,
+    tow_width_mm: float = 6.35,
+    tow_length_mm: float = 1000,
+    proposal_type: str = "RWM",
+    print_progress: bool = True):
+    """
+    Runs multiple simulations of generate_RW_multitow() over a range of tow spacings
+    and computes the average gap and overlap percentages for each spacing.
+    Also plots the point where gap and overlap percentages intersect.
+
+    Parameters
+    ----------
+    spacing_values_mm : list, optional
+        List of tow spacing values (in mm) to test.
+        Defaults to np.linspace(5, 7.5, 9) mm.
+    num_simulations : int
+        Number of random simulations per spacing value.
+    num_tows : int
+        Number of tows per simulation.
+    tow_width_mm : float
+        Nominal width of each tow.
+    tow_length_mm : float
+        Length of each tow in mm.
+    proposal_type : str
+        Type of random walk proposal ("RWM", "MALA", etc.).
+    print_progress : bool
+        Whether to print progress updates.
+
+    Returns
+    -------
+    results_df : pd.DataFrame
+        DataFrame with average gap and overlap percentages vs tow spacing.
+    """
+
+    if spacing_values_mm is None:
+        spacing_values_mm = np.linspace(5.0, 7.5, 9)
+
+    avg_gap_percentages = []
+    avg_overlap_percentages = []
+
+    for spacing in spacing_values_mm:
+        if print_progress:
+            print(f"\n--- Simulating for tow spacing = {spacing:.2f} mm ---")
+
+        gap_results = []
+        overlap_results = []
+
+        for sim in range(num_simulations):
+            _, _, _, gap_percent, overlap_percent, _ = generate_RW_multitow(
+                num_tows=num_tows_per_simulation,
+                tow_spacing_mm=spacing,
+                tow_width_mm=tow_width_mm,
+                tow_length_mm=tow_length_mm,
+                proposal_type=proposal_type,
+                print_statement=False,
+            )
+            gap_results.append(gap_percent)
+            overlap_results.append(overlap_percent)
+
+            if print_progress and num_simulations >= 10 and (sim + 1) % (num_simulations // 100) == 0:
+                print(f"  Completed {sim + 1}/{num_simulations} simulations")
+
+        avg_gap = np.mean(gap_results)
+        avg_overlap = np.mean(overlap_results)
+        avg_gap_percentages.append(avg_gap)
+        avg_overlap_percentages.append(avg_overlap)
+
+        if print_progress:
+            print(f"  → Average gap: {avg_gap:.3f}% | Average overlap: {avg_overlap:.3f}%")
+
+    # Compile results into DataFrame
+    results_df = pd.DataFrame({
+        "Tow Spacing (mm)": spacing_values_mm,
+        "Average Gap (%)": avg_gap_percentages,
+        "Average Overlap (%)": avg_overlap_percentages,
+    })
+
+    # --- Find intersection (where gap = overlap) ---
+    gap_arr = np.array(avg_gap_percentages)
+    overlap_arr = np.array(avg_overlap_percentages)
+    diff = gap_arr - overlap_arr
+
+    intersection_spacing = None
+    intersection_gap_value = None
+
+    # Find where sign changes (i.e., where curves cross)
+    for i in range(len(diff) - 1):
+        if diff[i] * diff[i + 1] < 0:
+            # Linear interpolation for more precise intersection
+            x1, x2 = spacing_values_mm[i], spacing_values_mm[i + 1]
+            y1, y2 = diff[i], diff[i + 1]
+            intersection_spacing = x1 - y1 * (x2 - x1) / (y2 - y1)
+
+            # Corresponding gap (≈ overlap) value at intersection
+            g1, g2 = gap_arr[i], gap_arr[i + 1]
+            intersection_gap_value = g1 + (g2 - g1) * ((intersection_spacing - x1) / (x2 - x1))
+            break
+
+    # --- Plot results ---
+    plt.figure(figsize=(8, 5))
+    plt.plot(spacing_values_mm, avg_gap_percentages, marker="o", label="Average Gap %")
+    plt.plot(spacing_values_mm, avg_overlap_percentages, marker="s", label="Average Overlap %")
+
+    if intersection_spacing is not None:
+        plt.axvline(intersection_spacing, color="red", linestyle="--", alpha=0.6)
+        plt.scatter(intersection_spacing, intersection_gap_value, color="red", s=80, zorder=5)
+        plt.text(intersection_spacing, intersection_gap_value + 0.3,
+                 f"  Intersection = {intersection_spacing:.2f} mm",
+                 color="red", fontsize=9, va="bottom")
+
+    plt.title(f"Effect of Tow Spacing on Gap/Overlap Percentage ({proposal_type})")
+    plt.xlabel("Programmed Shift (mm)")
+    plt.ylabel("Defect Area (%)")
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    if intersection_spacing is not None:
+        print(f"\n🔴 Intersection point at {intersection_spacing:.3f} mm "
+              f"(Gap ≈ Overlap = {intersection_gap_value:.3f}%)")
+    else:
+        print("\n⚠️ No intersection found between gap and overlap curves.")
+
+    return results_df
+
 ##############################################################################################################
 """Run this file"""
 
@@ -463,7 +592,8 @@ def main():
     #check_burn_in("CAM", 23200, 5)
     #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
     # generate_RW_multitow(num_tows=10)
-    plot_RW_tows(2)
+    # plot_RW_tows(2)
+    analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 2)
 
 
 if __name__ == "__main__":
