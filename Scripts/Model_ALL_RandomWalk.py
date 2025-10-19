@@ -1,5 +1,8 @@
-"""Written by: """
+"""Explanation of file:..."""
 
+##############################################################################################################
+
+# External imports
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,19 +11,21 @@ import random
 import functools
 import matplotlib.colors as mcolors
 from matplotlib import cm
-
 from dataclasses import dataclass
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
+
+# Internal imports
 from Handling_ALL_Functions import get_synced_data
 from constants import tow_width_specified
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 
+##############################################################################################################
+"""Functions"""
 
-
-def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 'merged'):
+def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = "merged"):
     """
-    Gets the required data for the specified sensors.
+    This function gets the required data for the specified sensor.
     """
     # Wrong sensor error message
     if not sensor == "LT" and not sensor == "CAM" and not sensor == "LLS_A" and not sensor == "LLS_B":
@@ -39,25 +44,24 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 
             tow_data = tow_data[["error_CAM", "Weights"]]
         elif sensor == "LT":
             tow_data = tow_data[(tow_data["x"] >= 0) & (tow_data["x"] <= 1000)]     # TODO: check if this is correct
-
             tow_data = tow_data[["error_LT", "Weights"]]
         tow_data = np.array(tow_data)
 
-
-        if format == 'merged':
+        if format == "merged":
             # put data into correct format (pairs)
             for i in range(len(tow_data[:, 0])):
                 data.append(float(tow_data[i, 0]))
                 weights.append(float(tow_data[i, 1]))
 
-        elif format == 'separated':
+        elif format == "separated":
             data.append(tow_data[:, 0])
             weights.append(tow_data[:, 1])
 
-        else: print("Invalid format. Possible values are 'merged' and 'separated'.")
+        else: print('Invalid format. Possible values are "merged" and "separated".')
     return data, weights
 
 def get_n_steps(sensor):
+    """This function gets the number of steps, which is the number of data points in a one meter tow"""
     data, weights = get_data(sensor, format='separated')
 
     lengths = []
@@ -70,7 +74,6 @@ def propose_new_RWM_value(x_current, dist_std):    # random walk metropolis (RWM
     mean = 0
     proposal = x_current + np.random.normal(mean, dist_std)  # this uses std to recreate real tow 'waviness'
     return proposal
-
 
 def fit_random_walk(sensor: str):
     n_steps = get_n_steps(sensor)
@@ -86,7 +89,7 @@ def fit_random_walk(sensor: str):
 
 def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target_dist, dist, params, proposal_type: str="RWM",
                          plot_histogram: bool=False, plot_path: bool=False, comparison: bool=False, return_pdf: bool=False,
-                         burn_in_period: int=0, plot_covergence_params: bool=False):
+                         burn_in_period: int=0, plot_covergence_params: bool=False, print_statement: bool=False):
     '''
     This function generates a random walk according to the specified sensor.
     '''
@@ -128,7 +131,8 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
 
     generated_path.append(x_next)
 
-    print("acceptance rate =", accepted/(accepted + rejected))
+    if print_statement == True:
+        print("acceptance rate =", accepted/(accepted + rejected))
 
     # plot-plot-plot #
     x_pdf = np.linspace(-1.2, 1.2, 100)
@@ -142,7 +146,6 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
         plt.xlim(-1.2, 1.2)
         plt.legend()
         plt.show()
-
 
     if plot_covergence_params:
         # making the parameter data that we need to plot
@@ -177,8 +180,6 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
         plt.legend()
         plt.show()
 
-
-
     if plot_path:
         # random walk plotting
         fig, ax = plt.subplots(figsize=(8, 2.5))
@@ -203,17 +204,14 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
                 x += velocity_factor*weight_data[i]*1000
                 real_x.append(x)
 
-
             plt.plot(real_x, real_data, label='real path')
+
         plt.tight_layout()
         plt.legend()
         plt.show()
 
     if return_pdf: return generated_path, x_pdf, y_pdf
-
     return generated_path
-
-
 
 def get_proposal_distribution(sensor, plot: bool=False):
     data_pairs = get_data_pairs(sensor)
@@ -245,16 +243,24 @@ def get_proposal_distribution(sensor, plot: bool=False):
 
     return std
 
+def interpolate(data, new_steps):
+    data = np.array(data)
+    old_indices = np.linspace(0, 1, num=len(data))
+    new_indices = np.linspace(0, 1, num=new_steps)
+    return np.interp(new_indices, old_indices, data)
 
-def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000, proposal_type: str="RWM"):
+def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000, proposal_type: str="RWM", print_statement: bool=False):
+    """This function generate a multitow layout using RW"""
+
     # fitting random walk to experimental data
     LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
     CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
-    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LT")
-    print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
+    if print_statement == True:
+        print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
 
     tow_offset = 0
-    top_edge_paths, bottom_edge_paths = [], []
+    RW_all_tows_data, top_edge_paths, bottom_edge_paths = [], [], []
     for n in range(num_tows):
 
         # generating random walk data
@@ -263,13 +269,17 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         LLSB_walk_data = generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params, proposal_type=proposal_type)
 
         # determine what the smallest number of steps is for the errors and use this is the global number of steps
-        n_steps = CAM_steps
-        if CAM_steps != min(LT_steps, CAM_steps, LLS_B_steps): print('Error, shortest data length was NOT used!')
+        n_steps = min(LT_steps, CAM_steps, LLS_B_steps)
+        if n_steps != CAM_steps: print('Note: CAM data length was NOT used!')
         x_walk_data = np.linspace(0, tow_length_mm, n_steps)
 
-        # interpolate the data with more steps to have the sam, shorter, length
-        LT_walk_data = interpolate(LT_walk_data, n_steps)
-        LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
+        # interpolate only datasets that are longer than the reference
+        if n_steps != LT_steps:
+            LT_walk_data = interpolate(LT_walk_data, n_steps)
+        if n_steps != CAM_steps:
+            CAM_walk_data = interpolate(CAM_walk_data, n_steps)
+        if n_steps != LLS_B_steps:
+            LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
 
         # getting it into centerline and width format
         tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
@@ -294,15 +304,14 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
             "x_mm": x_walk_data,
             "centerline": tow_centerline_data,
             "top_edge": tow_top_edge,
-            "bottom_edge": tow_bottom_edge
-        })
+            "bottom_edge": tow_bottom_edge})
+        
+        RW_all_tows_data.append(RW_data)
 
     # creating the gap_overlap_data
     gap_overlap_dict = {
-        f"Gap/overlap_Tow{tow_index + 1}_Tow{tow_index + 2}": bottom_edge_paths[tow_index + 1] - top_edge_paths[
-            tow_index]
-        for tow_index in range(num_tows - 1)
-    }
+        f"Gap/overlap_Tow{tow_index + 1}_Tow{tow_index + 2}": bottom_edge_paths[tow_index + 1] - top_edge_paths[tow_index]
+        for tow_index in range(num_tows - 1)}
     gap_overlap_df = pd.DataFrame(gap_overlap_dict)
 
     x_vals = x_walk_data
@@ -321,170 +330,67 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
     overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
 
     # --- Print summary ---
-    print(f"\nTotal layout area: {total_layout_area:.2f} mm²")
-    print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
-    print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
+    if print_statement == True:
+        print(f"\nTotal layout area: {total_layout_area:.2f} mm²")
+        print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
+        print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
 
-    return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_data
+    return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_all_tows_data
 
-
-
-
-def get_actual_Dataframe(tow: int):
-    '''
-    Gets the tow-data and returns it as a dataframe in the required format for the tow-visualizer.
-    '''
-    LT_data = get_synced_data(tow, "LT")
-    LT_data = LT_data[(LT_data["x"] >= 0) & (LT_data["x"] <= 1000)]
-    y = LT_data["error_LT"]
-    x = LT_data["x"]
-    CAM_data = get_synced_data(tow, "CAM")
-    center = CAM_data["center_CAM"]
-    LLSB_data = get_synced_data(tow, "LLS_B")
-    width = LLSB_data["width_LLS_B"]
-
-    # interpolate CAM and LLS to match the length of the LT x-data so we can plot it
-    length = len(x)
-    center = interpolate(center, length)
-    width = interpolate(width, length)
-
-    # putting into dataframe which can be used by the tow visualizer
-    dataframe = pd.DataFrame(
-        {"y": y,
-         "center_CAM": center,
-         "width_LLS_B": width,
-         "x": x})
-
-
-
-    print(dataframe)
-    return dataframe
-
-
-
-def tow_visualizer_alt(tows: list[pd.DataFrame], y_intended: list, labels: list, ideal: bool):      # TODO: probably get rid of this.. . :(
+def plot_RW_tows(num_tows: int = 1, proposal_type: str = "RWM", plot_individual_histograms: bool = False):
     """
-    This function takes a list of dataframes that contains features of a tows and plots the corresponding tows in one figure, as well as the ideal tow.
-    The data it takes from that dataframe are
-    the centerline, width and x-position. It is important that the columns in the dataframe are properly named.
-    For this, check that the centerline column is named "center_CAM", the width after compaction column is named
-    "width_LLS_B" and the x-position columns is called "x".
+    Plots a comparison of random-walk-generated tows, including top, bottom, and centerline.
 
-    Arguments are:
-    tows: list[pd.DataFrame], a list with dataframes of the tows
-    y_intended: list, a list of programmed centerline y-values of the tows, IMPORTANT: tows[i] HAS TO CORRESPOND WITH y_intended[i].
-    name: str, the name of the operation that was done to obtain the dataframes of the tows, will be the title of the graph.
-    ideal: bool, plots one ideal tow if true
-
-    Author: Martijn
+    Parameters
+    ----------
+    num_tows : int
+        Number of tows to generate and plot.
+    proposal_type : str
+        Proposal type used in random walk generation.
+    plot_individual_histograms : bool
+        If True, plots histograms of tow widths as well.
     """
-    # Check if all elements are DataFrames
-    if not all(isinstance(tow, pd.DataFrame) for tow in tows):
-        raise TypeError("All elements in 'tows' must be pandas DataFrames.")
 
-    # set figure size
-    plt.figure(figsize=(15, 5))
+    # --- Generate the random-walk tow data ---
+    gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_all_tows_data = generate_RW_multitow(num_tows=num_tows, proposal_type=proposal_type)
 
-    for i in range(len(y_intended)):
-        CAM_centerline = tows[i]["center_CAM"]  # take the centerline from CAM
-        LT_y = tows[i]["y"]  # take the y-position from LT
-        intended_centerline = y_intended[i]  # take the programmed y-value for a straight line
-        centerline = CAM_centerline + LT_y + intended_centerline  # calculate centerline in space by combining datatypes
-        width = tows[i]["width_LLS_B"]  # take the width from LLS B
-        x = tows[i]["x"]  # take the x-position from LT
-        name = labels[i]
+    # --- Create the main figure ---
+    plt.figure(figsize=(10, 6))
+    plt.title(f"Random Walk Tow Layout ({proposal_type})")
+    plt.xlabel("Tow Length (mm)")
+    plt.ylabel("Position (mm)")
 
-        # make the plots
-        plt.plot(x, centerline, label=name+"centerline", linestyle='dashed')  # plots the centerline
-        plt.plot(x, centerline + 0.5 * width, label=name+"tow top", linestyle='solid')  # plots the top edge
-        plt.plot(x, centerline - 0.5 * width, label=name+"tow bottom", linestyle='solid')  # plots the bottom edge
+    # --- Use a color map to give each tow a unique but consistent color ---
+    colors = plt.cm.tab10(np.linspace(0, 1, num_tows))
 
-        # plots the start end endlines of the tow
-        plt.plot([x.iloc[0], x.iloc[0]],
-                 [centerline.iloc[0] - 0.5 * width.iloc[0], centerline.iloc[0] + 0.5 * width.iloc[0]],
-                 linestyle='solid', color='black')
-        plt.plot([x.iloc[-1], x.iloc[-1]],
-                 [centerline.iloc[-1] - 0.5 * width.iloc[-1], centerline.iloc[-1] + 0.5 * width.iloc[-1]],
-                 linestyle='solid', color='black')
+    for i, (tow_df, color) in enumerate(zip(RW_all_tows_data, colors)):
+        x = tow_df["x_mm"]
+        plt.plot(x, tow_df["top_edge"], color=color, lw=1.2, label=f"Tow {i+1} Top/Bottom/Center")
+        plt.plot(x, tow_df["bottom_edge"], color=color, lw=1.2)
+        plt.plot(x, tow_df["centerline"], color=color, lw=1.5, linestyle="--")
 
-    if ideal == True:
-        # plot the ideal tow (just a rectangle)
-        plt.plot([0, 1000], [tow_width_specified * 0.5, tow_width_specified * 0.5], color='green', label='ideal tow')
-        plt.plot([0, 1000], [-tow_width_specified * 0.5, -tow_width_specified * 0.5], color='green')
-        plt.plot([0, 0], [tow_width_specified * 0.5, -tow_width_specified * 0.5], color='green')
-        plt.plot([1000, 1000], [tow_width_specified * 0.5, -tow_width_specified * 0.5], color='green')
-        plt.plot([0, 1000], [0, 0], color='green', linestyle='dashed', label='ideal centerline')
-
-    # calculate the dimensions of the plots
-    #x_min = min(min(tow["x"].min() for tow in tows) - 50, -50)
-    #x_max = max(max(tow["x"].max() for tow in tows) + 50, 1050)
-    #y_min = min(min(tow["y"].min() for tow in tows) - 100, -50)
-    #y_max = max(max(tow["y"].max() for tow in tows) + 50, 1050)
-
-    # plot info
-    plt.xlabel("x-position [mm]")
-    plt.ylabel("y-position [mm]")
-    plt.xlim(0, 100)
-    #plt.ylim(y_min, y_max)
-    plt.grid()
-    plt.title("random walk comparison... or something like that")
-    plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+    plt.legend(loc="upper right", fontsize=8)
+    plt.grid(True, linestyle="--", alpha=1)
     plt.tight_layout()
+
+    # --- Optional: plot histograms of tow widths ---
+    if plot_individual_histograms:
+        plt.figure(figsize=(8, 4))
+        for i, (tow_df, color) in enumerate(zip(RW_all_tows_data, colors)):
+            widths = tow_df["top_edge"] - tow_df["bottom_edge"]
+            plt.hist(widths, bins=30, alpha=0.5, color=color, label=f"Tow {i+1}")
+        plt.title("Tow Width Distributions")
+        plt.xlabel("Width (mm)")
+        plt.ylabel("Frequency")
+        plt.legend()
+        plt.tight_layout()
+
+    # --- Print summary info ---
+    print(f"Gap %: {gap_percent:.2f}% | Overlap %: {overlap_percent:.2f}%")
+
     plt.show()
 
-
-def plot_RW_tows(proposal_type: str="RWM", plot_individual_histograms: bool=False):
-    '''
-    This function is intended to make a comparison of a full tow between random walk and actual data.
-    '''
-
-    # real data
-
-    tow_length = 1000   # [mm]
-    LT_steps = get_n_steps("LT")
-    CAM_steps = get_n_steps("CAM")
-    LLS_B_steps = get_n_steps("LLS_B")
-    print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
-
-    # fitting random walk to experimental data
-    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
-    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
-    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LT")
-
-    # getting randomn walk data
-    LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params, proposal_type=proposal_type, plot_histogram=plot_individual_histograms)
-    CAM_walk_data = generate_random_walk("CAM", CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params, proposal_type=proposal_type, plot_histogram=plot_individual_histograms)
-    LLSB_walk_data = generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params, proposal_type=proposal_type, plot_histogram=plot_individual_histograms)
-    LLSB_walk_data = [x + tow_width_specified for x in LLSB_walk_data]
-
-    # determine what the smallest number of steps is for the errors and use this is the global number of steps
-    n_steps = CAM_steps
-    if CAM_steps != min(LT_steps, CAM_steps, LLS_B_steps): print('Error, shortest data length was NOT used!')
-    x_walk_data = np.linspace(0, tow_length, n_steps)
-
-    # interpolate the data with more steps to have the sam, shorter, length
-    LT_walk_data = interpolate(LT_walk_data, n_steps)
-    LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
-    print(len(LT_walk_data), len(CAM_walk_data), len(LLSB_walk_data))
-
-    # putting into dataframe which can be used by the tow visualizer
-    walk_dataframe = pd.DataFrame(
-        {"y": LT_walk_data,
-         "center_CAM": CAM_walk_data,
-         "width_LLS_B": LLSB_walk_data,
-         "x": x_walk_data})
-
-    #real_data = get_actual_Dataframe(2)
-
-    # tow_visualizer_alt([walk_dataframe], [0], ["random walk", "Real"], False)
-
-    return walk_dataframe
-
-def interpolate(data, new_steps):
-    data = np.array(data)
-    old_indices = np.linspace(0, 1, num=len(data))
-    new_indices = np.linspace(0, 1, num=new_steps)
-    return np.interp(new_indices, old_indices, data)
+    return RW_all_tows_data
 
 def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', tow_length: float=1000):
 
@@ -536,16 +442,16 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     FFwriter = animation.HTMLWriter(fps=10)
     ani.save('animation.html', writer=FFwriter)
 
-
-
-# --- some functions to check different things --------------------
 def plot_LLS_hist():
+    """This function is used to check the LLS histograms"""
     data, weights = get_data('LLS_B', format='merged')
     print(data)
     print(max(data))
     plt.hist(data, bins=200, density=True)
     plt.show()
 
+##############################################################################################################
+"""Run this file"""
 
 def main():
     #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
@@ -556,7 +462,8 @@ def main():
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)
     #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
-    generate_RW_multitow(num_tows=100)
+    # generate_RW_multitow(num_tows=10)
+    plot_RW_tows(2)
 
 
 if __name__ == "__main__":
