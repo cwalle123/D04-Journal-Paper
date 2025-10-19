@@ -21,29 +21,55 @@ def generate_RW_multitow_startvar():
     a=1
 
 
-def calc_lengthwise_defect_percent(tows: int):
+def calc_lengthwise_defect_percent(tows: int, num_divisions: int=31):
     # TODO: replace funciton below with a variable start function
-    gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_data = generate_RW_multitow(num_tows=tows)
+    gap_overlap_df, gap_df, overlap_df, total_gap_percent, total_overlap_percent, RW_data = generate_RW_multitow(num_tows=tows)
 
-    print(gap_overlap_df)
+    # some info for area calculations:
+    highest_tow_edge = np.array(RW_data[-1]["top_edge"])
+    lowest_tow_edge = np.array(RW_data[0]["bottom_edge"])
 
+    defect_percent_list, gap_percent_list, overlap_percent_list, x_list = [], [], [], []
+    x_tow = np.linspace(0, 1000, len(gap_overlap_df)+1)
+    divisions = np.linspace(0, len(gap_overlap_df), num_divisions+1)
+    for i in range(num_divisions):
+        start, end = divisions[i], divisions[i+1]
+        data = gap_overlap_df[int(start):int(end)]
+        x_vals = x_tow[int(start):int(end)]
+
+        total_layout_area = np.trapezoid(highest_tow_edge[int(start):int(end)] - lowest_tow_edge[int(start):int(end)], x_vals)
+        total_gap_area = sum(np.trapezoid(np.clip(values, 0, None), x_vals) for values in data.values.T)
+        total_overlap_area = sum(np.trapezoid(np.clip(-values, 0, None), x_vals) for values in data.values.T)
+        print(total_layout_area, total_gap_area, total_overlap_area)
+
+        gap_percent = (total_gap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
+        overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
+        defect_percent = gap_percent + overlap_percent  # TODO: is this correct????
+
+        defect_percent_list.append(defect_percent)
+        gap_percent_list.append(gap_percent)
+        overlap_percent_list.append(overlap_percent)
+        x_list.append(np.average(x_vals))
 
 
     defect_data = pd.DataFrame(
-        {"x": x,
-         "defect_percent": defect_percent,
-         "gap_percent": gap_percent,
-         "overlap_percent": overlap_percent})
+        {"x": x_list,
+         "defect_percent": defect_percent_list,
+         "gap_percent": gap_percent_list,
+         "overlap_percent": overlap_percent_list})
+    print(defect_data)
     return defect_data
 
 def plot_lengthwise_defect_percent(defect_data: pd.DataFrame):
-    a=1
+    plt.plot(defect_data["x"], defect_data["defect_percent"], label="Defect Percentage")
+    plt.show()
 
 
 
 
 def main():
-    calc_lengthwise_defect_percent(10)
+    defect_data = calc_lengthwise_defect_percent(100)
+    plot_lengthwise_defect_percent(defect_data)
 
 if __name__ == "__main__":
     main()
