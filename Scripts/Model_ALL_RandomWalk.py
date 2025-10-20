@@ -13,6 +13,7 @@ import matplotlib.colors as mcolors
 from matplotlib import cm
 from dataclasses import dataclass
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
+from tqdm import tqdm
 
 # Internal imports
 from Handling_ALL_Functions import get_synced_data
@@ -89,7 +90,7 @@ def fit_random_walk(sensor: str):
 
 def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target_dist, dist, params, proposal_type: str="RWM",
                          plot_histogram: bool=False, plot_path: bool=False, comparison: bool=False, return_pdf: bool=False,
-                         burn_in_period: int=0, plot_covergence_params: bool=False, print_statement: bool=False):
+                         burn_in_period: int=0, plot_covergence_params: bool=False, print_statement: bool=False, start_value_override=None):
     '''
     This function generates a random walk according to the specified sensor.
     '''
@@ -97,7 +98,10 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
     # adding the burn in period to the #steps
     actual_steps = n_steps + burn_in_period
 
-    start_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
+    if start_value_override is not None:
+        start_value = start_value_override
+    else:
+        start_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
     generated_path = []
     x_current = start_value
 
@@ -493,27 +497,27 @@ def analyze_tow_spacing_effect(
     avg_gap_percentages = []
     avg_overlap_percentages = []
 
-    for spacing in spacing_values_mm:
+    for spacing in tqdm(spacing_values_mm, desc="Start Values"):
         if print_progress:
             print(f"\n--- Simulating for tow spacing = {spacing:.2f} mm ---")
 
         gap_results = []
         overlap_results = []
 
-        for sim in range(num_simulations):
+        for sim in tqdm(range(num_simulations), desc=f"Spacing={spacing:.2f}", leave=False):
             _, _, _, gap_percent, overlap_percent, _ = generate_RW_multitow(
                 num_tows=num_tows_per_simulation,
                 tow_spacing_mm=spacing,
                 tow_width_mm=tow_width_mm,
                 tow_length_mm=tow_length_mm,
                 proposal_type=proposal_type,
-                print_statement=False,
-            )
+                print_statement=False,)
+            
             gap_results.append(gap_percent)
             overlap_results.append(overlap_percent)
 
-            if print_progress and num_simulations >= 10 and (sim + 1) % (num_simulations // 100) == 0:
-                print(f"  Completed {sim + 1}/{num_simulations} simulations")
+            # if print_progress and num_simulations >= 10 and (sim + 1) % (num_simulations // 100) == 0:
+            #     print(f"  Completed {sim + 1}/{num_simulations} simulations", end='\r')
 
         avg_gap = np.mean(gap_results)
         avg_overlap = np.mean(overlap_results)
@@ -579,6 +583,61 @@ def analyze_tow_spacing_effect(
 
     return results_df
 
+def generate_RW_multitow_with_local_percent(
+    num_tows: int=5, 
+    tow_spacing_mm: float=6.35, 
+    tow_width_mm: float=6.35, 
+    tow_length_mm: float=1000, 
+    proposal_type: str="RWM", 
+    print_statement: bool=False):
+    """
+    Generate a multitow layout using random walks, and calculate both total and local (per-x) gap/overlap percentages.
+    """
+
+    # --- Run same base function as before ---
+    gap_overlap_df, gap_df, overlap_df, total_gap_percent, total_overlap_percent, RW_all_tows_data = \
+        generate_RW_multitow(
+            num_tows=num_tows,
+            tow_spacing_mm=tow_spacing_mm,
+            tow_width_mm=tow_width_mm,
+            tow_length_mm=tow_length_mm,
+            proposal_type=proposal_type,
+            print_statement=print_statement)
+
+    # --- Local % computation ---
+    x_vals = RW_all_tows_data[0]["x_mm"].values
+    top_edges = np.array([tow["top_edge"].values for tow in RW_all_tows_data])
+    bottom_edges = np.array([tow["bottom_edge"].values for tow in RW_all_tows_data])
+
+    # The total height of the stack at each x position
+    total_height = top_edges[-1, :] - bottom_edges[0, :]
+
+    # Extract gap/overlap widths at each x (positive=gap, negative=overlap)
+    gap_widths = np.clip(gap_overlap_df.values, 0, None)
+    overlap_widths = np.clip(-gap_overlap_df.values, 0, None)
+
+    # Sum all gaps and overlaps at each x
+    local_gap_sum = np.sum(gap_widths, axis=1)
+    local_overlap_sum = np.sum(overlap_widths, axis=1)
+
+    # Compute local percentages relative to total height
+    local_gap_percent = (local_gap_sum / total_height) * 100
+    local_overlap_percent = (local_overlap_sum / total_height) * 100
+
+    if print_statement:
+        print(f"Average local gap percent: {np.mean(local_gap_percent):.2f}%")
+        print(f"Average local overlap percent: {np.mean(local_overlap_percent):.2f}%")
+
+    # Return both total and local data
+    return {
+        "x_vals": x_vals,
+        "local_gap_percent": local_gap_percent,
+        "local_overlap_percent": local_overlap_percent,
+        "total_gap_percent": total_gap_percent,
+        "total_overlap_percent": total_overlap_percent,
+        "RW_all_tows_data": RW_all_tows_data,
+        "gap_overlap_df": gap_overlap_df}
+
 ##############################################################################################################
 """Run this file"""
 
@@ -591,9 +650,10 @@ def main():
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)
     #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
+
     # generate_RW_multitow(num_tows=10)
     # plot_RW_tows(2)
-    analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 2)
+    analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
 
 
 if __name__ == "__main__":
