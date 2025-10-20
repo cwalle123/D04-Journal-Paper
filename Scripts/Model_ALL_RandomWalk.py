@@ -605,7 +605,7 @@ def analyze_tow_spacing_effect(
 def main():
     #LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
     #LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
-                                proposal_type="RWM", plot_histogram=True, plot_path=True)
+    #                            proposal_type="RWM", plot_histogram=True, plot_path=True)
     #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM", plot=True)
     #plot_animated_walk_hist("CAM", 100)
