@@ -107,7 +107,7 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
         if proposal_type == "RWM":
             x_proposal = propose_new_RWM_value(x_current, proposal_std)
         else:
-         print("Error, invalid type")
+         print("Error, invalid proposal type")
 
         # code to accept or reject the proposed new value
         alpha = target_dist(x_proposal) / target_dist(x_current)      # alpha = acceptance probability
@@ -249,7 +249,8 @@ def interpolate(data, new_steps):
     new_indices = np.linspace(0, 1, num=new_steps)
     return np.interp(new_indices, old_indices, data)
 
-def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000, proposal_type: str="RWM", print_statement: bool=False):
+def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000,
+                         proposal_type: str="RWM", print_statement: bool=False, starting_mods: list=[None, 1, 1]):
     """This function generate a multitow layout using RW"""
 
     # fitting random walk to experimental data
@@ -258,6 +259,24 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
     LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
     if print_statement == True:
         print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
+
+    # This seciton modifies the starting distributions used by the model, which is needed for Model_ALL_StartVariations.
+    if starting_mods != [None, 1, 1]:
+        if starting_mods[0] != None:  # this changes the starting distribution type if necessary
+            dist = starting_mods[0]
+
+        # these are the factors by which the mean and std are changed
+        loc_factor, scale_factor = starting_mods[1], starting_mods[2]
+
+        # code used for start value: start_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
+        LT_params, CAM_params, LLS_B_params = list(LT_params), list(CAM_params), list(LLS_B_params)
+        LT_params[-2] *= loc_factor
+        CAM_params[-2] *= loc_factor
+        LLS_B_params[-2] *= loc_factor
+        LT_params[-1] *= scale_factor      # TODO: make sure the scale parameters equally affect the different distribution types
+        CAM_params[-1] *= scale_factor
+        LLS_B_params[-1] *= scale_factor
+        LT_params, CAM_params, LLS_B_params = tuple(LT_params), tuple(CAM_params), tuple(LLS_B_params)
 
     tow_offset = 0
     RW_all_tows_data, top_edge_paths, bottom_edge_paths = [], [], []
@@ -414,7 +433,7 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
     def animate(frame_number, bar_container):
         nonlocal data
         # Simulate new data coming in.
-        data += generate_random_walk(sensor, n_steps, proposal_std, target_dist, dist, params, proposal_type=proposal_type, return_pdf=True)
+        data += generate_random_walk(sensor, n_steps, proposal_std, target_dist, dist, params, proposal_type=proposal_type, return_pdf=False)
         n, _ = np.histogram(data, HIST_BINS, density=True)
         for count, rect in zip(n, bar_container.patches):
             rect.set_height(count)
@@ -579,14 +598,17 @@ def analyze_tow_spacing_effect(
 
     return results_df
 
+
 ##############################################################################################################
 """Run this file"""
 
 def main():
-    #generate_random_walk(sensor="CAM", proposal_type="RWM", n_steps=None, plot_histogram=True, plot_path=True, comparison=True)
+    #LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    #LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
+                                proposal_type="RWM", plot_histogram=True, plot_path=True)
     #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM", plot=True)
-    #plot_animated_walk_hist("CAM", 31)
+    #plot_animated_walk_hist("CAM", 100)
     #print(get_n_steps("CAM"))
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)

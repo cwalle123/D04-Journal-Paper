@@ -11,19 +11,15 @@ from constants import tow_width_specified, font_extra_small, font_small, font_me
 from Handling_ALL_Functions import get_synced_data
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
-from Model_ALL_RandomWalk import generate_random_walk, generate_RW_multitow
+from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow
 from Model_ALL_Simulation import generate_multitow_layout
 from Model_ALL_RandomSampling import generate_RS_multitow
 
 
 
-def generate_RW_multitow_startvar():
-    a=1
 
-
-def calc_lengthwise_defect_percent(tows: int, num_divisions: int=31):
-    # TODO: replace funciton below with a variable start function
-    gap_overlap_df, gap_df, overlap_df, total_gap_percent, total_overlap_percent, RW_data = generate_RW_multitow(num_tows=tows)
+def calc_lengthwise_defect_percent(tows: int, num_divisions: int=31, starting_mods: list=[None, 1, 1]):
+    gap_overlap_df, gap_df, overlap_df, total_gap_percent, total_overlap_percent, RW_data = generate_RW_multitow(num_tows=tows, starting_mods=starting_mods)
 
     # some info for area calculations:
     highest_tow_edge = np.array(RW_data[-1]["top_edge"])
@@ -67,9 +63,45 @@ def plot_lengthwise_defect_percent(defect_data: pd.DataFrame):
 
 
 
+
+def analyze_starting_variation_effects(starting_mods: list=[None, 1, 1], proposal_type="RWM"):
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
+
+    # This seciton modifies the starting distributions used by the model, which is needed for Model_ALL_StartVariations.
+    if starting_mods != [None, 1, 1]:
+        if starting_mods[0] != None:  # this changes the starting distribution type if necessary
+            dist = starting_mods[0]
+
+        # these are the factors by which the mean and std are changed
+        loc_factor, scale_factor = starting_mods[1], starting_mods[2]
+
+        # code used for start value: start_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
+        LT_params, CAM_params, LLS_B_params = list(LT_params), list(CAM_params), list(LLS_B_params)
+        LT_params[-2] *= loc_factor
+        CAM_params[-2] *= loc_factor
+        LLS_B_params[-2] *= loc_factor
+        LT_params[
+            -1] *= scale_factor  # TODO: make sure the scale parameters equally affect the different distribution types
+        CAM_params[-1] *= scale_factor
+        LLS_B_params[-1] *= scale_factor
+        LT_params, CAM_params, LLS_B_params = tuple(LT_params), tuple(CAM_params), tuple(LLS_B_params)
+
+    # generating random walk data
+    LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
+                                        proposal_type=proposal_type, plot_path=True, plot_histogram=True)
+    CAM_walk_data = generate_random_walk("CAM", CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params,
+                                         proposal_type=proposal_type, plot_path=True, plot_histogram=True)
+    LLSB_walk_data = generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist,
+                                          LLS_B_params, proposal_type=proposal_type, plot_path=True, plot_histogram=True)
+
+
 def main():
-    defect_data = calc_lengthwise_defect_percent(100)
-    plot_lengthwise_defect_percent(defect_data)
+    analyze_starting_variation_effects(starting_mods = [None, 1, 2], proposal_type = "RWM")
+
+    #defect_data = calc_lengthwise_defect_percent(100, starting_mods=[None, 1, 1.5])
+    #plot_lengthwise_defect_percent(defect_data)
 
 if __name__ == "__main__":
     main()
