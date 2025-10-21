@@ -273,14 +273,16 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         loc_factor, scale_factor = starting_mods[1], starting_mods[2]
 
         # code used for start value: start_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
-        LT_params, CAM_params, LLS_B_params = list(LT_params), list(CAM_params), list(LLS_B_params)
-        LT_params[-2] *= loc_factor
+        #LT_params, LLS_B_params = list(LT_params), list(LLS_B_params)
+        CAM_params = list(CAM_params)
+        #LT_params[-2] *= loc_factor
         CAM_params[-2] *= loc_factor
-        LLS_B_params[-2] *= loc_factor
-        LT_params[-1] *= scale_factor      # TODO: make sure the scale parameters equally affect the different distribution types
+        #LLS_B_params[-2] *= loc_factor
+        #LT_params[-1] *= scale_factor      # TODO: make sure the scale parameters equally affect the different distribution types
         CAM_params[-1] *= scale_factor
-        LLS_B_params[-1] *= scale_factor
-        LT_params, CAM_params, LLS_B_params = tuple(LT_params), tuple(CAM_params), tuple(LLS_B_params)
+        #LLS_B_params[-1] *= scale_factor
+        #LT_params, LLS_B_params = tuple(LT_params), tuple(LLS_B_params)
+        CAM_params = tuple(CAM_params)
 
     tow_offset = 0
     RW_all_tows_data, top_edge_paths, bottom_edge_paths = [], [], []
