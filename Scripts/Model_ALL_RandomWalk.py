@@ -254,7 +254,7 @@ def interpolate(data, new_steps):
     return np.interp(new_indices, old_indices, data)
 
 def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000,
-                         proposal_type: str="RWM", print_statement: bool=False, starting_mods: list=[None, 1, 1]):
+                         proposal_type: str="RWM", print_statement: bool=False, starting_mods: list=[None, 1, 1], override: bool=False):
     """This function generate a multitow layout using RW"""
 
     # fitting random walk to experimental data
@@ -310,6 +310,12 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
 
         #print(f'Tow centerline: {tow_centerline_data}')
         #print(f'Tow width: {tow_width_data}')
+
+        # --- Override for flat/square tows (no random walk) ---
+        if override == True:
+            # create perfectly straight, flat tows
+            tow_centerline_data = np.full_like(x_walk_data, tow_offset)
+            tow_width_data = np.full_like(x_walk_data, tow_width_mm)
 
         tow_top_edge = tow_centerline_data + 0.5 * tow_width_data
         tow_bottom_edge = tow_centerline_data - 0.5 * tow_width_data
