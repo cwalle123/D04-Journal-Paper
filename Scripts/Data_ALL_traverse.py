@@ -560,13 +560,15 @@ def plot_lt_y_error_histogram(tow: int, bins: int = 50):
 """Run this file"""
 
 def main():
-    # traverse_LT_viewer(2)
+    #traverse_LT_viewer(10)
+    #traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_steps=False)
     # z_check(5)
     # LT_velocity_check(5)
     # GAP_velocity_check(5)
-    # plot_all_tows_trimmed()
+    #plot_all_tows_trimmed()
     # print(traverse_tow_constructor(5))
-    traverse_tow_gaps_and_overlaps_lengths(histogram_bins=350)
+    #traverse_tow_gaps_and_overlaps_lengths(histogram_bins=350)
+    plot_lt_y_error_histogram(10)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
