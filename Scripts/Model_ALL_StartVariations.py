@@ -96,8 +96,13 @@ def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_da
 def calc_lengthwise_defect_percent_exp(tows: int, num_divisions: int=31, starting_mods: list=[None, 1, 1]):
     # TODO: Find gap, overlap, etc data for experimental, not for RW
     gap_overlap_df, gap_df, overlap_df, total_gap_percent, total_overlap_percent, RW_data = generate_RW_multitow(num_tows=tows, starting_mods=starting_mods)
-
-    #TODO: Find a way to calculate the percentages lenghtwise
+    #1) get the experimental data tows
+    #2) get top edge of tow 31 and bottom edge of tow 2 to get total width of layup
+    #3) find the gap distance at every x-position
+    #4) find the total width of layup at every x-position
+    #5) gap percentage at each x-location will be #3/#4 * 100 
+    '''percentage of defect at a certain x-position is total distance of defect at that location
+    divided by the total length of the layup at that x-location'''
 
 
 def analyze_starting_variation_effects(starting_mods: list=[None, 1, 1], proposal_type="RWM"):

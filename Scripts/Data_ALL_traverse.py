@@ -568,7 +568,8 @@ def main():
     #plot_all_tows_trimmed()
     # print(traverse_tow_constructor(5))
     #traverse_tow_gaps_and_overlaps_lengths(histogram_bins=350)
-    plot_lt_y_error_histogram(10)
+    #plot_lt_y_error_histogram(10)
+    traverse_tow_gaps_and_overlaps()
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
