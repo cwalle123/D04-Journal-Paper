@@ -81,17 +81,17 @@ def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_da
     # original data
     #plt.scatraverse_tower(defect_data_original["x"], defect_data_original["defect_percent"], color="blue", marker='o')
     #plt.plot(defect_data_original["x"], defect_data_original["defect_percent"], color="blue", linestyle='solid', label="Defect Percentage, normal")
-    plt.scatraverse_tower(defect_data_original["x"], defect_data_original["gap_percent"], color="green", marker='o')
-    plt.plot(defect_data_original["x"], defect_data_original["gap_percent"], color="green", linestyle='solid', label="Gap Percentage, normal")
-    plt.scatraverse_tower(defect_data_original["x"], defect_data_original["overlap_percent"], color="red", marker='o')
-    plt.plot(defect_data_original["x"], defect_data_original["overlap_percent"], color="red", linestyle='solid', label="Overlap Percentage, normal")
+    # plt.scatter(defect_data_original["x"], defect_data_original["gap_percent"], color="green", marker='.')
+    plt.plot(defect_data_original["x"], defect_data_original["gap_percent"], color="green", linestyle='dashed', label="Gap Percentage, normal")
+    # plt.scatter(defect_data_original["x"], defect_data_original["overlap_percent"], color="green", marker='.')
+    plt.plot(defect_data_original["x"], defect_data_original["overlap_percent"], color="green", linestyle='solid', label="Overlap Percentage, normal")
     # modified data
     #plt.scatraverse_tower(defect_data_modified["x"], defect_data_modified["defect_percent"], color="blue", marker='^')
     #plt.plot(defect_data_modified["x"], defect_data_modified["defect_percent"], color="blue", linestyle='dashed', label="Defect Percentage, modified")
-    plt.scatraverse_tower(defect_data_modified["x"], defect_data_modified["gap_percent"], color="green", marker='^')
-    plt.plot(defect_data_modified["x"], defect_data_modified["gap_percent"], color="green", linestyle='dashed', label="Gap Percentage, modified")
-    plt.scatraverse_tower(defect_data_modified["x"], defect_data_modified["overlap_percent"], color="red", marker='^')
-    plt.plot(defect_data_modified["x"], defect_data_modified["overlap_percent"], color="red", linestyle='dashed', label="Overlap Percentage, modified")
+    # plt.scatter(defect_data_modified["x"], defect_data_modified["gap_percent"], color="red", marker='.')
+    plt.plot(defect_data_modified["x"], defect_data_modified["gap_percent"], color="red", linestyle='dashed', label="Gap Percentage, modified")
+    # plt.scatter(defect_data_modified["x"], defect_data_modified["overlap_percent"], color="red", marker='.')
+    plt.plot(defect_data_modified["x"], defect_data_modified["overlap_percent"], color="red", linestyle='solid', label="Overlap Percentage, modified")
 
     plt.xlabel("x (mm)")
     plt.ylabel("Defect Percentage (%)")
@@ -305,10 +305,10 @@ def main():
     #analyze_starting_variation_effects(starting_mods = [None, 1, 2], proposal_type = "RWM")
     #plot_target_vs_start(starting_mods=[1, 1.5])      # target_mods=[None, 1, 1.5], starting_mods=[1, 1.5]
 
-    defect_data_original = calc_lengthwise_defect_percent(10, tows_per_laminate=29, num_divisions=31, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
-    defect_data_modified = calc_lengthwise_defect_percent(10, tows_per_laminate=29, num_divisions=31, alternate_start=[norm, [0.01221346, 0.45]])
+    defect_data_original = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
+    defect_data_modified = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.45]])
     plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
-    calc_lengthwise_defect_percent_exp()
+    # calc_lengthwise_defect_percent_exp()
 
 if __name__ == "__main__":
     main()
