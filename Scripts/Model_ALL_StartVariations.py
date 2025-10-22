@@ -16,32 +16,36 @@ from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, g
 from Data_ALL_traverse import traverse_tow_gaps_and_overlaps, traverse_tow_gaps_and_overlaps_lengths, traverse_tow_constructor
 
 
-def generate_multilaminate_layout(n_laminates: int, tows_per_laminate: int=31, starting_mods: list=[None, 1, 1]):
+def generate_multilaminate_layout(n_laminates: int, tows_per_laminate: int=29, starting_mods: list=[None, 1, 1], alternate_start: list=[None, "params"]):
     # generating and combining data for all laminates
     gap_overlap_dict = {}
-    all_RW_data = []
+    top_edges, bottom_edges = [], []
     for laminate in range(n_laminates):
         temp_gap_overlap_df, gap_df, overlap_df, total_gap_percent, total_overlap_percent, RW_data = generate_RW_multitow(
-            num_tows=tows_per_laminate, starting_mods=starting_mods)
+            num_tows=tows_per_laminate, starting_mods=starting_mods, alternate_start=alternate_start)
         temp_gap_overlap_df = np.array(temp_gap_overlap_df)
 
         temp_gap_overlap_dict = {
             f"Gap/overlap_Laminate{laminate}_Tow{tow + 1}-{tow + 2}": temp_gap_overlap_df[:, tow]
             for tow in range(tows_per_laminate - 1)}
         gap_overlap_dict.update(temp_gap_overlap_dict)
-        all_RW_data.append(RW_data)
 
+        highest_tow_edge = np.array(RW_data[-1]["top_edge"])
+        lowest_tow_edge = np.array(RW_data[0]["bottom_edge"])
+        top_edges.append(highest_tow_edge)
+        bottom_edges.append(lowest_tow_edge)
+
+    top_edges = np.array(top_edges)
+    bottom_edges = np.array(bottom_edges)
     gap_overlap_df = pd.DataFrame(gap_overlap_dict)
-    return gap_overlap_df, all_RW_data          # TODO: find a way to calc (defect) areas for multiple laminates... );
+    return gap_overlap_df, top_edges, bottom_edges
 
-def calc_lengthwise_defect_percent(tows: int, num_divisions: int=31, starting_mods: list=[None, 1, 1]):
-    gap_overlap_df, gap_df, overlap_df, total_gap_percent, total_overlap_percent, RW_data = generate_RW_multitow(num_tows=tows, starting_mods=starting_mods)
+def calc_lengthwise_defect_percent(n_laminates, tows_per_laminate: int=29, num_divisions: int=100, starting_mods: list=[None, 1, 1], alternate_start: list=[None, "params"]):
+    # gap_overlap_df, gap_df, overlap_df, total_gap_percent, total_overlap_percent, RW_data = generate_RW_multitow(num_tows=tows, starting_mods=starting_mods)
+    gap_overlap_df, top_edges, bottom_edges = generate_multilaminate_layout(n_laminates, tows_per_laminate=tows_per_laminate,
+                                                                            starting_mods=starting_mods, alternate_start=alternate_start)
 
-    # some info for area calculations:
-    highest_tow_edge = np.array(RW_data[-1]["top_edge"])
-    lowest_tow_edge = np.array(RW_data[0]["botraverse_towom_edge"])
-
-    defect_percent_list, gap_percent_list, overlap_percent_list, x_list = [], [], [], []
+    gap_percent_list, overlap_percent_list, x_list = [], [], []
     x_tow = np.linspace(0, 1000, len(gap_overlap_df)+1)
     divisions = np.linspace(0, len(gap_overlap_df), num_divisions+1)
     for i in range(num_divisions):
@@ -49,16 +53,18 @@ def calc_lengthwise_defect_percent(tows: int, num_divisions: int=31, starting_mo
         data = gap_overlap_df[int(start):int(end)]
         x_vals = x_tow[int(start):int(end)]
 
-        total_layout_area = np.trapezoid(highest_tow_edge[int(start):int(end)] - lowest_tow_edge[int(start):int(end)], x_vals)
+        # old code: total_layout_area = np.trapezoid(highest_tow_edge[int(start):int(end)] - lowest_tow_edge[int(start):int(end)], x_vals)
+        total_layout_area = 0
+        for lam in range(n_laminates):
+            lam_layout_area = np.trapezoid(top_edges[lam, int(start):int(end)] - bottom_edges[lam, int(start):int(end)], x_vals)
+            total_layout_area += lam_layout_area
+
         total_gap_area = sum(np.trapezoid(np.clip(values, 0, None), x_vals) for values in data.values.T)
         total_overlap_area = sum(np.trapezoid(np.clip(-values, 0, None), x_vals) for values in data.values.T)
-        print(total_layout_area, total_gap_area, total_overlap_area, len(x_vals), len(lowest_tow_edge[int(start):int(end)]))
 
         gap_percent = (total_gap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
         overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
-        defect_percent = gap_percent + overlap_percent  # TODO: is this correct????
 
-        defect_percent_list.append(defect_percent)
         gap_percent_list.append(gap_percent)
         overlap_percent_list.append(overlap_percent)
         x_list.append(np.average(x_vals))
@@ -66,7 +72,6 @@ def calc_lengthwise_defect_percent(tows: int, num_divisions: int=31, starting_mo
 
     defect_data = pd.DataFrame(
         {"x": x_list,
-         "defect_percent": defect_percent_list,
          "gap_percent": gap_percent_list,
          "overlap_percent": overlap_percent_list})
     print(defect_data)
@@ -100,13 +105,13 @@ def calc_lengthwise_defect_percent_exp(nbins=100, length_mm=1000.0):
     #3) Separate the dataset into bins of x-positions 10mm each
     #3) find the gap area at each bin
     #4) find the total area of layup at every bin
-    #5) gap percentage at each bin will be #3/#4 * 100 
+    #5) gap percentage at each bin will be #3/#4 * 100
 
 
     # 1) get the experimental data tows(2,30)
     gap_overlap_df, gap_df, overlap_df, _, _ = traverse_tow_gaps_and_overlaps(plot=False)
     x_go = gap_overlap_df.index.to_numpy()  # x for gap/overlap arrays (already truncated to common length)
-    
+
     # 2) Rebuild top & bottom edges vs x to get layup height(x) = top - bottom
     top_edge_paths, bottom_edge_paths = [], []
     x_vals = None
@@ -118,7 +123,7 @@ def calc_lengthwise_defect_percent_exp(nbins=100, length_mm=1000.0):
         x = traverse_tow["x_centerline"].to_numpy()
         top = traverse_tow["y_left"].to_numpy() + offset_mm
         bot = traverse_tow["y_right"].to_numpy() + offset_mm
-        
+
         if x_vals is None:
             x_vals = x
         # keep everything truncated to a common min length (same behavior as your function)
@@ -247,7 +252,7 @@ def analyze_starting_variation_effects(starting_mods: list=[None, 1, 1], proposa
 
 
 def plot_target_vs_start(target_mods: list=[None, 1, 1], starting_mods: list=[1, 1]):
-    x_pdf = np.linspace(-1.2, 1.2, 100)     # this is for the plotraverse_towing later on.
+    x_pdf = np.linspace(-2, 2, 100)     # this is for the plotting later on.
 
     ### Code for the target distributions ###
     CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
@@ -272,6 +277,7 @@ def plot_target_vs_start(target_mods: list=[None, 1, 1], starting_mods: list=[1,
     ### Code for the starting value distributions ###
     mean, std, _, _, first_values = fit_starting_error_distribution("CAM", plot=False)
     CAM_starting_dist = lambda x: norm.pdf(x, loc=mean, scale=std)
+    print(f"std={std}, mean={mean}")
     y_starting = CAM_starting_dist(x_pdf)
 
     # This section modifies the starting distributions used by the model, which is needed for Model_ALL_StartVariations.
@@ -280,6 +286,7 @@ def plot_target_vs_start(target_mods: list=[None, 1, 1], starting_mods: list=[1,
         loc_factor, scale_factor = starting_mods[0], starting_mods[1]
         mean_modded = mean * loc_factor
         std_modded = std * scale_factor
+        print(f"std_modded={std_modded}, mean_modded={mean_modded}")
         CAM_starting_dist_modded = lambda x: norm.pdf(x, loc=mean_modded, scale=std_modded)
         y_starting_modded = CAM_starting_dist_modded(x_pdf)
         plt.plot(x_pdf, y_starting_modded, label='modified target distribution')
@@ -289,18 +296,18 @@ def plot_target_vs_start(target_mods: list=[None, 1, 1], starting_mods: list=[1,
     plt.plot(x_pdf, y_target, label='target distribution')
     plt.plot(x_pdf, y_starting, label='starting values distribution')
     plt.title("starting and target distributions")
-    plt.xlim(-1.2, 1.2)
+    plt.xlim(-2, 2)
     plt.legend()
     plt.show()
 
 
 def main():
     #analyze_starting_variation_effects(starting_mods = [None, 1, 2], proposal_type = "RWM")
-    #plot_target_vs_start()      # target_mods=[None, 1, 1.5], starting_mods=[1, 1.5]
+    #plot_target_vs_start(starting_mods=[1, 1.5])      # target_mods=[None, 1, 1.5], starting_mods=[1, 1.5]
 
-    #defect_data_original = calc_lengthwise_defect_percent(3, tows_per_laminate=5, num_divisions=31, starting_mods=[None, 1, 1])
-    #defect_data_modified = calc_lengthwise_defect_percent(3, tows_per_laminate=5, num_divisions=31, starting_mods=[None, 1, 1.5])
-    #plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
+    defect_data_original = calc_lengthwise_defect_percent(10, tows_per_laminate=29, num_divisions=31, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
+    defect_data_modified = calc_lengthwise_defect_percent(10, tows_per_laminate=29, num_divisions=31, alternate_start=[norm, [0.01221346, 0.45]])
+    plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
     calc_lengthwise_defect_percent_exp()
 
 if __name__ == "__main__":

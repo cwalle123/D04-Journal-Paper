@@ -254,7 +254,7 @@ def interpolate(data, new_steps):
     return np.interp(new_indices, old_indices, data)
 
 def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000,
-                         proposal_type: str="RWM", print_statement: bool=False, starting_mods: list=[None, 1, 1], override: bool=False):
+                         proposal_type: str="RWM", print_statement: bool=False, starting_mods: list=[None, 1, 1], alternate_start: list=[None, "params"], override: bool=False):
     """This function generate a multitow layout using RW"""
 
     # fitting random walk to experimental data
@@ -267,7 +267,7 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
     # This seciton modifies the starting distributions used by the model, which is needed for Model_ALL_StartVariations.
     if starting_mods != [None, 1, 1]:
         if starting_mods[0] != None:  # this changes the starting distribution type if necessary
-            dist = starting_mods[0]
+            CAM_dist = starting_mods[0]
 
         # these are the factors by which the mean and std are changed
         loc_factor, scale_factor = starting_mods[1], starting_mods[2]
@@ -283,6 +283,11 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         #LLS_B_params[-1] *= scale_factor
         #LT_params, LLS_B_params = tuple(LT_params), tuple(LLS_B_params)
         CAM_params = tuple(CAM_params)
+
+    if alternate_start[0] != None:
+        print("alternate starting distribution was used.")
+        CAM_dist = alternate_start[0]
+        CAM_params = alternate_start[1]
 
     tow_offset = 0
     RW_all_tows_data, top_edge_paths, bottom_edge_paths = [], [], []
