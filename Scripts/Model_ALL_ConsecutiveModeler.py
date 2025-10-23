@@ -374,7 +374,7 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
     D04_std = np.std(gap_overlap_df)
 
     # -------generating Random Walk data--------
-    RW_gap_df, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RW_gap_df, _, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
     RW_gap_df = np.array(RW_gap_df)
     RW_gap_data = []
     for i in range (tows_simulated-1):
@@ -555,7 +555,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     D04_std = np.std(D04_gap_data)
 
     # -------generating Random Walk data--------
-    RW_gap_df, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RW_gap_df, _, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
     RW_gap_df = np.array(RW_gap_df)
     RW_gap_data = []
     for i in range (tows_simulated-1):
@@ -565,7 +565,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     RW_std = np.std(RW_gap_data)
 
     #-------generating Random Sampling data--------
-    RS_gap_df = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RS_gap_df, _ = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
     RS_gap_df = np.array(RS_gap_df)
     RS_gap_data = []
     for i in range (tows_simulated-1):
@@ -691,8 +691,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
 def main():
     #data = run_model()
     #Gap_Histogram(30)
-    KDE_curves(29)
-    #model_distribution_figures(30, plottype="single")
+    #KDE_curves(29)
+    model_distribution_figures(29, plottype="single")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
