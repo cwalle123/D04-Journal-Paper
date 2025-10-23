@@ -249,11 +249,11 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     real_df = traverse_tow_constructor(tow, normalize=True)
     print(real_df)
     x_real_right = real_df["x_right"].to_numpy()
-    y_real_right = real_df["y_right"].to_numpy() + 3 * y_increment_programmed
+    y_real_right = real_df["y_right"].to_numpy() + 2 * y_increment_programmed
     x_real_left = real_df["x_left"].to_numpy()
-    y_real_left = real_df["y_left"].to_numpy() + 3 * y_increment_programmed
+    y_real_left = real_df["y_left"].to_numpy() + 2 * y_increment_programmed
     x_real_y_centerline  = real_df["x_centerline"].to_numpy()
-    y_real_y_centerline  = real_df["y_centerline"].to_numpy() + 3 * y_increment_programmed
+    y_real_y_centerline  = real_df["y_centerline"].to_numpy() + 2 * y_increment_programmed
 
     #Uniformly drop datapoints to get to target_points steps per meter of tow
     if force_steps:
@@ -280,8 +280,9 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     y_D04_centerline  = sim_df["centerline"].to_numpy() + 2 * y_increment_programmed
 
     # Extract RW tow
-    _, _, _, _, _, RW_df = generate_RW_multitow(num_tows=1)
-    print(RW_df)
+    _, _, _, _, _, RW_df_list = generate_RW_multitow(num_tows=1)
+    print(RW_df_list)
+    RW_df = RW_df_list[0]
     x_RW_right = RW_df["x_mm"].to_numpy() 
     y_RW_right = RW_df["bottom_edge"].to_numpy() + y_increment_programmed
     x_RW_left = RW_df["x_mm"].to_numpy()
@@ -306,9 +307,9 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     plt.plot(x_real_right, y_real_right, "-", color="blue")
 
     # Simulated tow
-    plt.plot(x_D04_centerline, y_D04_centerline, "--", color="orange", label="D04 centerline")
-    plt.plot(x_D04_left, y_D04_left, "-", color="orange", label="D04 edges")
-    plt.plot(x_D04_right, y_D04_right, "-", color="orange")
+    #plt.plot(x_D04_centerline, y_D04_centerline, "--", color="orange", label="D04 centerline")
+    #plt.plot(x_D04_left, y_D04_left, "-", color="orange", label="D04 edges")
+    #plt.plot(x_D04_right, y_D04_right, "-", color="orange")
 
     # Random Walk tow
     plt.plot(x_RW_centerline, y_RW_centerline, "--", color="red", label="RW centerline")
@@ -598,12 +599,12 @@ def compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins=100, force_st
 def main():
     # plot_real_tow(6)
 
-    real_df, sim_df = plot_real_vs_RW_tow(6, plot = True, force_steps = False)
+    # real_df, sim_df = plot_real_vs_RW_tow(6, plot = True, force_steps = False)
     # compare_real_vs_RW_gaps_overlaps()
 
     # compare_simulated_vs_real_tow(8)
     # compare_multiple_simulations(8, 50)
-    # plot_real_vs_D04_vs_RW_vs_RS_tow(2)
+    plot_real_vs_D04_vs_RW_vs_RS_tow(2)
 
 if __name__ == "__main__":
     main()

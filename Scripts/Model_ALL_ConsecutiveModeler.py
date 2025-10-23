@@ -691,8 +691,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
 def main():
     #data = run_model()
     #Gap_Histogram(30)
-    #KDE_curves(30)
-    model_distribution_figures(30, plottype="single")
+    KDE_curves(29)
+    #model_distribution_figures(30, plottype="single")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
