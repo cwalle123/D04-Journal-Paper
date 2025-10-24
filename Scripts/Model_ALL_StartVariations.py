@@ -10,7 +10,7 @@ import seaborn as sns
 from constants import tow_width_specified, font_extra_small, font_small, font_medium, font_large, font_extra_large
 from Handling_ALL_Functions import get_synced_data
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
-from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow
+from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow, initiate_state_data, update_states, check_state_data
 from Model_ALL_RandomSampling import generate_RS_multitow
 from Model_ALL_Simulation import fit_starting_error_distribution
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
@@ -40,9 +40,9 @@ def generate_multilaminate_layout(n_laminates: int, tows_per_laminate: int=29, s
     bottom_edges = np.array(bottom_edges)
     gap_overlap_df = pd.DataFrame(gap_overlap_dict)
 
-    print(f'Top edges are: {top_edges}')
-    print(f'Bottom edges are: {bottom_edges}')
-    print(f'Dataframe is: {gap_overlap_df}')
+    #print(f'Top edges are: {top_edges}')
+    #print(f'Bottom edges are: {bottom_edges}')
+    #print(f'Dataframe is: {gap_overlap_df}')
     return gap_overlap_df, top_edges, bottom_edges
 
 def generate_multilaminate_layout_RS(n_laminates: int, tows_per_laminate: int=29, starting_mods: list=[None, 1, 1], alternate_start: list=[None, "params"]):
@@ -75,17 +75,17 @@ def calc_lengthwise_defect_percent(n_laminates, tows_per_laminate: int=29, num_d
                                                                             starting_mods=starting_mods, alternate_start=alternate_start)
 
     gap_percent_list, overlap_percent_list, x_list = [], [], []
-    x_tow = np.linspace(0, 1000, len(gap_overlap_df)+1)
+    x_tow = np.linspace(0, 1000, len(gap_overlap_df))
     divisions = np.linspace(0, len(gap_overlap_df), num_divisions+1)
     for i in range(num_divisions):
         start, end = divisions[i], divisions[i+1]
-        data = gap_overlap_df[int(start):int(end)]
-        x_vals = x_tow[int(start):int(end)]
+        data = gap_overlap_df[int(start):int(end)+1]
+        x_vals = x_tow[int(start):int(end)+1]
 
         # old code: total_layout_area = np.trapezoid(highest_tow_edge[int(start):int(end)] - lowest_tow_edge[int(start):int(end)], x_vals)
         total_layout_area = 0
         for lam in range(n_laminates):
-            lam_layout_area = np.trapezoid(top_edges[lam, int(start):int(end)] - bottom_edges[lam, int(start):int(end)], x_vals)
+            lam_layout_area = np.trapezoid(top_edges[lam, int(start):int(end)+1] - bottom_edges[lam, int(start):int(end)+1], x_vals)
             total_layout_area += lam_layout_area
 
         total_gap_area = sum(np.trapezoid(np.clip(values, 0, None), x_vals) for values in data.values.T)
@@ -353,15 +353,26 @@ def plot_target_vs_start(target_mods: list=[None, 1, 1], starting_mods: list=[1,
     plt.show()
 
 
+def detect_duplicate_states():
+    initiate_state_data()       # this initiates the global variable state_data within the RW code
+
+    defect_data_original = calc_lengthwise_defect_percent(5, tows_per_laminate=5, num_divisions=31, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
+    defect_data_modified = calc_lengthwise_defect_percent(5, tows_per_laminate=5, num_divisions=31, alternate_start=[norm, [0.01221346, 0.45]])
+    plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
+
+    check_state_data()      # this check for duplicate states
+
 def main():
     #analyze_starting_variation_effects(starting_mods = [None, 1, 2], proposal_type = "RWM")
     #plot_target_vs_start(starting_mods=[1, 1.5])      # target_mods=[None, 1, 1.5], starting_mods=[1, 1.5]
 
-    #defect_data_original = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
-    #defect_data_modified = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.45]])
+    #defect_data_original = calc_lengthwise_defect_percent(2, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
+    #defect_data_modified = calc_lengthwise_defect_percent(2, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.45]])
     #plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
+    detect_duplicate_states()
+
     #calc_lengthwise_defect_percent_exp(bin_size_mm=10)
-    generate_multilaminate_layout(2)
+    #generate_multilaminate_layout(2)
     
 if __name__ == "__main__":
     main()
