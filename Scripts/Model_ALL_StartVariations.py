@@ -106,9 +106,9 @@ def calc_lengthwise_defect_percent_exp(bin_size_mm: float,
     #1) get the experimental data tows
     #2) get top edge of tow 30 and bottom edge of tow 2 to get total width of layup
     #3) Separate the dataset into bins of x-positions 10mm each
-    #3) find the gap area at each bin
-    #4) find the total area of layup at every bin
-    #5) gap percentage at each bin will be #3/#4 * 100
+    #3) find the gap/overlap area at each bin via trapezoid integration
+    #4) find the total area of layup at every bin via trapezoid integration
+    #5) gap/overlap percentage at each bin will be #3/#4 * 100
 
     """
     Compute lengthwise gap/overlap percentage per 10mm bin for the traverse data (#! tows 2-30).
