@@ -98,123 +98,146 @@ def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_da
     plt.legend()
     plt.show()
 
-def calc_lengthwise_defect_percent_exp(nbins=100, length_mm=1000.0):
+    
+def calc_lengthwise_defect_percent_exp(bin_size_mm: float,
+                                       plot: bool = True):
+    
     #! Algorithm:
     #1) get the experimental data tows
-    #2) get top edge of tow 31 and botraverse_towom edge of tow 2 to get total width of layup
+    #2) get top edge of tow 30 and bottom edge of tow 2 to get total width of layup
     #3) Separate the dataset into bins of x-positions 10mm each
     #3) find the gap area at each bin
     #4) find the total area of layup at every bin
     #5) gap percentage at each bin will be #3/#4 * 100
 
+    """
+    Compute lengthwise gap/overlap percentage per 10mm bin for the traverse data (#! tows 2-30).
 
-    # 1) get the experimental data tows(2,30)
-    gap_overlap_df, gap_df, overlap_df, _, _ = traverse_tow_gaps_and_overlaps(plot=False)
-    x_go = gap_overlap_df.index.to_numpy()  # x for gap/overlap arrays (already truncated to common length)
+    Returns
+    -------
+    df_bins : pd.DataFrame
+        Columns:
+          - bin_start, bin_end, bin_center
+          - layup_area, gap_area, overlap_area
+          - gap_pct, overlap_pct
+    totals : dict
+        Overall totals across full length: layup_area, gap_area, overlap_area, gap_pct, overlap_pct
+    """
 
-    # 2) Rebuild top & bottom edges vs x to get layup height(x) = top - bottom
-    top_edge_paths, bottom_edge_paths = [], []
-    x_vals = None
-    for tow in range(2, 31):
+    top_edge_paths, bottom_edge_paths, x_vals_list = [], [], []
+
+    # Get the experimental traverse data loaded to traverse_tow
+    for tow in range(2, 31): 
         traverse_tow = traverse_tow_constructor(tow, normalize=True)
         if traverse_tow is None:
             continue
+
+        # +6.35 mm per tow index
         offset_mm = (tow - 2) * tow_width_specified
-        x = traverse_tow["x_centerline"].to_numpy()
-        top = traverse_tow["y_left"].to_numpy() + offset_mm
-        bot = traverse_tow["y_right"].to_numpy() + offset_mm
 
-        if x_vals is None:
-            x_vals = x
-        # keep everything truncated to a common min length (same behavior as your function)
-        min_len = min(len(x_vals), len(x))
-        x_vals = x_vals[:min_len]
-        top_edge_paths.append(top[:min_len])
-        bottom_edge_paths.append(bot[:min_len])
+        # Use centerline for layup distance values (x-position)
+        x_vals_list.append(traverse_tow["x_centerline"].to_numpy())
 
-    # Highest top edge (Tow 30) and lowest bottom edge (Tow 2) across x
-    highest_tow_edge = top_edge_paths[-1]
-    lowest_tow_edge  = bottom_edge_paths[0]
-    height = (highest_tow_edge - lowest_tow_edge).astype(float)   # layup height vs x (mm)
-    x_h = x_vals
+        # left = top edge, right = bottom edge
+        top_edge_paths.append(traverse_tow["y_left"].to_numpy() + offset_mm)
+        bottom_edge_paths.append(traverse_tow["y_right"].to_numpy() + offset_mm)
 
-    # 3) Build bins, 10 mm each
-    bins = np.linspace(0.0, float(length_mm), nbins + 1)
+    min_len = min(len(arr) for arr in x_vals_list)
+    x_vals = x_vals_list[0][:min_len]
+    top_edge_paths = [arr[:min_len] for arr in top_edge_paths]
+    bottom_edge_paths = [arr[:min_len] for arr in bottom_edge_paths]
 
-    def integrate_series_per_bin(x, y, bins):
-        """
-        Integrate y each bin using trapezoids.
-        Returns an array of areas per bin (same units as y * mm).
-        """
-        x = x.astype(float)
-        y = y.astype(float)
-        out = np.zeros(len(bins) - 1, dtype=float)
-        x_min, x_max = x.min(), x.max()
+    # Build tow differences 
+    highest_tow_edge = top_edge_paths[-1]      # top of tow 30
+    lowest_tow_edge  = bottom_edge_paths[0]    # bottom of tow 2
+    env_height = highest_tow_edge - lowest_tow_edge
+    env_height = np.where(env_height > 0, env_height, 0.0)
 
-        for i in range(len(bins) - 1):
-            x0, x1 = bins[i], bins[i+1]
-            if x1 <= x_min or x0 >= x_max:
-                # bin completely outside sampled x-range
-                out[i] = 0.0
-                continue
+    # For each adjacent pair: diff > 0 then gap, diff < 0 then overlap
+    gap_overlap_stack = np.stack(
+        [bottom_edge_paths[i+1] - top_edge_paths[i] for i in range(len(top_edge_paths) - 1)],
+        axis=0)
 
-            # Clip the bin to data range
-            xa, xb = max(x0, x_min), min(x1, x_max)
+    # Sum of gaps and overlaps at each x
+    pos_sum = np.sum(np.clip(gap_overlap_stack, 0, None), axis=0)
+    neg_sum = np.sum(np.clip(-gap_overlap_stack, 0, None), axis=0)
 
-            # Points inside [xa, xb]
-            mask = (x >= xa) & (x <= xb)
-            if not mask.any():
-                # No interior points but still inside global range -> integrate straight line
-                y0 = np.interp(xa, x, y)
-                y1 = np.interp(xb, x, y)
-                out[i] = 0.5 * (y0 + y1) * (xb - xa)
-                continue
+    # Bin the x-axis in 10mm bins and integrate each bin 
+    x_start, x_end = float(x_vals[0]), float(x_vals[-1])
+    n_bins = max(1, int(np.ceil((x_end - x_start) / bin_size_mm)))
+    edges = x_start + np.arange(n_bins + 1) * bin_size_mm
+    edges[-1] = x_end  # last edge has to land exactly at end
 
-            xs = x[mask]
-            ys = y[mask]
+    rows = []
+    for b in range(n_bins):
+        left, right = edges[b], edges[b+1]
+        inside = (x_vals >= left) & (x_vals <= right)
+        if np.count_nonzero(inside) < 2:
+            rows.append({
+                "bin_start": left,
+                "bin_end": right,
+                "bin_center": 0.5 * (left + right),
+                "layup_area": 0.0,
+                "gap_area": 0.0,
+                "overlap_area": 0.0,
+                "gap_pct": np.nan,
+                "overlap_pct": np.nan
+            })
+            continue
 
-            # Ensure endpoints present
-            if xs[0] > xa:
-                ys0 = np.interp(xa, x, y)
-                xs = np.insert(xs, 0, xa)
-                ys = np.insert(ys, 0, ys0)
-            if xs[-1] < xb:
-                ys1 = np.interp(xb, x, y)
-                xs = np.append(xs, xb)
-                ys = np.append(ys, ys1)
+        x_sub = x_vals[inside]
+        env_sub = env_height[inside]
+        gap_sub = pos_sum[inside]
+        ovl_sub = neg_sum[inside]
 
-            out[i] = np.trapezoid(ys, xs)
-        return out
+        # Integrate to get the layup, gap, and overlap area per bin
+        layup_area = float(np.trapezoid(env_sub, x_sub))
+        gap_area = float(np.trapezoid(gap_sub, x_sub))
+        overlap_area = float(np.trapezoid(ovl_sub, x_sub))
 
-    # 4) Integrate gaps/overlaps per bin across all adjacent-pair columns
-    gap_area_bins = np.zeros(len(bins) - 1, dtype=float)
-    overlap_area_bins = np.zeros(len(bins) - 1, dtype=float)
+        # Get gap & overlap percentages per bin
+        gap_pct = (gap_area / layup_area * 100.0) if layup_area > 0 else np.nan
+        overlap_pct = (overlap_area / layup_area * 100.0) if layup_area > 0 else np.nan
 
-    for col in gap_overlap_df.columns:
-        y = gap_overlap_df[col].to_numpy()
-        # Positive (gaps)
-        gap_area_bins     += integrate_series_per_bin(x_go, np.clip(y,  0, None), bins)
-        # Negative (overlaps) — take magnitude
-        overlap_area_bins += integrate_series_per_bin(x_go, np.clip(-y, 0, None), bins)
+        rows.append({"bin_start": left,
+                "bin_end": right,
+                "bin_center": 0.5 * (left + right),
+                "layup_area": layup_area,
+                "gap_area": gap_area,
+                "overlap_area": overlap_area,
+                "gap_pct": gap_pct,
+                "overlap_pct": overlap_pct})
 
-    # 5) Layup area per bin = integral of height(x) over each bin
-    layup_area_bins = integrate_series_per_bin(x_h, height, bins)
+    df_bins = pd.DataFrame(rows)
 
-    # 6) Assemble result
-    with np.errstate(divide='ignore', invalid='ignore'):
-        gap_pct     = 100.0 * np.divide(gap_area_bins, layup_area_bins, out=np.zeros_like(gap_area_bins), where=layup_area_bins > 0)
-        overlap_pct = 100.0 * np.divide(overlap_area_bins, layup_area_bins, out=np.zeros_like(overlap_area_bins), where=layup_area_bins > 0)
+    # Total areas over full length of experimental data (1000mm)
+    layup_area_tot = float(np.trapezoid(env_height, x_vals))
+    gap_area_tot = float(np.trapezoid(pos_sum, x_vals))
+    overlap_area_tot = float(np.trapezoid(neg_sum, x_vals))
+    gap_pct_tot = (gap_area_tot / layup_area_tot * 100.0) if layup_area_tot > 0 else np.nan
+    overlap_pct_tot = (overlap_area_tot / layup_area_tot * 100.0) if layup_area_tot > 0 else np.nan
 
-    result = pd.DataFrame({
-        "bin_left_mm":       bins[:-1],
-        "bin_right_mm":      bins[1:],
-        "gap_area_mm2":      gap_area_bins,
-        "overlap_area_mm2":  overlap_area_bins,
-        "layup_area_mm2":    layup_area_bins,
-        "gap_percent_bin":     gap_pct,
-        "overlap_percent_bin": overlap_pct,
-    })
-    return result
+    # Store important values
+    totals = dict(layup_area=layup_area_tot,
+                gap_area=gap_area_tot,
+                overlap_area=overlap_area_tot,
+                gap_pct=gap_pct_tot,
+                overlap_pct=overlap_pct_tot)
+
+    # Plot gap & overlap percentage vs x-axis
+    if plot:
+        plt.figure(figsize=(9, 4.6))
+        plt.plot(df_bins["bin_center"].values, df_bins["gap_pct"].values, marker="o", label="Gap %")
+        plt.plot(df_bins["bin_center"].values, df_bins["overlap_pct"].values, marker="s", label="Overlap %")
+        plt.xlabel("Distance (mm)")
+        plt.ylabel("Percentage of envelope area (%)")
+        plt.title(f"Gap & Overlap % per {bin_size_mm:.0f} mm bin")
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+    return df_bins, totals
 
 
 def analyze_starting_variation_effects(starting_mods: list=[None, 1, 1], proposal_type="RWM"):
@@ -223,7 +246,7 @@ def analyze_starting_variation_effects(starting_mods: list=[None, 1, 1], proposa
     LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
     print(f"distributions type per error:\n LT:{LT_dist}\n CAM:{CAM_dist}\nLLS_B:{LLS_B_dist}")
 
-    # This seciton modifies the starting distributions used by the model, which is needed for Model_ALL_StartVariations.
+    # This secton modifies the starting distributions used by the model, which is needed for Model_ALL_StartVariations.
     if starting_mods != [None, 1, 1]:
         if starting_mods[0] != None:  # this changes the starting distribution type if necessary
             dist = starting_mods[0]
@@ -305,10 +328,10 @@ def main():
     #analyze_starting_variation_effects(starting_mods = [None, 1, 2], proposal_type = "RWM")
     #plot_target_vs_start(starting_mods=[1, 1.5])      # target_mods=[None, 1, 1.5], starting_mods=[1, 1.5]
 
-    defect_data_original = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
-    defect_data_modified = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.45]])
-    plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
-    # calc_lengthwise_defect_percent_exp()
-
+    #defect_data_original = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
+    #defect_data_modified = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.45]])
+    #plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
+    calc_lengthwise_defect_percent_exp(bin_size_mm=10)
+    
 if __name__ == "__main__":
     main()
