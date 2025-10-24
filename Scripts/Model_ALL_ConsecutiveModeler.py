@@ -556,7 +556,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     for i in range(1, 31):
         added_gap_data = list(get_synced_data(i, 'Traverse')['Gap_gap'])
         experimental_gap_data = experimental_gap_data + added_gap_data
-    print('real printed', len(experimental_gap_data))
     experimental_mean = np.mean(experimental_gap_data)
     experimental_std = np.std(experimental_gap_data)
 
@@ -566,7 +565,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     D04_gap_data = []
     for i in range (tows_simulated-1):
         D04_gap_data = D04_gap_data + list(gap_overlap_df[:, i])
-    print('D04 printed', len(D04_gap_data))
     D04_mean = np.mean(D04_gap_data)
     D04_std = np.std(D04_gap_data)
 
@@ -576,7 +574,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     RW_gap_data = []
     for i in range (tows_simulated-1):
         RW_gap_data = RW_gap_data + list(RW_gap_df[:, i])
-    print('RW printed', len(RW_gap_data))
     RW_mean = np.mean(RW_gap_data)
     RW_std = np.std(RW_gap_data)
 
@@ -586,7 +583,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     RS_gap_data = []
     for i in range (tows_simulated-1):
         RS_gap_data = RS_gap_data + list(RS_gap_df[:, i])
-    print('RS printed', len(RS_gap_data))
     RS_mean = np.mean(RS_gap_data)
     RS_std = np.std(RS_gap_data)
 

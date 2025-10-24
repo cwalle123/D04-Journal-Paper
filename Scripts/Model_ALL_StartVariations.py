@@ -11,6 +11,7 @@ from constants import tow_width_specified, font_extra_small, font_small, font_me
 from Handling_ALL_Functions import get_synced_data
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
 from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow
+from Model_ALL_RandomSampling import generate_RS_multitow
 from Model_ALL_Simulation import fit_starting_error_distribution
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
 from Data_ALL_traverse import traverse_tow_gaps_and_overlaps, traverse_tow_gaps_and_overlaps_lengths, traverse_tow_constructor
@@ -32,6 +33,34 @@ def generate_multilaminate_layout(n_laminates: int, tows_per_laminate: int=29, s
 
         highest_tow_edge = np.array(RW_data[-1]["top_edge"])
         lowest_tow_edge = np.array(RW_data[0]["bottom_edge"])
+        top_edges.append(highest_tow_edge)
+        bottom_edges.append(lowest_tow_edge)
+
+    top_edges = np.array(top_edges)
+    bottom_edges = np.array(bottom_edges)
+    gap_overlap_df = pd.DataFrame(gap_overlap_dict)
+
+    print(f'Top edges are: {top_edges}')
+    print(f'Bottom edges are: {bottom_edges}')
+    print(f'Dataframe is: {gap_overlap_df}')
+    return gap_overlap_df, top_edges, bottom_edges
+
+def generate_multilaminate_layout_RS(n_laminates: int, tows_per_laminate: int=29, starting_mods: list=[None, 1, 1], alternate_start: list=[None, "params"]):
+    # generating and combining data for all laminates
+    gap_overlap_dict = {}
+    top_edges, bottom_edges = [], []
+    for laminate in range(n_laminates):
+        temp_gap_overlap_df, RS_data = generate_RS_multitow(
+            num_tows=tows_per_laminate, starting_mods=starting_mods, alternate_start=alternate_start)
+        temp_gap_overlap_df = np.array(temp_gap_overlap_df)
+
+        temp_gap_overlap_dict = {
+            f"Gap/overlap_Laminate{laminate}_Tow{tow + 1}-{tow + 2}": temp_gap_overlap_df[:, tow]
+            for tow in range(tows_per_laminate - 1)}
+        gap_overlap_dict.update(temp_gap_overlap_dict)
+
+        highest_tow_edge = np.array(RS_data[-1]["top_edge"])
+        lowest_tow_edge = np.array(RS_data[0]["bottom_edge"])
         top_edges.append(highest_tow_edge)
         bottom_edges.append(lowest_tow_edge)
 
@@ -331,7 +360,8 @@ def main():
     #defect_data_original = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
     #defect_data_modified = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.45]])
     #plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
-    calc_lengthwise_defect_percent_exp(bin_size_mm=10)
+    #calc_lengthwise_defect_percent_exp(bin_size_mm=10)
+    generate_multilaminate_layout(10)
     
 if __name__ == "__main__":
     main()
