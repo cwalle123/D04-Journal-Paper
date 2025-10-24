@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import random
 from dataclasses import dataclass
 import seaborn as sns
+import scipy.stats as stats
 
 # Internal imports
 from constants import tow_width_specified, font_extra_small, font_small, font_medium, font_large, font_extra_large
@@ -302,11 +303,13 @@ def plot_target_vs_start(target_mods: list=[None, 1, 1], starting_mods: list=[1,
 
 
 def main():
+    np.random.seed(seed=1000)       # trying to figure out the pseudo random generation :(
+    np.random.default_rng(seed=1000)
     #analyze_starting_variation_effects(starting_mods = [None, 1, 2], proposal_type = "RWM")
     #plot_target_vs_start(starting_mods=[1, 1.5])      # target_mods=[None, 1, 1.5], starting_mods=[1, 1.5]
 
-    defect_data_original = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
-    defect_data_modified = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.45]])
+    defect_data_original = calc_lengthwise_defect_percent(3, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.3]]) #0.48016
+    defect_data_modified = calc_lengthwise_defect_percent(3, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.45]])
     plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
     # calc_lengthwise_defect_percent_exp()
 
