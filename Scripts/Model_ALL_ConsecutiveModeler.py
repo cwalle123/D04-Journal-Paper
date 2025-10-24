@@ -504,11 +504,25 @@ def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal:
     plt.tight_layout()
     plt.show()
 
-def KDE_curves(tows_simulated: int):
+def KDE_curves(tows_simulated: int, n_laminates: int):
     """Function to plot probability density functions using KDE plotting.
         Author: ChatGPT"""
     # Obtain data
     real_gap_data, D04_gap_data, RW_gap_data, RS_gap_data, real_mean, D04_mean, RW_mean, RS_mean, ideal_gap_center, bins = Gap_Histogram(tows_simulated)
+    
+    # In case we want to average over multiple laminates, not finished yet
+    # 
+    #RW_gap_data_list = []
+    #RS_gap_data_list = []
+    #RW_mean_list = []
+    #RS_mean_list = []
+    #for i in range(n_laminates):
+    #    _, _, RW_gap_data, RS_gap_data, _, _, RW_mean, RS_mean, _, _ = Gap_Histogram(tows_simulated)
+    #    RW_gap_data_list.append(RW_gap_data)
+    #    RS_gap_data_list.append(RS_gap_data)
+    #    RW_mean_list.append(RW_mean)
+    #    RS_mean_list.append(RS_mean)
+    
     
     plt.figure(figsize=(10,6))
 

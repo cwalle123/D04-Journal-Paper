@@ -361,7 +361,7 @@ def main():
     #defect_data_modified = calc_lengthwise_defect_percent(20, tows_per_laminate=29, num_divisions=62, alternate_start=[norm, [0.01221346, 0.45]])
     #plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
     #calc_lengthwise_defect_percent_exp(bin_size_mm=10)
-    generate_multilaminate_layout(10)
+    generate_multilaminate_layout(2)
     
 if __name__ == "__main__":
     main()
