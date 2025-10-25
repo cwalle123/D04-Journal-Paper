@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import pareto
+import os
+from tqdm import tqdm
 
 # Internal imports
 from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse, tow_width_specified, number_of_steps
@@ -109,7 +111,7 @@ def traverse_tow_constructor(tow: int, normalize: bool = False):
 
     return traverse_tow
 
-def traverse_tow_gaps_and_overlaps(plot=True):
+def traverse_tow_gaps_and_overlaps(plot=True, tow_spacing=None, print_statement=True):
     """
     Collect normalized traverse tow data (tows 2–30).
     Apply +6.35 mm offset per tow index after tow 2.
@@ -119,6 +121,9 @@ def traverse_tow_gaps_and_overlaps(plot=True):
     top_edge_paths, bottom_edge_paths = [], []
     x_vals_list = []
 
+    if tow_spacing == None:
+        tow_spacing = tow_width_specified
+
     # --- Collect traverse tow edges with offsets ---
     for tow in range(2, 31):  # Tow 2..30
         traverse_tow = traverse_tow_constructor(tow, normalize=True)
@@ -126,7 +131,7 @@ def traverse_tow_gaps_and_overlaps(plot=True):
             continue
 
         # Offset in y direction
-        offset_mm = (tow - 2) * tow_width_specified
+        offset_mm = (tow - 2) * tow_spacing
 
         x_vals_list.append(traverse_tow["x_centerline"].to_numpy())
         top_edge_paths.append(traverse_tow["y_left"].to_numpy() + offset_mm)
@@ -161,9 +166,10 @@ def traverse_tow_gaps_and_overlaps(plot=True):
     overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
 
     # --- Print summary ---
-    print(f"\nTotal layout area: {total_layout_area:.2f} mm²")
-    print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
-    print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
+    if print_statement == True:
+        print(f"\nTotal layout area: {total_layout_area:.2f} mm²")
+        print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
+        print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
 
     # --- Plotting ---
     if plot:
@@ -556,6 +562,151 @@ def plot_lt_y_error_histogram(tow: int, bins: int = 50):
     plt.tight_layout()
     plt.show()
 
+def analyze_real_tow_spacing_effect(spacing_values_mm: list = None, print_progress: bool = True, existing_data: pd.DataFrame | str | None = None):
+    """
+    Analyze the effect of tow spacing on gap and overlap percentage using *real traverse tows*.
+
+    This version behaves like `analyze_tow_spacing_effect()`, but instead of running synthetic 
+    simulations with `generate_RW_multitow()`, it uses the real traverse data via 
+    `traverse_tow_gaps_and_overlaps()` for each tested spacing value.
+
+    Parameters
+    ----------
+    spacing_values_mm : list of float, optional
+        Tow spacing values (mm) to analyze. If None, uses np.linspace(5.0, 7.5, 9).
+    tow_width_mm : float, optional
+        Nominal tow width (default 6.35 mm).
+    tow_length_mm : float, optional
+        Tow length in mm (default 1000).
+    print_progress : bool, optional
+        Print progress updates (default True).
+    existing_data : pd.DataFrame | str | None
+        If provided, plots data from a CSV file or DataFrame instead of re-running analysis.
+
+    Returns
+    -------
+    results_df : pd.DataFrame
+        DataFrame with average gap and overlap percentages vs. tow spacing,
+        including intersection spacing and value columns.
+    """
+
+    # --- CASE 1: Data provided (plot only) ---
+    if existing_data is not None:
+        if isinstance(existing_data, str):
+            results_df = pd.read_csv(existing_data)
+        elif isinstance(existing_data, pd.DataFrame):
+            results_df = existing_data.copy()
+        else:
+            raise ValueError("`existing_data` must be a pandas DataFrame or a CSV file path.")
+
+    # --- CASE 2: Run real data analysis ---
+    else:
+        if spacing_values_mm is None:
+            spacing_values_mm = np.linspace(5.0, 7.5, 9)
+
+        avg_gap_percentages = []
+        avg_overlap_percentages = []
+
+        for spacing in tqdm(spacing_values_mm, desc="Analyzing real tow spacing"):
+            if print_progress:
+                print(f"\n--- Analyzing for tow spacing = {spacing:.2f} mm ---")
+
+            try:
+                _, _, _, gap_percent, overlap_percent = traverse_tow_gaps_and_overlaps(
+                    plot=False, tow_spacing=spacing, print_statement=False)
+
+                avg_gap_percentages.append(gap_percent)
+                avg_overlap_percentages.append(overlap_percent)
+
+                if print_progress:
+                    print(f"  → Gap: {gap_percent:.3f}% | Overlap: {overlap_percent:.3f}%")
+
+            except Exception as e:
+                print(f"⚠️ Skipped spacing {spacing:.2f} mm due to error: {e}")
+                avg_gap_percentages.append(np.nan)
+                avg_overlap_percentages.append(np.nan)
+
+        # Create DataFrame
+        results_df = pd.DataFrame({
+            "Tow Spacing (mm)": spacing_values_mm,
+            "Average Gap (%)": avg_gap_percentages,
+            "Average Overlap (%)": avg_overlap_percentages})
+
+    # --- Find intersection (where gap = overlap) ---
+    gap_arr = np.array(results_df["Average Gap (%)"])
+    overlap_arr = np.array(results_df["Average Overlap (%)"])
+    spacing_values_mm = np.array(results_df["Tow Spacing (mm)"])
+    diff = gap_arr - overlap_arr
+
+    intersection_spacing = None
+    intersection_gap_value = None
+
+    for i in range(len(diff) - 1):
+        if np.isnan(diff[i]) or np.isnan(diff[i + 1]):
+            continue
+        if diff[i] * diff[i + 1] < 0:
+            x1, x2 = spacing_values_mm[i], spacing_values_mm[i + 1]
+            y1, y2 = diff[i], diff[i + 1]
+            intersection_spacing = x1 - y1 * (x2 - x1) / (y2 - y1)
+
+            g1, g2 = gap_arr[i], gap_arr[i + 1]
+            intersection_gap_value = g1 + (g2 - g1) * ((intersection_spacing - x1) / (x2 - x1))
+            break
+
+    # --- Add intersection info ---
+    results_df["Intersection Spacing (mm)"] = intersection_spacing
+    results_df["Intersection Gap/Overlap (%)"] = intersection_gap_value
+
+    # --- Save CSV ---
+    if existing_data is None:
+        os.makedirs("Cached Data", exist_ok=True)
+        csv_path = os.path.join(
+            "Cached Data",
+            f"Tow_spacing_effect_Traverse.csv")
+        results_df.to_csv(csv_path, index=False)
+        print(f"\n✅ Results (including intersection columns) saved to: {csv_path}")
+
+    # --- Plot ---
+    plt.figure(figsize=(9.25, 2.90))
+    ax = plt.gca()
+
+    plt.plot(spacing_values_mm, gap_arr, color="blue", label="Gap", linewidth=1)
+    plt.plot(spacing_values_mm, overlap_arr, color="red", label="Overlap", linewidth=1)
+
+    plt.xlabel("Programmed shift (mm)", fontname="Times New Roman", fontsize=15)
+    plt.ylabel("Defect area (%)", fontname="Times New Roman", fontsize=15)
+
+    plt.grid(False)
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_linewidth(1)
+        spine.set_color("black")
+
+    plt.xticks(fontname="Times New Roman", fontsize=15)
+    plt.yticks(fontname="Times New Roman", fontsize=15)
+    plt.legend(prop={"family": "Times New Roman", "size": 15})
+    plt.tight_layout()
+    
+    ax.tick_params(
+        top=True, bottom=True, left=True, right=True,
+        direction='in', length=6, width=1)
+
+    xmin, xmax = 5, 7.5
+    ymin, ymax = 0, 10
+    ax.set_xlim(xmin - 0.02*(xmax - xmin), xmax + 0.02*(xmax - xmin))
+    ax.set_ylim(ymin - 0.1*(ymax - ymin), ymax + 0.1*(ymax - ymin))
+
+    plt.show()
+
+    # --- Print intersection info ---
+    if intersection_spacing is not None:
+        print(f"\n🔴 Intersection point at {intersection_spacing:.3f} mm "
+              f"(Gap ≈ Overlap = {intersection_gap_value:.3f}%)")
+    else:
+        print("\n⚠️ No intersection found between gap and overlap curves.")
+
+    return results_df
+
 ##############################################################################################################
 """Run this file"""
 
@@ -567,9 +718,10 @@ def main():
     # GAP_velocity_check(5)
     #plot_all_tows_trimmed()
     # print(traverse_tow_constructor(5))
-    gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent=traverse_tow_gaps_and_overlaps()
-    print(gap_overlap_df)
+    # gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent=traverse_tow_gaps_and_overlaps()
+    # print(gap_overlap_df)
     #plot_lt_y_error_histogram(10)
+    analyze_real_tow_spacing_effect(existing_data="Cached Data/Tow_spacing_effect_Traverse.csv")
     
 
 if __name__ == "__main__":
