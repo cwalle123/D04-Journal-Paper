@@ -5,6 +5,7 @@
 
 # External imports
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
 import random
@@ -321,12 +322,34 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     plt.plot(x_RS_left, y_RS_left, "-", color="green", label="RS edges")
     plt.plot(x_RS_right, y_RS_right, "-", color="green")
 
-    plt.legend()
-    plt.xlabel("X (mm)", fontsize=font_large)
-    plt.ylabel("Y (mm)", fontsize=font_large)
-    plt.grid()
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = ['Times New Roman']
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = 10
+    mpl.rcParams['ytick.labelsize'] = 10
+    plt.xlabel("X (mm)", fontsize=12, fontname='Times New Roman')
+    plt.ylabel("Y (mm)", fontsize=12, fontname='Times New Roman')
+    plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=3)
+    plt.grid(alpha=0.3, linestyle="--")
+    ax = plt.gca()
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
+        spine.set_edgecolor('black')
+    ax.xaxis.set_ticks_position('both')
+    ax.yaxis.set_ticks_position('both')
+    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=8, width=1.2)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontname('Times New Roman')
+        label.set_fontsize(10)
     plt.tight_layout()
     plt.show()
+
+    #plt.legend()
+    #plt.xlabel("X (mm)", fontsize=font_large)
+    #plt.ylabel("Y (mm)", fontsize=font_large)
+    #plt.grid()
+    #plt.tight_layout()
+    #plt.show()
 
 def compare_simulated_vs_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     """

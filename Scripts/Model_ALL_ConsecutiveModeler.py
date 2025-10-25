@@ -7,6 +7,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import random
 from dataclasses import dataclass
 import seaborn as sns
@@ -357,7 +358,7 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
         added_gap_data = list(get_synced_data(i, 'Traverse')['Gap_gap'])
         real_gap_data = real_gap_data + added_gap_data
     #print(real_gap_data)
-    print('real printed', len(real_gap_data))
+    #print('real printed', len(real_gap_data))
     experimental_mean = np.mean(real_gap_data)
     experimental_std = np.std(real_gap_data)
     # real_gap_data = filter(lambda x: 4 >= x >= 8, real_gap_data)
@@ -369,7 +370,7 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
     for i in range (tows_simulated-1):
         D04_gap_data = D04_gap_data + list(gap_overlap_df[:, i])
     #print(D04_gap_data)
-    print('D04 printed', len(D04_gap_data))
+    #print('D04 printed', len(D04_gap_data))
     D04_mean = np.mean(gap_overlap_df)
     D04_std = np.std(gap_overlap_df)
 
@@ -381,7 +382,7 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
         RW_gap_data = RW_gap_data + list(RW_gap_df[:, i])
         #print(RW_gap_data, i)
     #print(RW_gap_data)
-    print('RW printed', len(RW_gap_data))
+    #print('RW printed', len(RW_gap_data))
     RW_mean = np.mean(RW_gap_data)
     RW_std = np.std(RW_gap_data)
 
@@ -393,7 +394,7 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
         RS_gap_data = RS_gap_data + list(RS_gap_df[:, i])
         #print(RS_gap_data, i)
     #print(RS_gap_data)
-    print('RS printed', len(RS_gap_data))
+    #print('RS printed', len(RS_gap_data))
     RS_mean = np.mean(RS_gap_data)
     RS_std = np.std(RS_gap_data)
 
@@ -504,7 +505,7 @@ def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal:
     plt.tight_layout()
     plt.show()
 
-def KDE_curves(tows_simulated: int, n_laminates: int):
+def KDE_curves(tows_simulated: int):
     """Function to plot probability density functions using KDE plotting.
         Author: ChatGPT"""
     # Obtain data
@@ -546,12 +547,27 @@ def KDE_curves(tows_simulated: int, n_laminates: int):
     plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
 
     # Labels and layout
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = ['Times New Roman']
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = 10
+    mpl.rcParams['ytick.labelsize'] = 10
     plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
     plt.axhline(0, color='gray', linestyle='--', linewidth=1)
-    plt.xlabel("Gap (mm)", fontsize=14)
-    plt.ylabel("Probability Density", fontsize=14)
-    plt.legend(fontsize=10)
+    plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
+    plt.ylabel("Probability Density", fontsize=12, fontname='Times New Roman')
+    plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=4)
     plt.grid(alpha=0.3, linestyle="--")
+    ax = plt.gca()
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
+        spine.set_edgecolor('black')
+    ax.xaxis.set_ticks_position('both')
+    ax.yaxis.set_ticks_position('both')
+    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=8, width=1.2)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontname('Times New Roman')
+        label.set_fontsize(10)
     plt.tight_layout()
     plt.show()
 
@@ -667,10 +683,35 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
         plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+
+        mpl.rcParams['font.family'] = 'serif'
+        mpl.rcParams['font.serif'] = ['Times New Roman']
+        mpl.rcParams['mathtext.fontset'] = 'stix'
+        mpl.rcParams['xtick.labelsize'] = 10
+        mpl.rcParams['ytick.labelsize'] = 10
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        plt.ylabel("Probability Density", fontsize=font_medium)
-        plt.grid(alpha=0.5, linestyle="-")
-        plt.legend(fontsize=font_small)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
+        plt.ylabel("Probability Density", fontsize=12, fontname='Times New Roman')
+        plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=6)
+        plt.grid(alpha=0.3, linestyle="--")
+        ax = plt.gca()
+        for spine in ax.spines.values():
+            spine.set_linewidth(1)
+            spine.set_edgecolor('black')
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=8, width=1.2)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontname('Times New Roman')
+            label.set_fontsize(10)
+        #plt.tight_layout()
+        #plt.show()
+
+        #plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        #plt.ylabel("Probability Density", fontsize=font_medium)
+        #plt.grid(alpha=0.5, linestyle="-")
+        #plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35))
         
         plt.subplot(212)
         plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
@@ -680,13 +721,38 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
         plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+
+        mpl.rcParams['font.family'] = 'serif'
+        mpl.rcParams['font.serif'] = ['Times New Roman']
+        mpl.rcParams['mathtext.fontset'] = 'stix'
+        mpl.rcParams['xtick.labelsize'] = 10
+        mpl.rcParams['ytick.labelsize'] = 10
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        plt.legend(fontsize=font_small)
-        plt.xlabel("Gap (mm)", fontsize=font_medium)
-        plt.grid(alpha=0.5, linestyle="-")
-        
-        plt.ylabel("Probability Density", fontsize=font_medium)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
+        plt.ylabel("Probability Density", fontsize=12, fontname='Times New Roman')
+        plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=6)
+        plt.grid(alpha=0.3, linestyle="--")
+        ax = plt.gca()
+        for spine in ax.spines.values():
+            spine.set_linewidth(1)
+            spine.set_edgecolor('black')
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=8, width=1.2)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontname('Times New Roman')
+            label.set_fontsize(10)
+        plt.tight_layout()
         plt.show()
+
+        #plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        #plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35))
+        #plt.xlabel("Gap (mm)", fontsize=font_medium)
+        #plt.grid(alpha=0.5, linestyle="-")
+        
+        #plt.ylabel("Probability Density", fontsize=font_medium)
+        #plt.show()
 
     if plottype == "separate":
         
