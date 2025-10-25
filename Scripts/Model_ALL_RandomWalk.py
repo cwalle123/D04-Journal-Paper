@@ -596,11 +596,11 @@ def analyze_tow_spacing_effect(
         print(f"\n✅ Results (including intersection columns) saved to: {csv_path}")
 
     # --- Plot ---
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(9.25, 2.90))
     ax = plt.gca()
 
-    plt.plot(spacing_values_mm, gap_arr, color="blue", label="Gap", linewidth=2)
-    plt.plot(spacing_values_mm, overlap_arr, color="red", label="Overlap", linewidth=2)
+    plt.plot(spacing_values_mm, gap_arr, color="blue", label="Gap", linewidth=1)
+    plt.plot(spacing_values_mm, overlap_arr, color="red", label="Overlap", linewidth=1)
 
     # Labels (Times New Roman)
     plt.xlabel("Programmed shift (mm)", fontname="Times New Roman", fontsize=15)
@@ -613,7 +613,7 @@ def analyze_tow_spacing_effect(
     # Box border
     for spine in ax.spines.values():
         spine.set_visible(True)
-        spine.set_linewidth(1.2)
+        spine.set_linewidth(1)
         spine.set_color("black")
 
     plt.xticks(fontname="Times New Roman", fontsize=15)
@@ -621,7 +621,15 @@ def analyze_tow_spacing_effect(
     plt.legend(prop={"family": "Times New Roman", "size": 15})
     plt.tight_layout()
     
-    ax.set_ylim(0, 15)
+    ax.tick_params(top=True, bottom=True, left=True, right=True,
+                direction='in',  # Ticks point inward (optional, for a clean boxed look)
+                length=6, width=1)  # Adjust tick size and thickness
+
+    xmin, xmax = 5, 7.5
+    ymin, ymax = 0, 10
+
+    ax.set_xlim(xmin - 0.02*(xmax-xmin), xmax + 0.02*(xmax-xmin))
+    ax.set_ylim(ymin - 0.1*(ymax-ymin), ymax + 0.1*(ymax-ymin))
 
     plt.show()
 
