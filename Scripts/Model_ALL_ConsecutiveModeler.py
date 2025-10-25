@@ -504,11 +504,25 @@ def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal:
     plt.tight_layout()
     plt.show()
 
-def KDE_curves(tows_simulated: int):
+def KDE_curves(tows_simulated: int, n_laminates: int):
     """Function to plot probability density functions using KDE plotting.
         Author: ChatGPT"""
     # Obtain data
     real_gap_data, D04_gap_data, RW_gap_data, RS_gap_data, real_mean, D04_mean, RW_mean, RS_mean, ideal_gap_center, bins = Gap_Histogram(tows_simulated)
+    
+    # In case we want to average over multiple laminates, not finished yet
+    # 
+    #RW_gap_data_list = []
+    #RS_gap_data_list = []
+    #RW_mean_list = []
+    #RS_mean_list = []
+    #for i in range(n_laminates):
+    #    _, _, RW_gap_data, RS_gap_data, _, _, RW_mean, RS_mean, _, _ = Gap_Histogram(tows_simulated)
+    #    RW_gap_data_list.append(RW_gap_data)
+    #    RS_gap_data_list.append(RS_gap_data)
+    #    RW_mean_list.append(RW_mean)
+    #    RS_mean_list.append(RS_mean)
+    
     
     plt.figure(figsize=(10,6))
 
@@ -556,7 +570,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     for i in range(1, 31):
         added_gap_data = list(get_synced_data(i, 'Traverse')['Gap_gap'])
         experimental_gap_data = experimental_gap_data + added_gap_data
-    print('real printed', len(experimental_gap_data))
     experimental_mean = np.mean(experimental_gap_data)
     experimental_std = np.std(experimental_gap_data)
 
@@ -566,7 +579,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     D04_gap_data = []
     for i in range (tows_simulated-1):
         D04_gap_data = D04_gap_data + list(gap_overlap_df[:, i])
-    print('D04 printed', len(D04_gap_data))
     D04_mean = np.mean(D04_gap_data)
     D04_std = np.std(D04_gap_data)
 
@@ -576,7 +588,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     RW_gap_data = []
     for i in range (tows_simulated-1):
         RW_gap_data = RW_gap_data + list(RW_gap_df[:, i])
-    print('RW printed', len(RW_gap_data))
     RW_mean = np.mean(RW_gap_data)
     RW_std = np.std(RW_gap_data)
 
@@ -586,7 +597,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     RS_gap_data = []
     for i in range (tows_simulated-1):
         RS_gap_data = RS_gap_data + list(RS_gap_df[:, i])
-    print('RS printed', len(RS_gap_data))
     RS_mean = np.mean(RS_gap_data)
     RS_std = np.std(RS_gap_data)
 

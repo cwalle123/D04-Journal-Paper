@@ -75,6 +75,7 @@ def get_n_steps(sensor):
 def propose_new_RWM_value(x_current, dist_std):    # random walk metropolis (RWM), using normal dist???
     mean = 0
     proposal = x_current + np.random.normal(mean, dist_std)  # this uses std to recreate real tow 'waviness'
+    # update_states()     # comment this if not initialising from StartVariations
     return proposal
 
 def fit_random_walk(sensor: str):
@@ -103,6 +104,7 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
         start_value = start_value_override
     else:
         start_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
+        # update_states()     # comment this if not initialising from StartVariations
     generated_path = []
     x_current = start_value
 
@@ -117,6 +119,7 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
         # code to accept or reject the proposed new value
         alpha = target_dist(x_proposal) / target_dist(x_current)      # alpha = acceptance probability
         U = random.uniform(0, 1)
+        # update_states()     # comment this if not initialising from StartVariations
 
         if alpha >= U:  # we accept the proposed value
             x_next = x_proposal
@@ -684,6 +687,29 @@ def generate_RW_multitow_with_local_percent(
         "total_overlap_percent": total_overlap_percent,
         "RW_all_tows_data": RW_all_tows_data,
         "gap_overlap_df": gap_overlap_df}
+
+
+def update_states():
+    #print(random.getstate())
+    state_data.append(random.getstate())
+
+def initiate_state_data():
+    global state_data
+    state_data = []
+
+def check_state_data():
+    print("checking states...")
+    print(len(state_data))
+    duplicate_states = False
+
+    for state in state_data:
+        n_state = state_data.count(state)
+        if n_state != 1:
+            print(f"a state has occured {n_state} times, it is: {state}")
+            duplicate_states = True
+
+    if duplicate_states: print("duplicate states detected")
+    else: print("no duplicate states detected")
 
 ##############################################################################################################
 """Run this file"""
