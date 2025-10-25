@@ -688,7 +688,6 @@ def generate_RW_multitow_with_local_percent(
         "RW_all_tows_data": RW_all_tows_data,
         "gap_overlap_df": gap_overlap_df}
 
-
 def update_states():
     #print(random.getstate())
     state_data.append(random.getstate())
