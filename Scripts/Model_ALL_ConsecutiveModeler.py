@@ -362,6 +362,8 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
     experimental_mean = np.mean(real_gap_data)
     experimental_std = np.std(real_gap_data)
     # real_gap_data = filter(lambda x: 4 >= x >= 8, real_gap_data)
+    experimental_90th_percentile = np.percentile(real_gap_data, 90)
+    experimental_99th_percentile = np.percentile(real_gap_data, 99)
 
     # -------generating D04-model data--------
     gap_overlap_df, _, _, _, _ = generate_multitow_layout(num_tows=tows_simulated, tow_spacing_mm=12.5)
@@ -373,6 +375,8 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
     #print('D04 printed', len(D04_gap_data))
     D04_mean = np.mean(gap_overlap_df)
     D04_std = np.std(gap_overlap_df)
+    D04_90th_percentile = np.percentile(gap_overlap_df, 90)
+    D04_99th_percentile = np.percentile(gap_overlap_df, 99)
 
     # -------generating Random Walk data--------
     RW_gap_df, _, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
@@ -385,6 +389,8 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
     #print('RW printed', len(RW_gap_data))
     RW_mean = np.mean(RW_gap_data)
     RW_std = np.std(RW_gap_data)
+    RW_90th_percentile = np.percentile(RW_gap_data, 90)
+    RW_99th_percentile = np.percentile(RW_gap_data, 99)
 
     # -------generating Random Sampling data--------
     RS_gap_df, _ = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
@@ -397,11 +403,13 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
     #print('RS printed', len(RS_gap_data))
     RS_mean = np.mean(RS_gap_data)
     RS_std = np.std(RS_gap_data)
+    RS_90th_percentile = np.percentile(RS_gap_data, 90)
+    RS_99th_percentile = np.percentile(RS_gap_data, 99)
 
-    print(f'Experimental mean/std = {experimental_mean}/{experimental_std}')
-    print(f'D04 mean/std = {D04_mean}/{D04_std}')
-    print(f'RW mean/std = {RW_mean}/{RW_std}')
-    print(f'RS mean/std = {RS_mean}/{RS_std}')
+    print(f'Experimental mean/std/90th/99th = {experimental_mean}/{experimental_std}/{experimental_90th_percentile}/{experimental_99th_percentile}')
+    print(f'D04 mean/std/90th/99th = {D04_mean}/{D04_std}/{D04_90th_percentile}/{D04_99th_percentile}')
+    print(f'RW mean/std/90th/99th = {RW_mean}/{RW_std}/{RW_90th_percentile}/{RW_99th_percentile}')
+    print(f'RS mean/std/90th/99th = {RS_mean}/{RS_std}/{RS_90th_percentile}/{RS_99th_percentile}')
 
     gap_center = 12.5-6.35
     bins = [0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10]
@@ -587,6 +595,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         experimental_gap_data = experimental_gap_data + added_gap_data
     experimental_mean = np.mean(experimental_gap_data)
     experimental_std = np.std(experimental_gap_data)
+    experimental_90th_percentile = np.percentile(experimental_gap_data, 90)
+    experimental_99th_percentile = np.percentile(experimental_gap_data, 99)
 
     # -------generating D04-model data--------
     gap_overlap_df, _, _, _, _ = generate_multitow_layout(num_tows=tows_simulated, tow_spacing_mm=12.5)
@@ -596,6 +606,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         D04_gap_data = D04_gap_data + list(gap_overlap_df[:, i])
     D04_mean = np.mean(D04_gap_data)
     D04_std = np.std(D04_gap_data)
+    D04_90th_percentile = np.percentile(D04_gap_data, 90)
+    D04_99th_percentile = np.percentile(D04_gap_data, 99)
 
     # -------generating Random Walk data--------
     RW_gap_df, _, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
@@ -605,6 +617,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         RW_gap_data = RW_gap_data + list(RW_gap_df[:, i])
     RW_mean = np.mean(RW_gap_data)
     RW_std = np.std(RW_gap_data)
+    RW_90th_percentile = np.percentile(RW_gap_data, 90)
+    RW_99th_percentile = np.percentile(RW_gap_data, 99)
 
     #-------generating Random Sampling data--------
     RS_gap_df, _ = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
@@ -614,12 +628,14 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         RS_gap_data = RS_gap_data + list(RS_gap_df[:, i])
     RS_mean = np.mean(RS_gap_data)
     RS_std = np.std(RS_gap_data)
+    RS_90th_percentile = np.percentile(RS_gap_data, 90)
+    RS_99th_percentile = np.percentile(RW_gap_data, 99)
 
     #-----print statements
-    print(f'Experimental mean/std = {experimental_mean}/{experimental_std}')
-    print(f'D04 mean/std = {D04_mean}/{D04_std}')
-    print(f'RW mean/std = {RW_mean}/{RW_std}')
-    print(f'RS mean/std = {RS_mean}/{RS_std}')
+    print(f'Experimental mean/std/90th/99th = {experimental_mean}/{experimental_std}/{experimental_90th_percentile}/{experimental_99th_percentile}')
+    print(f'D04 mean/std/90th/99th = {D04_mean}/{D04_std}/{D04_90th_percentile}/{D04_99th_percentile}')
+    print(f'RW mean/std/90th/99th = {RW_mean}/{RW_std}/{RW_90th_percentile}/{RW_99th_percentile}')
+    print(f'RS mean/std/90th/99th = {RS_mean}/{RS_std}/{RS_90th_percentile}/{RS_99th_percentile}')
 
     #-------calculating plot parameters---------
     ideal_gap_center = 12.5-6.35
@@ -843,8 +859,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
 def main():
     #data = run_model()
     #Gap_Histogram(30)
-    KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04")
+    #KDE_curves(29)
+    model_distribution_figures(29, plottype="single no D04")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
