@@ -528,22 +528,22 @@ def KDE_curves(tows_simulated: int):
     plt.figure(figsize=(10,6))
 
     # Plot histograms
-    plt.hist(real_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+    plt.hist(real_gap_data, bins=bins, density=True, alpha=0.4, color="blue", label="Experimental")
     #plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="D04", hatch='o')
-    plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="red", label="Random Walk")
-    plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="Random Sampling")
+    plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.4, color="green", label="Random Walk")
+    plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.4, color="orange", label="Random Sampling")
     
     # Plot smooth KDE curves
-    sns.kdeplot(real_gap_data, label="Experimental", color="blue", linewidth=2)
+    #sns.kdeplot(real_gap_data, label="Experimental", color="blue", linewidth=2)
     #sns.kdeplot(D04_gap_data, label="D04", color="orange", linewidth=2)
-    sns.kdeplot(RW_gap_data, label="Random Walk", color="red", linewidth=2)
-    sns.kdeplot(RS_gap_data, label="Random Sampling", color="green", linewidth=2)
+    #sns.kdeplot(RW_gap_data, label="Random Walk", color="green", linewidth=2)
+    #sns.kdeplot(RS_gap_data, label="Random Sampling", color="orange", linewidth=2)
 
     # Plot vertical lines for means and ideal gap
     plt.axvline(real_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
     #plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
-    plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
-    plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
+    plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
+    plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
     plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
 
     # Labels and layout
@@ -557,7 +557,6 @@ def KDE_curves(tows_simulated: int):
     plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
     plt.ylabel("Probability Density", fontsize=12, fontname='Times New Roman')
     plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=4)
-    plt.grid(alpha=0.3, linestyle="--")
     ax = plt.gca()
     for spine in ax.spines.values():
         spine.set_linewidth(1)
@@ -640,7 +639,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.ylabel("Probability Density", fontsize=font_medium)
-        plt.grid(alpha=0.5, linestyle="-")
         plt.legend(fontsize=font_extra_small)
         
         plt.subplot(312)
@@ -653,7 +651,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.ylabel("Probability Density", fontsize=font_medium)
-        plt.grid(alpha=0.5, linestyle="-")
         plt.legend(fontsize=font_extra_small)
         
         plt.subplot(313)
@@ -667,7 +664,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.legend(fontsize=font_extra_small)
         plt.xlabel("Gap (mm)", fontsize=font_medium)
-        plt.grid(alpha=0.5, linestyle="-")
         
         plt.ylabel("Probability Density", fontsize=font_medium)
         plt.show()
@@ -676,12 +672,12 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.figure(figsize=(12, 8))
         
         plt.subplot(211)
-        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
-        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="red", label="RW")
-        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
-        sns.kdeplot(RW_gap_data, label="RW", color="red", linewidth=2)
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.6, color="blue", label="Experimental")
+        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.6, color="green", label="RW")
+        #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        #sns.kdeplot(RW_gap_data, label="RW", color="green", linewidth=2)
         plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
+        plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
 
         mpl.rcParams['font.family'] = 'serif'
@@ -694,7 +690,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
         plt.ylabel("Probability Density", fontsize=12, fontname='Times New Roman')
         plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=6)
-        plt.grid(alpha=0.3, linestyle="--")
         ax = plt.gca()
         for spine in ax.spines.values():
             spine.set_linewidth(1)
@@ -714,12 +709,12 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         #plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35))
         
         plt.subplot(212)
-        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
-        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="RS")
-        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
-        sns.kdeplot(RS_gap_data, label="RS", color="green", linewidth=2)
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.6, color="blue", label="Experimental")
+        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.6, color="orange", label="RS")
+        #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        #sns.kdeplot(RS_gap_data, label="RS", color="orange", linewidth=2)
         plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
+        plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
 
         mpl.rcParams['font.family'] = 'serif'
@@ -732,7 +727,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
         plt.ylabel("Probability Density", fontsize=12, fontname='Times New Roman')
         plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=6)
-        plt.grid(alpha=0.3, linestyle="--")
         ax = plt.gca()
         for spine in ax.spines.values():
             spine.set_linewidth(1)
@@ -770,7 +764,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.xlabel("Gap (mm)", fontsize=14)
         plt.ylabel("Probability Density", fontsize=14)
         plt.legend(fontsize=10)
-        plt.grid(alpha=0.3, linestyle="--")
         plt.tight_layout()
         plt.show()
 
@@ -788,7 +781,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.xlabel("Gap (mm)", fontsize=14)
         plt.ylabel("Probability Density", fontsize=14)
         plt.legend(fontsize=10)
-        plt.grid(alpha=0.3, linestyle="--")
         plt.tight_layout()
         plt.show()
 
@@ -806,7 +798,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.xlabel("Gap (mm)", fontsize=14)
         plt.ylabel("Probability Density", fontsize=14)
         plt.legend(fontsize=10)
-        plt.grid(alpha=0.3, linestyle="--")
         plt.tight_layout()
         plt.show()
     
@@ -815,36 +806,34 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         #RW
         plt.figure(figsize=(10,6))
         plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
-        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="red", label="RW")
-        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
-        sns.kdeplot(RW_gap_data, label="RW", color="red", linewidth=2)
+        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="RW")
+        #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        #sns.kdeplot(RW_gap_data, label="RW", color="green", linewidth=2)
         plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
+        plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
         plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlabel("Gap (mm)", fontsize=14)
         plt.ylabel("Probability Density", fontsize=14)
         plt.legend(fontsize=10)
-        plt.grid(alpha=0.3, linestyle="--")
         plt.tight_layout()
         plt.show()
 
         #RS
         plt.figure(figsize=(10,6))
         plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
-        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="RS")
-        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
-        sns.kdeplot(RS_gap_data, label="RS", color="green", linewidth=2)
+        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="RS")
+        #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        #sns.kdeplot(RS_gap_data, label="RS", color="orange", linewidth=2)
         plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
+        plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
         plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlabel("Gap (mm)", fontsize=14)
         plt.ylabel("Probability Density", fontsize=14)
         plt.legend(fontsize=10)
-        plt.grid(alpha=0.3, linestyle="--")
         plt.tight_layout()
         plt.show()
 

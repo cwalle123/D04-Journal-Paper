@@ -313,14 +313,14 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     #plt.plot(x_D04_right, y_D04_right, "-", color="orange")
 
     # Random Walk tow
-    plt.plot(x_RW_centerline, y_RW_centerline, "--", color="red", label="RW centerline")
-    plt.plot(x_RW_left, y_RW_left, "-", color="red", label="RW edges")
-    plt.plot(x_RW_right, y_RW_right, "-", color="red")
+    plt.plot(x_RW_centerline, y_RW_centerline, "--", color="green", label="RW centerline")
+    plt.plot(x_RW_left, y_RW_left, "-", color="green", label="RW edges")
+    plt.plot(x_RW_right, y_RW_right, "-", color="green")
 
     # Random sampling tow
-    plt.plot(x_RS_centerline, y_RS_centerline, "--", color="green", label="RS centerline")
-    plt.plot(x_RS_left, y_RS_left, "-", color="green", label="RS edges")
-    plt.plot(x_RS_right, y_RS_right, "-", color="green")
+    plt.plot(x_RS_centerline, y_RS_centerline, "--", color="orange", label="RS centerline")
+    plt.plot(x_RS_left, y_RS_left, "-", color="orange", label="RS edges")
+    plt.plot(x_RS_right, y_RS_right, "-", color="orange")
 
     mpl.rcParams['font.family'] = 'serif'
     mpl.rcParams['font.serif'] = ['Times New Roman']
@@ -330,7 +330,6 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     plt.xlabel("X (mm)", fontsize=12, fontname='Times New Roman')
     plt.ylabel("Y (mm)", fontsize=12, fontname='Times New Roman')
     plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=3)
-    plt.grid(alpha=0.3, linestyle="--")
     ax = plt.gca()
     for spine in ax.spines.values():
         spine.set_linewidth(1)
