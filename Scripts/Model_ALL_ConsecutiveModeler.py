@@ -528,10 +528,10 @@ def KDE_curves(tows_simulated: int):
     plt.figure(figsize=(10,6))
 
     # Plot histograms
-    plt.hist(real_gap_data, bins=bins, density=True, alpha=0.4, color="blue", label="Experimental")
+    plt.hist(real_gap_data, bins=bins, density=True, alpha=0.6, color="blue", label="Experimental")
     #plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="D04", hatch='o')
-    plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.4, color="green", label="Random Walk")
-    plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.4, color="orange", label="Random Sampling")
+    plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.6, color="green", label="Random Walk")
+    plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.6, color="orange", label="Random Sampling")
     
     # Plot smooth KDE curves
     #sns.kdeplot(real_gap_data, label="Experimental", color="blue", linewidth=2)
@@ -843,8 +843,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
 def main():
     #data = run_model()
     #Gap_Histogram(30)
-    #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04")
+    KDE_curves(29)
+    #model_distribution_figures(29, plottype="single no D04")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
