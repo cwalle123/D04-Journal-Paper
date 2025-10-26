@@ -106,7 +106,7 @@ def calc_lengthwise_defect_percent(n_laminates, tows_per_laminate: int=29, num_d
     print(defect_data)
     return defect_data
 
-def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_data_modified: pd.DataFrame, mean_label, std_label):
+def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_data_modified: pd.DataFrame, mean_label, std_label, name: str=None):
     plt.figure(figsize=(10, 6))
 
     # original data
@@ -136,7 +136,12 @@ def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_da
                      fancybox=True, shadow=False, ncol=2)
     plt.tight_layout()
     plt.subplots_adjust(bottom=0.2)
-    plt.show()      # TODO: save as figure, don't copy paste
+
+    if name != None:
+        plt.savefig(name, format="pdf", bbox_inches="tight")
+    plt.show()
+
+
 
 
 import numpy as np
@@ -444,14 +449,14 @@ def main():
                                                           alternate_start=[norm, [0, 0.3]]) #0.01221346, 0.48016
     defect_data_modified = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
                                                           alternate_start=[norm, [0, 0.45]])
-    plot_lengthwise_defect_percent(defect_data_original, defect_data_modified, mean_label=[0, 0], std_label=[0.3, 0.45])
+    plot_lengthwise_defect_percent(defect_data_original, defect_data_modified, mean_label=[0, 0], std_label=[0.3, 0.45], name="StartVariations-version_1.pdf")
 
     ### version 2 ###
     #defect_data_original = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
     #                                                      alternate_start=[norm, [0, 0.3]])  # 0.01221346, 0.48016
     #defect_data_modified = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
     #                                                      alternate_start=[norm, [0.3, 0.3]])
-    #plot_lengthwise_defect_percent(defect_data_original, defect_data_modified, mean_label=[0, 0.3], std_label=[0.3, 0.3])
+    #plot_lengthwise_defect_percent(defect_data_original, defect_data_modified, mean_label=[0, 0.3], std_label=[0.3, 0.3], name="StartVariations-version_2.pdf")
 
     #calc_lengthwise_defect_percent_exp(bin_size_mm=10)
     #generate_multilaminate_layout(2)
