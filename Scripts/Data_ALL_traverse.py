@@ -223,7 +223,7 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_s
                         traverse_tow[col] = traverse_tow[col].iloc[indices].reset_index(drop=True)
                 traverse_tow = traverse_tow.reset_index(drop=True)
 
-        offset_mm = (tow - 2) * tow_width_specified  # e.g., 6.35 mm
+        offset_mm = (tow - 2) * tow_width_specified, #Op 6.272
         x_vals_list.append(traverse_tow["x_centerline"].to_numpy())
         top_edge_paths.append(traverse_tow["y_left"].to_numpy() + offset_mm)
         bottom_edge_paths.append(traverse_tow["y_right"].to_numpy() + offset_mm)

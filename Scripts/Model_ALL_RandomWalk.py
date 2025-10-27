@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
 from tqdm import tqdm
 import os
+from scipy.stats import pareto
 
 # Internal imports
 from Handling_ALL_Functions import get_synced_data
@@ -695,6 +696,177 @@ def generate_RW_multitow_with_local_percent(
         "total_overlap_percent": total_overlap_percent,
         "RW_all_tows_data": RW_all_tows_data,
         "gap_overlap_df": gap_overlap_df}
+
+def generate_RW_multitow_layout_lengths(
+    num_tows: int = 5,
+    tow_spacing_mm: float = 6.35, #Op 6.272
+    tow_width_mm: float = 6.35,
+    tow_length_mm: float = 1000,
+    proposal_type: str = "RWM",
+    print_statement: bool = False,
+    starting_mods: list = [None, 1, 1],
+    alternate_start: list = [None, "params"],
+    override: bool = False,
+    plot: bool = False,
+    scaled: bool = False,
+    histogram_bins: int = 30):
+    """
+    Wrapper that calls generate_RW_multitow(...) to create RW tows, then:
+      - builds a gap/overlap DataFrame (indexed by x in mm),
+      - extracts continuous gap / overlap segment lengths (in mm),
+      - fits Pareto distributions to gap-lengths and overlap-lengths,
+      - optionally plots layout and histograms with Pareto overlays.
+
+    Returns:
+        gap_overlap_df : DataFrame of pointwise gap/overlap distances (indexed by x_mm)
+        gap_lengths     : numpy array of continuous gap segment lengths (mm)
+        overlap_lengths : numpy array of continuous overlap segment lengths (mm)
+        gap_fit         : dict with Pareto parameters/statistics for gaps
+        overlap_fit     : dict with Pareto parameters/statistics for overlaps
+    """
+
+    # Call your existing RW generator to produce tows and gap/overlap
+    # generate_RW_multitow currently returns:
+    # gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_all_tows_data
+    try:
+        gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_all_tows_data = generate_RW_multitow(
+            num_tows=num_tows,
+            tow_spacing_mm=tow_spacing_mm,
+            tow_width_mm=tow_width_mm,
+            tow_length_mm=tow_length_mm,
+            proposal_type=proposal_type,
+            print_statement=print_statement,
+            starting_mods=starting_mods,
+            alternate_start=alternate_start,
+            override=override
+        )
+    except NameError:
+        raise RuntimeError("generate_RW_multitow must be defined and importable in the current namespace.")
+
+    # Ensure we have an x index to use (x_mm from RW_all_tows_data[0])
+    if len(RW_all_tows_data) == 0:
+        raise RuntimeError("RW_all_tows_data returned empty; cannot compute segment lengths.")
+    x_vals = np.array(RW_all_tows_data[0]["x_mm"])
+    # Attach index to gap_overlap_df if not already set
+    if not np.allclose(gap_overlap_df.index.values.astype(float), x_vals.astype(float)):
+        gap_overlap_df = gap_overlap_df.copy()
+        gap_overlap_df.index = x_vals
+
+    # --- Helper to extract segment lengths (in mm) from a series indexed by x (mm) ---
+    def _extract_segment_lengths(series, positive=True):
+        values = series.values
+        if len(values) == 0:
+            return np.array([], dtype=float)
+        # boolean mask for gaps (positive) or overlaps (negative)
+        mask = values > 0 if positive else values < 0
+        lengths = []
+        run_length = 0
+        for i in range(len(mask)):
+            if mask[i]:
+                run_length += 1
+            elif run_length > 0:
+                lengths.append(run_length)
+                run_length = 0
+        if run_length > 0:
+            lengths.append(run_length)
+        if len(lengths) == 0:
+            return np.array([], dtype=float)
+        # dx from x index spacing (assumes uniform spacing)
+        dx = series.index[1] - series.index[0]
+        return np.array(lengths, dtype=float) * dx
+
+    # Aggregate segment lengths across adjacent tow pairs
+    gap_lengths_list = []
+    overlap_lengths_list = []
+
+    for col in gap_overlap_df.columns:
+        series = gap_overlap_df[col]
+        gap_lengths_list.extend(_extract_segment_lengths(series, positive=True).tolist())
+        overlap_lengths_list.extend(_extract_segment_lengths(series, positive=False).tolist())
+
+    gap_lengths = np.array(gap_lengths_list, dtype=float)
+    overlap_lengths = np.array(overlap_lengths_list, dtype=float)
+
+    # Pareto fit helper
+    def _fit_pareto(data):
+        if len(data) == 0:
+            return {"shape": 0.0, "loc": 0.0, "scale": 0.0, "mean": 0.0, "std": 0.0}
+        # enforce loc=0 for Pareto of positive lengths
+        shape, loc, scale = pareto.fit(data, floc=0)
+        mean = pareto.mean(shape, loc=loc, scale=scale)
+        std = pareto.std(shape, loc=loc, scale=scale)
+        return {"shape": float(shape), "loc": float(loc), "scale": float(scale), "mean": float(mean), "std": float(std)}
+
+    gap_fit = _fit_pareto(gap_lengths)
+    overlap_fit = _fit_pareto(overlap_lengths)
+
+    # --- Optional plotting: layout + histograms with Pareto overlays ---
+    if plot:
+        # 1) Tow layout plot (centerlines + top/bottom edges)
+        plt.figure(figsize=(10, 5))
+        for tow_index, tow_df in enumerate(RW_all_tows_data):
+            x = tow_df["x_mm"]
+            center = tow_df["centerline"]
+            top = tow_df["top_edge"]
+            bottom = tow_df["bottom_edge"]
+            color = plt.get_cmap("tab10")(tow_index % 10)
+            plt.plot(x, center, "--", color=color, linewidth=1.2, label="Tow centerline" if tow_index == 0 else "_nolegend_")
+            plt.plot(x, top, "-", color=color, linewidth=1.5, label="Tow edges" if tow_index == 0 else "_nolegend_")
+            plt.plot(x, bottom, "-", color=color, linewidth=1.5)
+        # reference offsets (programmed positions)
+        offsets = np.arange(num_tows) * tow_spacing_mm
+        for offset in offsets:
+            plt.plot(x_vals, np.full_like(x_vals, offset), ":", color="black", linewidth=1)
+        plt.xlabel("Tow length (mm)")
+        plt.ylabel("Tow position (mm)")
+        plt.title("RW Simulated Multi-Tow Layout")
+        plt.legend(loc="lower center", bbox_to_anchor=(0.5, -0.2), ncol=3, fontsize=9)
+        if scaled:
+            plt.axis("equal")
+        plt.grid(False)
+        plt.tight_layout()
+        plt.show()
+
+        # 2) Histograms (gap lengths and overlap lengths) with Pareto overlay (counts)
+        fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+        for i, (data, title, fit) in enumerate([
+            (gap_lengths, "Gap Lengths (Pareto Fit)", gap_fit),
+            (overlap_lengths, "Overlap Lengths (Pareto Fit)", overlap_fit)
+        ]):
+            if len(data):
+                counts, bins, _ = ax[i].hist(data, bins=histogram_bins, density=False, alpha=0.7,
+                                             edgecolor="black", label="Empirical counts")
+                x_plot = np.linspace(min(data), max(data), 400)
+                pdf = pareto.pdf(x_plot, fit["shape"], loc=fit["loc"], scale=fit["scale"])
+                bin_width = bins[1] - bins[0]
+                pdf_scaled = pdf * len(data) * bin_width
+                ax[i].plot(x_plot, pdf_scaled, "r-", linewidth=2, label=f"Pareto α={fit['shape']:.2f}")
+                ax[i].axvline(fit["mean"], color="blue", linestyle="--", linewidth=1.5,
+                              label=f"Mean={fit['mean']:.2f} mm")
+                ax[i].set_xlabel("Length (mm)")
+                ax[i].set_ylabel("Count")
+                ax[i].set_title(title)
+                ax[i].legend(fontsize=9)
+                ax[i].grid(True, linestyle=":")
+            else:
+                ax[i].text(0.5, 0.5, "No data", ha="center", va="center")
+                ax[i].set_title(title)
+                ax[i].set_xlabel("Length (mm)")
+                ax[i].set_ylabel("Count")
+        plt.tight_layout()
+        plt.show()
+
+    # --- Print summary (concise) ---
+    print("\n--- Gap Lengths ---")
+    print(f"  N={len(gap_lengths)}, α={gap_fit['shape']:.3f}, scale={gap_fit['scale']:.3f}")
+    print(f"  Mean={gap_fit['mean']:.3f} mm, Std={gap_fit['std']:.3f} mm")
+
+    print("\n--- Overlap Lengths ---")
+    print(f"  N={len(overlap_lengths)}, α={overlap_fit['shape']:.3f}, scale={overlap_fit['scale']:.3f}")
+    print(f"  Mean={overlap_fit['mean']:.3f} mm, Std={overlap_fit['std']:.3f} mm")
+
+    # Return identical structure to your original generate_multitow_layout_lengths
+    return gap_overlap_df, gap_lengths, overlap_lengths, gap_fit, overlap_fit
 
 def update_states():
     #print(random.getstate())
