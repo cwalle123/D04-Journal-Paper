@@ -144,10 +144,6 @@ def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_da
 
 
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
 def calc_lengthwise_defect_percent_exp(bin_size_mm: float, plot: bool = True):
     """
     Compute lengthwise gap/overlap percentage per bin for traverse data (tows 2–30),
@@ -165,6 +161,79 @@ def calc_lengthwise_defect_percent_exp(bin_size_mm: float, plot: bool = True):
         Overall totals across full length:
           - layup_area, gap_area, overlap_area, gap_pct, overlap_pct
     """
+
+
+def calc_lengthwise_tow_gap(tow: pd.DataFrame, programmed_shift: float=6.35, num_divisions: int=100):   # TODO: fix function!
+    ### function to calculate gap/overlap for single tow w.r.t. 2 'ideal' tows. ###
+
+    centerline_average = 500      #TODO: find correct value!
+
+    x_top = np.array(tow["x_left"].values)
+    x_bottom = np.array(tow["x_right"].values)
+    top_edge = np.array(tow["y_left"].values)
+    bottom_edge = np.array(tow["y_right"].values)
+
+    lower_ideal_edge = np.full(np.shape(np.array(x_bottom)), centerline_average)
+    upper_ideal_edge = np.full(np.shape(np.array(x_top)), centerline_average + programmed_shift)
+
+    lower_gap_overlap = upper_ideal_edge - top_edge
+    upper_gap_overlap = bottom_edge - lower_ideal_edge
+
+    gap_percent_list, overlap_percent_list, x_list = [], [], []
+    divisions = np.linspace(0, len(x_top), num_divisions + 1)
+    for i in range(num_divisions):
+        start, end = divisions[i], divisions[i + 1]
+        upper_data = upper_gap_overlap[int(start):int(end) + 1]
+        lower_data = lower_gap_overlap[int(start):int(end) + 1]
+        x_vals_lower = x_bottom[int(start):int(end) + 1]
+        x_vals_upper = x_top[int(start):int(end) + 1]
+
+        # calculating ideal total area of 2 tows
+        total_layout_area = 2 * (np.trapezoid(upper_ideal_edge[int(start):int(end) + 1]-lower_ideal_edge[int(start):int(end) + 1], x_top[int(start):int(end) + 1]))
+
+        lower_gap_area = np.trapezoid(np.clip(lower_data, 0, None), x_vals_lower)
+        lower_overlap_area = np.trapezoid(np.clip(-lower_data, 0, None), x_vals_lower)
+        upper_gap_area = np.trapezoid(np.clip(upper_data, 0, None), x_vals_upper)
+        upper_overlap_area = np.trapezoid(np.clip(-upper_data, 0, None), x_vals_upper)
+
+        gap_percent = ((lower_gap_area+upper_gap_area) / total_layout_area) * 100 if total_layout_area > 0 else 0
+        overlap_percent = ((lower_overlap_area+upper_overlap_area) / total_layout_area) * 100 if total_layout_area > 0 else 0
+
+        gap_percent_list.append(gap_percent)
+        overlap_percent_list.append(overlap_percent)
+        x_list.append(np.average(x_vals_lower))
+
+
+    defect_data = pd.DataFrame(
+        {"x": x_list,
+         "gap_percent": gap_percent_list,
+         "overlap_percent": overlap_percent_list})
+    print(defect_data)
+    return defect_data
+
+def calc_experimental_lengthwise(tows: list, programmed_shift: float=6.35):
+    for tow in tows:
+        tow = traverse_tow_constructor(tow, normalize=True)
+        print(tow["y_right"], tow["y_left"], tow["y_centerline"], tow)
+        #traverse_tow = pd.DataFrame({
+        #    "x_right": x_bottom,
+        #    "y_right": y_bottom_edge,
+        #    "x_left": x_top,
+        #    "y_left": y_top_edge,
+        #    "x_centerline": x_bottom,
+        #    "y_centerline": y_centerline})
+
+        defect_data = calc_lengthwise_tow_gap(tow, programmed_shift=programmed_shift)
+        print(defect_data)
+
+
+
+        defect_data = pd.DataFrame({
+            "x": x_list,
+            "gap_percent": gap_percent_list,
+            "overlap_percent": overlap_percent_list})
+    print(defect_data)
+    return defect_data
 
     # ---------- helpers ----------
     def _assert_strictly_increasing(x, name="x"):
@@ -445,11 +514,11 @@ def main():
     #plot_target_vs_start(starting_mods=[1, 1.5])      # target_mods=[None, 1, 1.5], starting_mods=[1, 1.5]
 
     ### version 1 ###
-    defect_data_original = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
-                                                          alternate_start=[norm, [0, 0.3]]) #0.01221346, 0.48016
-    defect_data_modified = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
-                                                          alternate_start=[norm, [0, 0.45]])
-    plot_lengthwise_defect_percent(defect_data_original, defect_data_modified, mean_label=[0, 0], std_label=[0.3, 0.45], name="StartVariations-version_1.pdf")
+    #defect_data_original = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
+    #                                                      alternate_start=[norm, [0, 0.3]]) #0.01221346, 0.48016
+    #defect_data_modified = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
+    #                                                      alternate_start=[norm, [0, 0.45]])
+    #plot_lengthwise_defect_percent(defect_data_original, defect_data_modified, mean_label=[0, 0], std_label=[0.3, 0.45], name="StartVariations-version_1.pdf")
 
     ### version 2 ###
     #defect_data_original = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
@@ -460,6 +529,8 @@ def main():
 
     #calc_lengthwise_defect_percent_exp(bin_size_mm=10)
     #generate_multilaminate_layout(2)
+
+    calc_experimental_lengthwise([2])
     
 if __name__ == "__main__":
     main()
