@@ -731,11 +731,11 @@ def main():
     # real_df, sim_df = plot_real_vs_RW_tow(6, plot = True, force_steps = False)
     # compare_real_vs_RW_gaps_overlaps()
 
-    # compare_simulated_vs_real_tow(8)
-    # compare_multiple_simulations(8, 50)
-    # plot_real_vs_D04_vs_RW_vs_RS_tow(2)
-    # compare_real_vs_RW_gaps_overlaps()
-    compare_real_vs_RW_simulated_gaps_overlaps_lengths()
+    compare_simulated_vs_real_tow(8)
+    #compare_multiple_simulations(8, 50)
+    #plot_real_vs_D04_vs_RW_vs_RS_tow(2)
+    #compare_real_vs_RW_gaps_overlaps()
+    #compare_real_vs_RW_simulated_gaps_overlaps_lengths()
 
 if __name__ == "__main__":
     main()
