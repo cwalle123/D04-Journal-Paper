@@ -320,9 +320,14 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         if n_steps != LLS_A_steps:
             LLSA_walk_data = interpolate(LLSA_walk_data, n_steps)
 
+        compaction_error = -(LLSB_walk_data - LLSA_walk_data)
+        for i in range(len(LLSB_walk_data)):
+            if compaction_error[i] > 0:
+                compaction_error[i] = 0
+
         # getting it into centerline and width format
         tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
-        tow_width_data = tow_width_mm + np.array(LLSB_walk_data)
+        tow_width_data = tow_width_mm + compaction_error
 
         #print(f'Tow centerline: {tow_centerline_data}')
         #print(f'Tow width: {tow_width_data}')
