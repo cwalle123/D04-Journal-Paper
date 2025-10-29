@@ -265,6 +265,7 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
     LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
     CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
     LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
+    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A")
     if print_statement == True:
         print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
 
@@ -301,19 +302,18 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params, proposal_type=proposal_type)
         CAM_walk_data = generate_random_walk("CAM", CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params, proposal_type=proposal_type)
         LLSB_walk_data = generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params, proposal_type=proposal_type)
+        LLSA_walk_data = generate_random_walk("LLS_A", LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params, proposal_type=proposal_type)
 
         # determine what the smallest number of steps is for the errors and use this is the global number of steps
         n_steps = min(LT_steps, CAM_steps, LLS_B_steps)
         if n_steps != CAM_steps: print('Note: CAM data length was NOT used!')
         x_walk_data = np.linspace(0, tow_length_mm, n_steps)
 
-        # interpolate only datasets that are longer than the reference
-        if n_steps != LT_steps:
-            LT_walk_data = interpolate(LT_walk_data, n_steps)
-        if n_steps != CAM_steps:
-            CAM_walk_data = interpolate(CAM_walk_data, n_steps)
-        if n_steps != LLS_B_steps:
-            LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
+        # interpolate datasets that are longer than the reference
+        LT_walk_data = interpolate(LT_walk_data, n_steps)
+        CAM_walk_data = interpolate(CAM_walk_data, n_steps)
+        LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
+        LLSA_walk_data = interpolate(LLSA_walk_data, n_steps)
 
         # getting it into centerline and width format
         tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
@@ -893,7 +893,7 @@ def check_state_data():
 """Run this file"""
 
 def main():
-    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("CAM")
+    # LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("CAM")
     #LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
     #                            proposal_type="RWM", plot_histogram=True, plot_path=True)
     #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
@@ -907,11 +907,10 @@ def main():
     # generate_RW_multitow(num_tows=10)
     #plot_RW_tows(2, plot_individual_histograms=True)
     # analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
-    # analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv") # Only plots data
+    analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv") # Only plots data
     #plot_LLS_hist()
 
-    generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std,
-                         target_dist=LT_target_dist, dist=LT_dist, params=LT_params,
-                         proposal_type='RWM', plot_histogram=True, return_pdf=True)
+    # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
+
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
