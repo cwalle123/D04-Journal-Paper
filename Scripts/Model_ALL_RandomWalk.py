@@ -110,29 +110,25 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
     x_current = start_value
 
     accepted, rejected = 0, 0
-    for step in range(actual_steps-1):
 
-        if proposal_type == "RWM":
-            x_proposal = propose_new_RWM_value(x_current, proposal_std)
-        else:
-         print("Error, invalid proposal type")
+    for step in range(actual_steps):
+    # propose
+        x_proposal = propose_new_RWM_value(x_current, proposal_std)
 
-        # code to accept or reject the proposed new value
-        alpha = target_dist(x_proposal) / target_dist(x_current)      # alpha = acceptance probability
-        U = random.uniform(0, 1)
-        # update_states()     # comment this if not initialising from StartVariations
-
-        if alpha >= U:  # we accept the proposed value
+    # accept/reject
+        alpha = target_dist(x_proposal) / max(target_dist(x_current), 1e-300)  # avoid 0
+        if random.random() < min(1.0, alpha):
             x_next = x_proposal
             accepted += 1
-        else:           # we reject the proposed value
-            rejected += 1
+        else:
             x_next = x_current
+            rejected += 1
 
-        # only taking samples after the burn-in period is over
+        x_current = x_next  # update FIRST
+
+        # save only after burn-in
         if step >= burn_in_period:
             generated_path.append(x_current)
-        x_current = x_next
 
         if plot_covergence_params == True and len(generated_path)%10 == 0:
             mean_list = np.average(generated_path)
@@ -144,9 +140,12 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
         print("acceptance rate =", accepted/(accepted + rejected))
 
     # plot-plot-plot #
-    x_pdf = np.linspace(-1.2, 1.2, 100)
+    lo = dist.ppf(0.001, *params[:-2], loc=params[-2], scale=params[-1])
+    hi = dist.ppf(0.999, *params[:-2], loc=params[-2], scale=params[-1])
+    x_pdf = np.linspace(lo, hi, 400)
     y_pdf = target_dist(x_pdf)
-
+    plt.xlim(lo, hi)
+    
     if plot_histogram:
         plt.plot(x_pdf, y_pdf, label='probability-distribution')
         plt.hist(generated_path, density=True, bins=30, label='generated path')
@@ -894,7 +893,7 @@ def check_state_data():
 """Run this file"""
 
 def main():
-    #LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("CAM")
     #LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
     #                            proposal_type="RWM", plot_histogram=True, plot_path=True)
     #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
@@ -906,9 +905,13 @@ def main():
     #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
 
     # generate_RW_multitow(num_tows=10)
-    # plot_RW_tows(2)
+    #plot_RW_tows(2, plot_individual_histograms=True)
     # analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
-    analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv") # Only plots data
+    # analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv") # Only plots data
+    #plot_LLS_hist()
 
+    generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std,
+                         target_dist=LT_target_dist, dist=LT_dist, params=LT_params,
+                         proposal_type='RWM', plot_histogram=True, return_pdf=True)
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
