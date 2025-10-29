@@ -48,9 +48,11 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Import tow generator
 from Model_ALL_Simulation import generate_multitow_layout
+from Model_ALL_RandomWalk import generate_RW_multitow
 
 # ---------------- Screen Setup ----------------
 root = tk.Tk()
@@ -104,15 +106,38 @@ def draw_button(text, rect, active=True, green=False):
 def run_simulation():
     global simulation_result
     plt.clf()
-    # Pass tow length directly, generator will compute steps
-    gap_df, gap_only, overlap_only, gap_percent, overlap_percent = generate_multitow_layout(
+
+    # --- Generate RW multitow data ---
+    gap_df, gap_only, overlap_only, gap_percent, overlap_percent, RW_all_tows_data = generate_RW_multitow(
         num_tows=num_tows,
         tow_spacing_mm=tow_spacing_mm,
         tow_width_mm=tow_width_mm,
         tow_length_mm=tow_length_mm,
-        plot=True
-    )
-    fig = plt.gcf()
+        proposal_type="RWM",
+        print_statement=False)
+
+    # --- Create the figure ---
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Define alternating colors
+    colors = [(0.0, 0.5, 0.0), (0.15, 0.9, 0.02)]  # dark green, light green
+
+    # Plot each tow with alternating colors
+    for i, tow_df in enumerate(RW_all_tows_data):
+        color = colors[i % 2]  # alternate between the two
+        x = tow_df["x_mm"]
+        ax.plot(x, tow_df["top_edge"], color=color, lw=1.8, label=f"Tow {i+1}")
+        ax.plot(x, tow_df["bottom_edge"], color=color, lw=1.8)
+        ax.plot(x, tow_df["centerline"], color=color, lw=1.0, linestyle="--")
+
+    # --- Labels, title, legend ---
+    ax.set_title("")  # removes the title
+    ax.set_xlabel("Tow Length (mm)", fontname="Times New Roman", fontsize=15)
+    ax.set_ylabel("Position (mm)", fontname="Times New Roman", fontsize=15)
+    ax.grid(True, linestyle="--", alpha=0.8)
+    plt.tight_layout()
+
+    # --- Store the figure and metrics for display ---
     simulation_result = (fig, gap_percent, overlap_percent)
 
 def render_matplotlib_figure(fig):
@@ -160,30 +185,47 @@ def draw_menu():
 def draw_settings():
     global field_rects
     screen.fill((40, 40, 40))
+
+    # --- Layout control ---
+    start_x_label = SCREEN_WIDTH/2 - 240   # X position for labels
+    start_x_input = start_x_label + 250    # X position for input boxes
+    start_y = SCREEN_HEIGHT/2 - 200        # Y starting position
+    vertical_spacing = 70 # Distance between each row
+
     settings = [
         ("Number of Tows", num_tows),
         ("Tow Width (mm)", tow_width_mm),
         ("Tow Length (mm)", tow_length_mm),
         ("Tow Spacing (mm)", tow_spacing_mm)
     ]
+
     field_rects = []
     for i, (label_text, value) in enumerate(settings):
-        y = 50 + i * 60
+        y = start_y + i * vertical_spacing
+
+        # Draw label
         label = font.render(f"{label_text}:", True, (255, 255, 255))
-        screen.blit(label, (50, y))
-        rect = pygame.Rect(300, y, 200, 40)
+        screen.blit(label, (start_x_label, y))
+
+        # Draw input box
+        rect = pygame.Rect(start_x_input, y, 200, 40)
         pygame.draw.rect(screen, (255, 255, 255), rect, 2)
         value_str = input_text if active_input_field == i else str(value)
-        screen.blit(font.render(value_str, True, (255, 255, 255)), (rect.x+5, rect.y+5))
+        screen.blit(font.render(value_str, True, (255, 255, 255)), (rect.x + 5, rect.y + 5))
         field_rects.append(rect)
-    draw_button("Back", pygame.Rect(50, SCREEN_HEIGHT-70, 100, 40))
+
+    # Add instruction text (adjusted to align nicely under fields)
+    reminder_text = font.render("Remember to press ENTER to confirm a value", True, (200, 200, 0))
+    screen.blit(reminder_text, (start_x_label - 35, start_y + len(settings) * vertical_spacing + 30))
+
+    draw_button("Back", pygame.Rect(50, 50, 100, 40))
 
 def handle_settings_event(event):
     global num_tows, tow_width_mm, tow_length_mm, tow_spacing_mm
     global active_input_field, input_text, state
 
     if event.type == pygame.MOUSEBUTTONDOWN:
-        back_rect = pygame.Rect(50, SCREEN_HEIGHT-70, 100, 40)
+        back_rect = pygame.Rect(50, 50, 100, 40)
         if back_rect.collidepoint(event.pos):
             active_input_field = None
             input_text = ""
@@ -309,7 +351,7 @@ def main():
                             if label=="Simulation":
                                 simulation_result = None
                                 loading_start_time = time.time()
-                                loading_estimated_time = 0.08*num_tows + 0.006*tow_length_mm - 6
+                                loading_estimated_time = 0.237*num_tows + 1.2
                                 simulation_thread = threading.Thread(target=run_simulation)
                                 simulation_thread.start()
                                 state = LOADING
