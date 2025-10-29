@@ -110,25 +110,29 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
     x_current = start_value
 
     accepted, rejected = 0, 0
+    for step in range(actual_steps-1):
 
-    for step in range(actual_steps):
-    # propose
-        x_proposal = propose_new_RWM_value(x_current, proposal_std)
+        if proposal_type == "RWM":
+            x_proposal = propose_new_RWM_value(x_current, proposal_std)
+        else:
+         print("Error, invalid proposal type")
 
-    # accept/reject
-        alpha = target_dist(x_proposal) / max(target_dist(x_current), 1e-300)  # avoid 0
-        if random.random() < min(1.0, alpha):
+        # code to accept or reject the proposed new value
+        alpha = target_dist(x_proposal) / target_dist(x_current)      # alpha = acceptance probability
+        U = random.uniform(0, 1)
+        # update_states()     # comment this if not initialising from StartVariations
+
+        if alpha >= U:  # we accept the proposed value
             x_next = x_proposal
             accepted += 1
-        else:
-            x_next = x_current
+        else:           # we reject the proposed value
             rejected += 1
+            x_next = x_current
 
-        x_current = x_next  # update FIRST
-
-        # save only after burn-in
+        # only taking samples after the burn-in period is over
         if step >= burn_in_period:
             generated_path.append(x_current)
+        x_current = x_next
 
         if plot_covergence_params == True and len(generated_path)%10 == 0:
             mean_list = np.average(generated_path)
@@ -140,12 +144,9 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
         print("acceptance rate =", accepted/(accepted + rejected))
 
     # plot-plot-plot #
-    lo = dist.ppf(0.001, *params[:-2], loc=params[-2], scale=params[-1])
-    hi = dist.ppf(0.999, *params[:-2], loc=params[-2], scale=params[-1])
-    x_pdf = np.linspace(lo, hi, 400)
+    x_pdf = np.linspace(-1.2, 1.2, 100)
     y_pdf = target_dist(x_pdf)
-    plt.xlim(lo, hi)
-    
+
     if plot_histogram:
         plt.plot(x_pdf, y_pdf, label='probability-distribution')
         plt.hist(generated_path, density=True, bins=30, label='generated path')
@@ -309,11 +310,15 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
         if n_steps != CAM_steps: print('Note: CAM data length was NOT used!')
         x_walk_data = np.linspace(0, tow_length_mm, n_steps)
 
-        # interpolate datasets that are longer than the reference
-        LT_walk_data = interpolate(LT_walk_data, n_steps)
-        CAM_walk_data = interpolate(CAM_walk_data, n_steps)
-        LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
-        LLSA_walk_data = interpolate(LLSA_walk_data, n_steps)
+        # interpolate only datasets that are longer than the reference
+        if n_steps != LT_steps:
+            LT_walk_data = interpolate(LT_walk_data, n_steps)
+        if n_steps != CAM_steps:
+            CAM_walk_data = interpolate(CAM_walk_data, n_steps)
+        if n_steps != LLS_B_steps:
+            LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
+        if n_steps != LLS_A_steps:
+            LLSA_walk_data = interpolate(LLSA_walk_data, n_steps)
 
         # getting it into centerline and width format
         tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
