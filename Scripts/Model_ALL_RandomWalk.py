@@ -327,7 +327,7 @@ def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_
 
         # getting it into centerline and width format
         tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
-        tow_width_data = tow_width_mm + compaction_error
+        tow_width_data = tow_width_mm + np.array(LLSB_walk_data)
 
         #print(f'Tow centerline: {tow_centerline_data}')
         #print(f'Tow width: {tow_width_data}')
