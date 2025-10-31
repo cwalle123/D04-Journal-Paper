@@ -877,6 +877,74 @@ def generate_RW_multitow_layout_lengths(
     # Return identical structure to your original generate_multitow_layout_lengths
     return gap_overlap_df, gap_lengths, overlap_lengths, gap_fit, overlap_fit
 
+def run_multiple_RW_simulations_for_gaps_and_overlap_percentages(
+    n_simulations: int = 100,
+    num_tows: int = 5,
+    tow_spacing_mm: float = 6.35,
+    tow_width_mm: float = 6.35,
+    tow_length_mm: float = 1000,
+    proposal_type: str = "RWM",
+    starting_mods: list = [None, 1, 1],
+    alternate_start: list = [None, "params"],
+    override: bool = False,
+    verbose: bool = False,
+    progress_bar: bool = True):
+    """
+    Runs multiple random walk multitow simulations and computes the average
+    and standard deviation of the gap and overlap percentages.
+
+    Returns:
+        summary_df (pd.DataFrame): simulation results table
+        stats (dict): mean and std of gap and overlap percentages
+    """
+    gap_percents = []
+    overlap_percents = []
+
+    iterator = tqdm(range(n_simulations), desc="Running simulations") if progress_bar else range(n_simulations)
+
+    for i in iterator:
+        try:
+            _, _, _, gap_percent, overlap_percent, _ = generate_RW_multitow(
+                num_tows=num_tows,
+                tow_spacing_mm=tow_spacing_mm,
+                tow_width_mm=tow_width_mm,
+                tow_length_mm=tow_length_mm,
+                proposal_type=proposal_type,
+                print_statement=False,
+                starting_mods=starting_mods,
+                alternate_start=alternate_start,
+                override=override)
+
+            gap_percents.append(gap_percent)
+            overlap_percents.append(overlap_percent)
+
+            if verbose:
+                print(f"Sim {i+1}: Gap={gap_percent:.2f}%, Overlap={overlap_percent:.2f}%")
+
+        except Exception as e:
+            print(f"Simulation {i+1} failed: {e}")
+            continue
+
+    # compile results
+    summary_df = pd.DataFrame({
+        "Simulation": np.arange(1, len(gap_percents) + 1),
+        "Gap_%": gap_percents,
+        "Overlap_%": overlap_percents
+    })
+
+    stats = {
+        "Mean_Gap_%": np.mean(gap_percents),
+        "Std_Gap_%": np.std(gap_percents),
+        "Mean_Overlap_%": np.mean(overlap_percents),
+        "Std_Overlap_%": np.std(overlap_percents)
+    }
+
+    print("\n=== Simulation Summary ===")
+    print(f"Average Gap: {stats['Mean_Gap_%']:.3f}% ± {stats['Std_Gap_%']:.3f}%")
+    print(f"Average Overlap: {stats['Mean_Overlap_%']:.3f}% ± {stats['Std_Overlap_%']:.3f}%")
+
+    return summary_df, stats
+
 def update_states():
     #print(random.getstate())
     state_data.append(random.getstate())
@@ -918,6 +986,7 @@ def main():
     #plot_RW_tows(2, plot_individual_histograms=True)
     # analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
     analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv") # Only plots data
+    run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31)
     #plot_LLS_hist()
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
