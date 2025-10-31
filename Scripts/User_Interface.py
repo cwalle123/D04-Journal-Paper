@@ -103,18 +103,19 @@ def draw_button(text, rect, active=True, green=False):
     label = font.render(text, True, (255, 255, 255))
     screen.blit(label, label.get_rect(center=rect.center))
 
-def run_simulation():
+def run_simulation(GO=False, fill=False):
     global simulation_result
     plt.clf()
 
     # --- Generate RW multitow data ---
-    gap_df, gap_only, overlap_only, gap_percent, overlap_percent, RW_all_tows_data = generate_RW_multitow(
+    gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_all_tows_data = generate_RW_multitow(
         num_tows=num_tows,
         tow_spacing_mm=tow_spacing_mm,
         tow_width_mm=tow_width_mm,
         tow_length_mm=tow_length_mm,
         proposal_type="RWM",
-        print_statement=False)
+        print_statement=False
+    )
 
     # --- Create the figure ---
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -122,19 +123,81 @@ def run_simulation():
     # Define alternating colors
     colors = [(0.0, 0.5, 0.0), (0.15, 0.9, 0.02)]  # dark green, light green
 
-    # Plot each tow with alternating colors
-    for i, tow_df in enumerate(RW_all_tows_data):
-        color = colors[i % 2]  # alternate between the two
+    # --- Plot each tow ---
+    x_vals = RW_all_tows_data[0]["x_mm"]
+
+    # When fill=True, draw lower tows first so higher ones appear on top
+    tow_indices = range(num_tows) if not fill else range(num_tows)
+
+    for i in tow_indices:
+        tow_df = RW_all_tows_data[i]
+        color = colors[i % 2]
         x = tow_df["x_mm"]
-        ax.plot(x, tow_df["top_edge"], color=color, lw=1.8, label=f"Tow {i+1}")
-        ax.plot(x, tow_df["bottom_edge"], color=color, lw=1.8)
-        ax.plot(x, tow_df["centerline"], color=color, lw=1.0, linestyle="--")
+        top_edge = tow_df["top_edge"]
+        bottom_edge = tow_df["bottom_edge"]
+
+        if fill:
+            # Filled tow band
+            ax.fill_between(
+                x,
+                bottom_edge,
+                top_edge,
+                color=color,
+                alpha=0.8,
+                label=f"Tow {i+1}" if i == 0 else ""
+            )
+        else:
+            # Edge and centerline plotting
+            ax.plot(x, top_edge, color=color, lw=1.8, label=f"Tow {i+1}")
+            ax.plot(x, bottom_edge, color=color, lw=1.8)
+            ax.plot(x, tow_df["centerline"], color=color, lw=1.0, linestyle="--")
+
+    # --- Shade gap and overlap regions between tows ---
+    if GO:
+        for i in range(num_tows - 1):
+            top_edge_prev = RW_all_tows_data[i]["top_edge"]
+            bottom_edge_next = RW_all_tows_data[i + 1]["bottom_edge"]
+
+            diff = bottom_edge_next - top_edge_prev  # +gap, -overlap
+
+            # Gaps (blue)
+            ax.fill_between(
+                x_vals,
+                top_edge_prev,
+                bottom_edge_next,
+                where=(diff > 0),
+                color="blue",
+                alpha=0.3,
+                label="Gap" if i == 0 else ""
+            )
+
+            # Overlaps (red)
+            ax.fill_between(
+                x_vals,
+                top_edge_prev,
+                bottom_edge_next,
+                where=(diff < 0),
+                color="red",
+                alpha=0.3,
+                label="Overlap" if i == 0 else ""
+            )
+
+    # --- Plot ideal (straight) centerlines ---
+    x_min = min(df["x_mm"].min() for df in RW_all_tows_data)
+    x_max = max(df["x_mm"].max() for df in RW_all_tows_data)
+    for i in range(num_tows):
+        ideal_y = i * tow_width_mm
+        ax.plot([x_min, x_max], [ideal_y, ideal_y],
+                color="gray", linestyle=":", lw=1.2, alpha=0.8)
 
     # --- Labels, title, legend ---
-    ax.set_title("")  # removes the title
+    ax.set_title("")
     ax.set_xlabel("Tow Length (mm)", fontname="Times New Roman", fontsize=15)
     ax.set_ylabel("Position (mm)", fontname="Times New Roman", fontsize=15)
     ax.grid(True, linestyle="--", alpha=0.8)
+
+    # ax.legend(loc="upper right", fontsize=9)
+
     plt.tight_layout()
 
     # --- Store the figure and metrics for display ---
