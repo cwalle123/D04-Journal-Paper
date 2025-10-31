@@ -80,6 +80,8 @@ tow_width_mm = 6.35
 tow_length_mm = 1000
 tow_spacing_mm = 6.35
 steps_per_mm = 340 / 1000  # ratio: 340 steps = 1000 mm
+visualize_gaps_overlaps = False
+fill_tows = False
 
 # ---------------- Runtime Variables ----------------
 active_input_field = None
@@ -121,7 +123,7 @@ def run_simulation(GO=False, fill=False):
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Define alternating colors
-    colors = [(0.0, 0.5, 0.0), (0.15, 0.9, 0.02)]  # dark green, light green
+    colors = [(0.3, 0.3, 0.3), (0.5, 0.5, 0.5)]  # dark green, light green
 
     # --- Plot each tow ---
     x_vals = RW_all_tows_data[0]["x_mm"]
@@ -252,7 +254,7 @@ def draw_settings():
     # --- Layout control ---
     start_x_label = SCREEN_WIDTH/2 - 240   # X position for labels
     start_x_input = start_x_label + 250    # X position for input boxes
-    start_y = SCREEN_HEIGHT/2 - 200        # Y starting position
+    start_y = SCREEN_HEIGHT/2 - 230        # Y starting position
     vertical_spacing = 70 # Distance between each row
 
     settings = [
@@ -281,11 +283,28 @@ def draw_settings():
     reminder_text = font.render("Remember to press ENTER to confirm a value", True, (200, 200, 0))
     screen.blit(reminder_text, (start_x_label - 35, start_y + len(settings) * vertical_spacing + 30))
 
+    # --- NEW TOGGLES ---
+    toggle_y = start_y + len(settings) * vertical_spacing + 90
+    toggle_spacing = 70
+    button_width, button_height = 350, 50
+
+    visualize_rect = pygame.Rect(SCREEN_WIDTH/2 - button_width/2, toggle_y, button_width, button_height)
+    fill_rect = pygame.Rect(SCREEN_WIDTH/2 - button_width/2, toggle_y + toggle_spacing, button_width, button_height)
+
+    draw_button(f"Gaps and Overlaps: {'ON' if visualize_gaps_overlaps else 'OFF'}",visualize_rect,green=visualize_gaps_overlaps)
+    draw_button(f"Fill Tows: {'ON' if fill_tows else 'OFF'}",fill_rect,green=fill_tows)
+
+    # --- Back button ---
     draw_button("Back", pygame.Rect(50, 50, 100, 40))
+
+    return visualize_rect, fill_rect
 
 def handle_settings_event(event):
     global num_tows, tow_width_mm, tow_length_mm, tow_spacing_mm
     global active_input_field, input_text, state
+    global visualize_gaps_overlaps, fill_tows
+
+    visualize_rect, fill_rect = draw_settings()  # ensure we have latest button rects
 
     if event.type == pygame.MOUSEBUTTONDOWN:
         back_rect = pygame.Rect(50, 50, 100, 40)
@@ -294,11 +313,22 @@ def handle_settings_event(event):
             input_text = ""
             state = MENU
             return
+        
+        # --- Handle toggle buttons ---
+        if visualize_rect.collidepoint(event.pos):
+            visualize_gaps_overlaps = not visualize_gaps_overlaps
+            return
+        elif fill_rect.collidepoint(event.pos):
+            fill_tows = not fill_tows
+            return
+        
+        # --- Handle numeric fields ---
         for i, rect in enumerate(field_rects):
             if rect.collidepoint(event.pos):
                 active_input_field = i
                 input_text = ""
                 return
+            
     elif event.type == pygame.KEYDOWN and active_input_field is not None:
         if event.key == pygame.K_RETURN:
             try:
@@ -415,7 +445,7 @@ def main():
                                 simulation_result = None
                                 loading_start_time = time.time()
                                 loading_estimated_time = 0.237*num_tows + 1.2
-                                simulation_thread = threading.Thread(target=run_simulation)
+                                simulation_thread = threading.Thread(target=run_simulation, kwargs=dict(GO=visualize_gaps_overlaps, fill=fill_tows))
                                 simulation_thread.start()
                                 state = LOADING
                             elif label=="Settings":
