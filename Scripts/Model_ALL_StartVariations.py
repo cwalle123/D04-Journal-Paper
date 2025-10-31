@@ -167,7 +167,7 @@ def generate_experimental_plot(programmed_shift: float=6.35, num_divisions: int=
     print(f"sorted_pairs = {sorted_pairs}")
     start_sorted, tow_sorted = zip(*sorted_pairs)  # unzip back into two lists
 
-    division = int(0.5*len(tow_sorted))     # TODO: does this need a better division?
+    division = int(0.8*len(tow_sorted))     # TODO: does this need a better division?
 
     averaged_defect_data_1 = calc_experimental_lengthwise(tow_sorted[0: division], programmed_shift=programmed_shift, num_divisions=num_divisions)
     averaged_defect_data_2 = calc_experimental_lengthwise(tow_sorted[division:], programmed_shift=programmed_shift, num_divisions=num_divisions)
@@ -181,14 +181,24 @@ def generate_experimental_plot(programmed_shift: float=6.35, num_divisions: int=
 
 def calc_exp_lengthwise_tow_gap(tow: pd.DataFrame, average_centerline: float, programmed_shift: float=6.35, num_divisions: int=100):   # TODO: fix function!
     ### function to calculate gap/overlap for single tow w.r.t. 2 'ideal' tows. ###
+    #average_width = programmed_shift/num_divisions  # TODO: find correct value.
+    average_widths = []
+    for i in range(2, 31):
+        traverse_tow = traverse_tow_constructor(i, normalize=True)
+        width = traverse_tow["y_left"] - traverse_tow["y_right"]
+        average_widths.append(np.average(width))
+    average_width = float(np.average(average_widths))
+    #print(f"Average centerline: {average_width}")
 
     x_top = np.array(tow["x_left"].values)
     x_bottom = np.array(tow["x_right"].values)
     top_edge = np.array(tow["y_left"].values)
     bottom_edge = np.array(tow["y_right"].values)
 
-    lower_ideal_edge = np.full(np.shape(np.array(x_bottom)), average_centerline - 0.5*programmed_shift)
-    upper_ideal_edge = np.full(np.shape(np.array(x_top)), average_centerline + 0.5*programmed_shift)
+    #lower_ideal_edge = np.full(np.shape(np.array(x_bottom)), average_centerline - 0.5*programmed_shift)
+    #upper_ideal_edge = np.full(np.shape(np.array(x_top)), average_centerline + 0.5*programmed_shift)
+    lower_ideal_edge = np.full(np.shape(np.array(x_bottom)), average_centerline - programmed_shift + 0.5*average_width)
+    upper_ideal_edge = np.full(np.shape(np.array(x_top)), average_centerline + programmed_shift - 0.5*average_width)
 
     lower_gap_overlap = upper_ideal_edge - top_edge
     upper_gap_overlap = bottom_edge - lower_ideal_edge
@@ -603,10 +613,9 @@ def main():
     #analyze_starting_variation_effects(starting_mods = [None, 1, 2], proposal_type = "RWM")
     #plot_target_vs_start(starting_mods=[1, 1.5])      # target_mods=[None, 1, 1.5], starting_mods=[1, 1.5]
 
-    ### version 1 ###
-    #defect_data_original = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
-    #                                                      alternate_start=[norm, [0, 0.3]]) #0.01221346, 0.48016
-    #defect_data_modified = calc_lengthwise_defect_percent(50, tows_per_laminate=29, num_divisions=100,
+    ## version 1 ###
+    #defect_data_original = calc_lengthwise_defect_percent(3, tows_per_laminate=29, num_divisions=100)#, alternate_start=[norm, [0, 0.3]] #0.01221346, 0.48016
+    #defect_data_modified = calc_lengthwise_defect_percent(3, tows_per_laminate=29, num_divisions=100,
     #                                                      alternate_start=[norm, [0, 0.45]])
     #plot_lengthwise_defect_percent(defect_data_original, defect_data_modified, mean_label=[0, 0], std_label=[0.3, 0.45], name="StartVariations-version_1.pdf")
 
