@@ -144,6 +144,41 @@ def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_da
 
 
 ### new code by Seán ###
+
+def generate_experimental_plot(programmed_shift: float=6.35, num_divisions: int=100):
+    average_centerlines = []
+    for tow in range(2, 31):
+        traverse_tow = traverse_tow_constructor(tow, normalize=True)
+        y_centerline = traverse_tow["y_centerline"]
+        average_centerlines.append(np.average(y_centerline))
+    average_centerline = float(np.average(average_centerlines))
+
+    start_list, tow_list = [], []
+    for tow in range(2, 31):
+        traverse_tow = traverse_tow_constructor(tow, normalize=True)
+        centerline = traverse_tow["y_centerline"]
+        start_list.append(centerline[0])
+        tow_list.append(tow)
+    start_error_list = [abs(value - average_centerline) for value in start_list]
+
+    tow_start_list = zip(start_error_list, tow_list)
+    #print(f"tow_start_list = {tow_start_list}")
+    sorted_pairs = sorted(tow_start_list)  # pairs (a[i], b[i]) together, then sorts by a
+    print(f"sorted_pairs = {sorted_pairs}")
+    start_sorted, tow_sorted = zip(*sorted_pairs)  # unzip back into two lists
+
+    division = int(0.5*len(tow_sorted))     # TODO: does this need a better division?
+
+    averaged_defect_data_1 = calc_experimental_lengthwise(tow_sorted[0: division], programmed_shift=programmed_shift, num_divisions=num_divisions)
+    averaged_defect_data_2 = calc_experimental_lengthwise(tow_sorted[division:], programmed_shift=programmed_shift, num_divisions=num_divisions)
+    # print(averaged_defect_data)
+    plot_exp_lengthwise_defect_percent(averaged_defect_data_1, averaged_defect_data_2,
+                                       name="StartVariations-experimental.pdf")
+
+
+
+
+
 def calc_exp_lengthwise_tow_gap(tow: pd.DataFrame, average_centerline: float, programmed_shift: float=6.35, num_divisions: int=100):   # TODO: fix function!
     ### function to calculate gap/overlap for single tow w.r.t. 2 'ideal' tows. ###
 
@@ -255,8 +290,8 @@ def plot_exp_lengthwise_defect_percent(defect_data_good: pd.DataFrame, defect_da
 
     plt.xlim(0, 1000)
     plt.xticks(np.linspace(0, 1000, 11), fontsize=10)
-    plt.ylim(0, 6)
-    plt.yticks(np.linspace(0, 6, 7))
+    plt.ylim(0, 7)
+    plt.yticks(np.linspace(0, 7, 8))
     plt.grid(True, axis='y')
     plt.xlabel("x (mm)", fontsize=12)
     plt.ylabel("Defect Percentage (%)", fontsize=12)
@@ -585,10 +620,7 @@ def main():
     #calc_lengthwise_defect_percent_exp(bin_size_mm=10)
     #generate_multilaminate_layout(2)
 
-    averaged_defect_data_1 = calc_experimental_lengthwise(range(2,16))
-    averaged_defect_data_2 = calc_experimental_lengthwise(range(16,31))
-    # print(averaged_defect_data)
-    plot_exp_lengthwise_defect_percent(averaged_defect_data_1, averaged_defect_data_2, name="StartVariations-experimental.pdf")
+    generate_experimental_plot()
     
 if __name__ == "__main__":
     main()
