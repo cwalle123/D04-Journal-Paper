@@ -123,7 +123,7 @@ def run_simulation(GO=False, fill=False):
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Define alternating colors
-    colors = [(0.3, 0.3, 0.3), (0.5, 0.5, 0.5)]  # dark green, light green
+    colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]  # dark grey, light grey
 
     # --- Plot each tow ---
     x_vals = RW_all_tows_data[0]["x_mm"]
@@ -168,7 +168,7 @@ def run_simulation(GO=False, fill=False):
                 top_edge_prev,
                 bottom_edge_next,
                 where=(diff > 0),
-                color="blue",
+                color="white",
                 alpha=0.3,
                 label="Gap" if i == 0 else ""
             )
@@ -179,7 +179,7 @@ def run_simulation(GO=False, fill=False):
                 top_edge_prev,
                 bottom_edge_next,
                 where=(diff < 0),
-                color="red",
+                color="black",
                 alpha=0.3,
                 label="Overlap" if i == 0 else ""
             )
