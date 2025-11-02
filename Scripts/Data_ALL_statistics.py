@@ -480,13 +480,13 @@ def main():
         df,
         title="Sensor Error Histograms ",
         bin_widths=[0.008, 0.008, 0.008, 0.008], 
-        run = False)
+        run = True)
     
     '''This is the good one'''
     plot_histograms_separated(
         df,
         bin_widths=[0.005, 0.005, 0.005, 0.008],
-        run = True)
+        run = False)
 
     plot_LLSA_vs_LLSB(df,
         title="Error LLS A vs. Error LLS B (ALL TOWS)",
