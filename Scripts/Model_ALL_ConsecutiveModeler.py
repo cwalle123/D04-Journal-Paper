@@ -17,12 +17,111 @@ from constants import tow_width_specified, font_extra_small, font_small, font_me
 from Handling_ALL_Functions import get_synced_data
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
-from Model_ALL_RandomWalk import generate_random_walk, generate_RW_multitow
+from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow, get_data
 from Model_ALL_Simulation import generate_multitow_layout
 from Model_ALL_RandomSampling import generate_RS_multitow
 
 ##############################################################################################################
 """Functions"""
+
+def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
+    """This function creates the plot of Random Walk vs Exponential Data for each individual sensor.
+    This is equivalent to plot 2 in the paper atm."""
+
+    # getting the experimental data per sensor
+    LT_exp = get_data("LT", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
+    CAM_exp = get_data("CAM", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
+    LLSA_exp = get_data("LLS_A", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
+    LLSB_exp = get_data("LLS_B", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
+
+    # getting RW data per sensor
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
+    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A")
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
+
+    LT_walk_data, CAM_walk_data, LLSA_walk_data, LLSB_walk_data = [], [], [], []
+    for tow in range(RW_tows):
+        LT_walk_data += generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
+                                            proposal_type="RWM")
+        CAM_walk_data += generate_random_walk("CAM", CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params,
+                                             proposal_type="RWM")
+        LLSA_walk_data += generate_random_walk("LLS_A", LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist,
+                                              LLS_A_params, proposal_type="RWM")
+        LLSB_walk_data += generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist,
+                                              LLS_B_params, proposal_type="RWM")
+    print(LT_exp, len(LT_exp))
+
+
+    distribution_label_names = {
+        'norm': 'Normal Distribution',
+        'logistic': 'Logistic Distribution',
+        'skewnorm': 'Skew-Normal Distribution',
+        'genextreme': 'Generalized Extreme Value'}
+
+    # getting the correct names for the pdf's for labels in the plot
+    dist_data = [LT_dist, CAM_dist, LLS_A_dist, LLS_B_dist]
+    dist_labels, y_pdfs = [], []
+    for sensor_dist in dist_data:
+        dist = sensor_dist
+        dist_labels.append(distribution_label_names.get(dist.name, dist.name))
+
+
+    # setting up the target distribution plots for later
+    x_pdf = np.linspace(-1.2, 1.2, 300)
+    y_pdf_LT = LT_target_dist(x_pdf)
+    y_pdf_CAM = CAM_target_dist(x_pdf)
+    y_pdf_LLS_A = LLS_A_target_dist(x_pdf)
+    y_pdf_LLS_B = LLS_B_target_dist(x_pdf)
+
+    # --------PLotting----------
+    plt.rc('font', family='Times New Roman')
+    fig, axs = plt.subplots(4, 1, figsize=(10, 12))
+
+    # LT plot
+    axs[2].hist(LT_exp, bins=100, density=True, alpha=0.5, label="Experimental Data")
+    axs[2].hist(LT_walk_data, bins=100, density=True, alpha=0.5, label="Random Walk Data")
+    axs[2].plot(x_pdf, y_pdf_LT ,color='black', label="Probability Density Function")
+    axs[2].set_xlabel("Error, robot position")
+    axs[2].set_ylabel("Density")
+    axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
+    #axs[2].set_yticks(np.linspace(-1.2, -0.6, 3))
+
+    # CAM plot
+    axs[3].hist(CAM_exp, bins=250, density=True, alpha=0.5)
+    axs[3].hist(CAM_walk_data, bins=250, density=True, alpha=0.5)
+    axs[3].plot(x_pdf, y_pdf_CAM, color='black')
+    axs[3].set_xlabel("Error, tape lateral movement", size=12)
+    axs[3].set_ylabel("Density", size=12)
+    axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
+
+    # LLS_A plot
+    axs[1].hist(LLSA_exp, bins=100, density=True, alpha=0.5)
+    axs[1].hist(LLSA_walk_data, bins=100, density=True, alpha=0.5)
+    axs[1].plot(x_pdf, y_pdf_LLS_A, color='black')
+    axs[1].set_xlabel("Error, tape width before compaction", size=12)
+    axs[1].set_ylabel("Density", size=12)
+    axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
+
+    # LLS_B plot
+    axs[0].hist(LLSB_exp, bins=100, density=True, alpha=0.5)
+    axs[0].hist(LLSB_walk_data, bins=100, density=True, alpha=0.5)
+    axs[0].plot(x_pdf, y_pdf_LLS_B, color='black')
+    axs[0].set_xlabel("Error, tape width after compaction", size=12)
+    axs[0].set_ylabel("Density", size=12)
+    axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
+
+    # fig.subplots_adjust(bottom=0.2)
+    lgd = fig.legend(fontsize=12, loc='lower center',
+                     fancybox=True, shadow=False, ncol=3)
+    plt.tight_layout(rect=[0, 0.03, 1, 1])
+
+    if save_PDF == True:
+        plt.savefig("4_sensors_vs_RW.pdf", format="pdf", bbox_inches="tight")
+
+    plt.show()
+
+
 
 def plot_histograms(real_data: pd.DataFrame, sim_data: list, RW_data: list, title: str, bin_widths: list[float] = None):
     '''This function plots a histogram of real and simulated data
@@ -860,7 +959,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04")
+    # model_distribution_figures(29, plottype="single no D04")
+    plot_RW_vs_exp_histograms(RW_tows=100)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
