@@ -86,7 +86,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     fig, axs = plt.subplots(4, 1, figsize=(10, 12))
 
     # LT plot
-    axs[0].imshow(im0, aspect='auto', extent=(0.922, 1, 0.7, 1), transform=axs[0].transAxes)
+    axs[0].imshow(im0, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[0].transAxes)
     axs[0].hist(LT_exp, color='blue', bins=100, density=True, alpha=0.6, label="Experimental Data")
     axs[0].hist(LT_walk_data, color='green', bins=100, density=True, alpha=0.6, label="Random Walk Data")
     axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Probability Density Function")
@@ -97,7 +97,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     #axs[0].set_yticks(np.linspace(-1.2, -0.6, 3))
 
     # CAM plot
-    axs[1].imshow(im1, aspect='auto', extent=(0.922, 1, 0.7, 1), transform=axs[1].transAxes)
+    axs[1].imshow(im1, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[1].transAxes)
     axs[1].hist(CAM_exp, color='blue', bins=250, density=True, alpha=0.6)
     axs[1].hist(CAM_walk_data, color='green', bins=250, density=True, alpha=0.6)
     axs[1].plot(x_pdf, y_pdf_CAM, color='yellow')
@@ -106,7 +106,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
 
     # LLS_A 
-    axs[2].imshow(im2, aspect='auto', extent=(0.922, 1, 0.7, 1), transform=axs[2].transAxes)
+    axs[2].imshow(im2, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[2].transAxes)
     axs[2].hist(LLSA_exp, color='blue', bins=100, density=True, alpha=0.6)
     axs[2].hist(LLSA_walk_data, color='green', bins=100, density=True, alpha=0.6)
     axs[2].plot(x_pdf, y_pdf_LLS_A, color='yellow')
@@ -115,7 +115,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
 
     # LLS_B plot
-    axs[3].imshow(im3, aspect='auto', extent=(0.922, 1, 0.7, 1), transform=axs[3].transAxes)
+    axs[3].imshow(im3, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[3].transAxes)
     axs[3].hist(LLSB_exp, color='blue', bins=100, density=True, alpha=0.6)
     axs[3].hist(LLSB_walk_data, color='green', bins=100, density=True, alpha=0.6)
     axs[3].plot(x_pdf, y_pdf_LLS_B, color='yellow')
@@ -139,7 +139,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     plt.tight_layout(rect=[0, 0.03, 1, 1])
 
     if save_PDF == True:
-        plt.savefig("4_sensors_vs_RW.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig("source wise validation.pdf", format="pdf", bbox_inches="tight")
 
     plt.show()
 
@@ -981,7 +981,7 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04")
+    #model_distribution_figures(29, plottype="single no D04")
     plot_RW_vs_exp_histograms(RW_tows=100, save_PDF=False)
 
 if __name__ == "__main__":
