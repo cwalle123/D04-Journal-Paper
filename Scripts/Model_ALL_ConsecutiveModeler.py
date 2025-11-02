@@ -79,46 +79,60 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     # --------PLotting----------
     plt.rc('font', family='Times New Roman')
     im0 = image.imread('Figures/robotinacc.jpg')
-    #im1 = image.imread('tapelatmvmt.jpg')
-    
+    im1 = image.imread('Figures/tapelatmvmt.jpg')
+    im2 = image.imread('Figures/tape width.jpg')
+    im3 = image.imread('Figures/tapecompaction.jpg')
+
     fig, axs = plt.subplots(4, 1, figsize=(10, 12))
 
     # LT plot
-    #ax0_inset = inset_axes(axs[0], width="30%", height="30%", bbox_to_anchor=(1, 1, 0.5, 0.5))
-    #ax0_inset.imshow(im0)
-    #ax0_inset.set_axis_off()
     axs[0].imshow(im0, aspect='auto', extent=(0.922, 1, 0.7, 1), transform=axs[0].transAxes)
-    axs[0].hist(LT_exp, bins=100, density=True, alpha=0.5, label="Experimental Data")
-    axs[0].hist(LT_walk_data, bins=100, density=True, alpha=0.5, label="Random Walk Data")
-    axs[0].plot(x_pdf, y_pdf_LT ,color='yellow', label="Probability Density Function")
+    axs[0].hist(LT_exp, color='blue', bins=100, density=True, alpha=0.6, label="Experimental Data")
+    axs[0].hist(LT_walk_data, color='green', bins=100, density=True, alpha=0.6, label="Random Walk Data")
+    axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Probability Density Function")
     axs[0].set_xlabel("Error, robot position")
     axs[0].set_ylabel("Density")
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
+    ax = plt.gca()
     #axs[0].set_yticks(np.linspace(-1.2, -0.6, 3))
 
     # CAM plot
-    axs[1].hist(CAM_exp, bins=250, density=True, alpha=0.5)
-    axs[1].hist(CAM_walk_data, bins=250, density=True, alpha=0.5)
+    axs[1].imshow(im1, aspect='auto', extent=(0.922, 1, 0.7, 1), transform=axs[1].transAxes)
+    axs[1].hist(CAM_exp, color='blue', bins=250, density=True, alpha=0.6)
+    axs[1].hist(CAM_walk_data, color='green', bins=250, density=True, alpha=0.6)
     axs[1].plot(x_pdf, y_pdf_CAM, color='yellow')
     axs[1].set_xlabel("Error, tape lateral movement", size=12)
     axs[1].set_ylabel("Density", size=12)
     axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
 
-    # LLS_A plot
-    axs[2].hist(LLSA_exp, bins=100, density=True, alpha=0.5)
-    axs[2].hist(LLSA_walk_data, bins=100, density=True, alpha=0.5)
+    # LLS_A 
+    axs[2].imshow(im2, aspect='auto', extent=(0.922, 1, 0.7, 1), transform=axs[2].transAxes)
+    axs[2].hist(LLSA_exp, color='blue', bins=100, density=True, alpha=0.6)
+    axs[2].hist(LLSA_walk_data, color='green', bins=100, density=True, alpha=0.6)
     axs[2].plot(x_pdf, y_pdf_LLS_A, color='yellow')
     axs[2].set_xlabel("Error, tape width before compaction", size=12)
     axs[2].set_ylabel("Density", size=12)
     axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
 
     # LLS_B plot
-    axs[3].hist(LLSB_exp, bins=100, density=True, alpha=0.5)
-    axs[3].hist(LLSB_walk_data, bins=100, density=True, alpha=0.5)
+    axs[3].imshow(im3, aspect='auto', extent=(0.922, 1, 0.7, 1), transform=axs[3].transAxes)
+    axs[3].hist(LLSB_exp, color='blue', bins=100, density=True, alpha=0.6)
+    axs[3].hist(LLSB_walk_data, color='green', bins=100, density=True, alpha=0.6)
     axs[3].plot(x_pdf, y_pdf_LLS_B, color='yellow')
     axs[3].set_xlabel("Error, tape width after compaction", size=12)
     axs[3].set_ylabel("Density", size=12)
     axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
+
+    for i, ax in enumerate(axs):
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=8, width=1.2)
+        for spine in ax.spines.values():
+            spine.set_linewidth(1)
+            spine.set_edgecolor('black')
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontname('Times New Roman')
+            label.set_fontsize(10)
 
     # fig.subplots_adjust(bottom=0.2)
     lgd = fig.legend(fontsize=12, loc='lower center', fancybox=True, shadow=False, ncol=3)
@@ -728,7 +742,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
     RW_99th_percentile = np.percentile(RW_gap_data, 99)
 
     #-------generating Random Sampling data--------
-    RS_gap_df, _ = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RS_gap_df, _, _, _ = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
     RS_gap_df = np.array(RS_gap_df)
     RS_gap_data = []
     for i in range (tows_simulated-1):
@@ -967,7 +981,7 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    # model_distribution_figures(29, plottype="single no D04")
+    model_distribution_figures(29, plottype="single no D04")
     plot_RW_vs_exp_histograms(RW_tows=100, save_PDF=False)
 
 if __name__ == "__main__":
