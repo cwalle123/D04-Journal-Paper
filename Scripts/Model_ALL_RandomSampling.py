@@ -256,13 +256,158 @@ def run_multiple_RS_simulations_for_gaps_and_overlap_percentages(
 
     return summary_df, stats
 
+def generate_RS_multitow_layout_lengths(
+    num_tows: int = 5,
+    n_steps: int = 370,
+    tow_spacing_mm: float = 6.35,
+    tow_width_mm: float = 6.35,
+    tow_length_mm: float = 1000,
+    method: str = "Sidd",
+    print_statement: bool = False,
+    plot: bool = False,
+    scaled: bool = False,
+    histogram_bins: int = 30):
+    """
+    Wrapper around generate_RS_multitow() that:
+      - Builds a gap/overlap DataFrame (indexed by x in mm),
+      - Extracts continuous gap/overlap segment lengths (in mm),
+      - Shows histogram data (no distribution fitting).
+
+    Returns:
+        gap_overlap_df : DataFrame of pointwise gap/overlap distances (indexed by x_mm)
+        gap_lengths     : numpy array of continuous gap segment lengths (mm)
+        overlap_lengths : numpy array of continuous overlap segment lengths (mm)
+        hist_data       : dict with histogram counts and bin edges for gaps/overlaps
+    """
+
+    try:
+        gap_overlap_df, RS_all_tows_data, gap_percent, overlap_percent = generate_RS_multitow(
+            num_tows=num_tows,
+            n_steps=n_steps,
+            tow_spacing_mm=tow_spacing_mm,
+            tow_width_mm=tow_width_mm,
+            tow_length_mm=tow_length_mm,
+            method=method,
+            print_statement=print_statement
+        )
+    except NameError:
+        raise RuntimeError("generate_RS_multitow must be defined and importable in the current namespace.")
+
+    # Ensure we have x index from first tow data
+    if len(RS_all_tows_data) == 0:
+        raise RuntimeError("RS_all_tows_data returned empty; cannot compute segment lengths.")
+    x_vals = np.array(RS_all_tows_data[0]["x_mm"])
+    if not np.allclose(gap_overlap_df.index.values.astype(float), x_vals.astype(float)):
+        gap_overlap_df = gap_overlap_df.copy()
+        gap_overlap_df.index = x_vals
+
+    # --- Helper to extract continuous gap/overlap segment lengths (in mm) ---
+    def _extract_segment_lengths(series, positive=True):
+        values = series.values
+        if len(values) == 0:
+            return np.array([], dtype=float)
+        mask = values > 0 if positive else values < 0
+        lengths = []
+        run_length = 0
+        for val in mask:
+            if val:
+                run_length += 1
+            elif run_length > 0:
+                lengths.append(run_length)
+                run_length = 0
+        if run_length > 0:
+            lengths.append(run_length)
+        if len(lengths) == 0:
+            return np.array([], dtype=float)
+        dx = series.index[1] - series.index[0]
+        return np.array(lengths, dtype=float) * dx
+
+    # Aggregate lengths across all tow pairs
+    gap_lengths_list = []
+    overlap_lengths_list = []
+
+    for col in gap_overlap_df.columns:
+        series = gap_overlap_df[col]
+        gap_lengths_list.extend(_extract_segment_lengths(series, positive=True).tolist())
+        overlap_lengths_list.extend(_extract_segment_lengths(series, positive=False).tolist())
+
+    gap_lengths = np.array(gap_lengths_list, dtype=float)
+    overlap_lengths = np.array(overlap_lengths_list, dtype=float)
+
+    # Compute histograms (no fitting)
+    gap_counts, gap_bins = np.histogram(gap_lengths, bins=histogram_bins)
+    overlap_counts, overlap_bins = np.histogram(overlap_lengths, bins=histogram_bins)
+
+    hist_data = {
+        "gap": {"counts": gap_counts, "bins": gap_bins},
+        "overlap": {"counts": overlap_counts, "bins": overlap_bins}
+    }
+
+    # --- Optional plotting ---
+    if plot:
+        # 1) Layout visualization
+        plt.figure(figsize=(10, 5))
+        for tow_index, tow_df in enumerate(RS_all_tows_data):
+            x = tow_df["x_mm"]
+            center = tow_df["centerline"]
+            top = tow_df["top_edge"]
+            bottom = tow_df["bottom_edge"]
+            color = plt.get_cmap("tab10")(tow_index % 10)
+            plt.plot(x, center, "--", color=color, linewidth=1.2, label="Tow centerline" if tow_index == 0 else "_nolegend_")
+            plt.plot(x, top, "-", color=color, linewidth=1.5, label="Tow edges" if tow_index == 0 else "_nolegend_")
+            plt.plot(x, bottom, "-", color=color, linewidth=1.5)
+        offsets = np.arange(num_tows) * tow_spacing_mm
+        for offset in offsets:
+            plt.plot(x_vals, np.full_like(x_vals, offset), ":", color="black", linewidth=1)
+        plt.xlabel("Tow length (mm)")
+        plt.ylabel("Tow position (mm)")
+        plt.title("RS Simulated Multi-Tow Layout")
+        plt.legend(loc="lower center", bbox_to_anchor=(0.5, -0.2), ncol=3, fontsize=9)
+        if scaled:
+            plt.axis("equal")
+        plt.grid(False)
+        plt.tight_layout()
+        plt.show()
+
+        # 2) Histograms for gap and overlap lengths
+        fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+        ax[0].hist(gap_lengths, bins=histogram_bins, color="skyblue", edgecolor="black")
+        ax[0].set_xlabel("Gap length (mm)")
+        ax[0].set_ylabel("Count")
+        ax[0].set_title("Gap Length Distribution")
+        ax[0].grid(True, linestyle=":")
+
+        ax[1].hist(overlap_lengths, bins=histogram_bins, color="salmon", edgecolor="black")
+        ax[1].set_xlabel("Overlap length (mm)")
+        ax[1].set_ylabel("Count")
+        ax[1].set_title("Overlap Length Distribution")
+        ax[1].grid(True, linestyle=":")
+
+        plt.tight_layout()
+        plt.show()
+
+    # --- Summary printout ---
+    print("\n--- Gap Lengths ---")
+    print(f"  N = {len(gap_lengths)}")
+    if len(gap_lengths):
+        print(f"  Mean = {np.mean(gap_lengths):.3f} mm, Std = {np.std(gap_lengths):.3f} mm")
+
+    print("\n--- Overlap Lengths ---")
+    print(f"  N = {len(overlap_lengths)}")
+    if len(overlap_lengths):
+        print(f"  Mean = {np.mean(overlap_lengths):.3f} mm, Std = {np.std(overlap_lengths):.3f} mm")
+
+    return gap_overlap_df, gap_lengths, overlap_lengths, hist_data
+
 def main():
     #generate_random_sampling_data("LLS_B", steps=400, tows=300, plot_histogram=True)
     # gap_overlap_df, RS_data = generate_RS_multitow(31, n_steps=400, tow_spacing_mm=12.5, tow_width_mm=6.35)
     # print(gap_overlap_df, RS_data)
     #print(gap_overlap_df)
     #generate_siddharth_width(tows=30, plot_histogram=True)
-    run_multiple_RS_simulations_for_gaps_and_overlap_percentages(n_simulations=50,num_tows=31)
+    # run_multiple_RS_simulations_for_gaps_and_overlap_percentages(n_simulations=50,num_tows=31)
+    generate_RS_multitow_layout_lengths(num_tows = 31, plot = True, histogram_bins = 20)
+
 
 
 if __name__ == "__main__":

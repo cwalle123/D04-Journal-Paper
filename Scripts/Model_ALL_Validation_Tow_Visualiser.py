@@ -18,7 +18,7 @@ from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_ov
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Model_ALL_Simulation import generate_multitow_layout, generate_multitow_layout_lengths
 from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow, generate_RW_multitow_layout_lengths
-from Model_ALL_RandomSampling import generate_RS_multitow
+from Model_ALL_RandomSampling import generate_RS_multitow, generate_RS_multitow_layout_lengths
 from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse, y_increment_programmed, font_extra_small, font_small, font_medium, font_large, font_extra_large
 
 ##############################################################################################################
@@ -618,7 +618,7 @@ def compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins=100, force_st
 def compare_real_vs_RW_simulated_gaps_overlaps_lengths(
     histogram_bins=300,
     force_steps=True,
-    num_tows_sim=30,
+    num_tows_sim=29,
     proposal_type="RWM",
     override=False,
     starting_mods=[None, 1, 1],
@@ -628,82 +628,77 @@ def compare_real_vs_RW_simulated_gaps_overlaps_lengths(
     and RW-simulated multi-tows.
 
     Generates two plots: one for gaps, one for overlaps,
-    with aligned histogram bins and Pareto fit overlays.
+    with aligned histogram bins (no Pareto fitting).
 
     Args:
         histogram_bins : int
-            Number of bins for histograms (default=100)
+            Number of bins for histograms (default=300)
         force_steps : bool
             Passed to traverse_tow_gaps_and_overlaps_lengths
         num_tows_sim : int
-            Number of simulated tows in RW simulation (default=30)
+            Number of simulated tows (default=30)
         proposal_type : str
             RW proposal type (default="RWM")
         override : bool
-            If True, generates ideal (flat) tows instead of random-walked ones
+            If True, generates ideal tows instead of random-walked ones
         starting_mods, alternate_start : list
-            Passed to generate_RW_multitow_layout_lengths for start modifications
+            Passed to generate_RW_multitow_layout_lengths
 
     Returns:
         None
-        (Plots and prints statistical summaries)
+        (Plots and prints basic statistics)
     """
 
-    # --- Run real traverse tow analysis ---
-    (gap_traverse,overlap_traverse,gap_fit_traverse,overlap_fit_traverse) = traverse_tow_gaps_and_overlaps_lengths(plot=False,histogram_bins=histogram_bins,force_steps=force_steps)
+    # --- Get real traverse tow data ---
+    gap_traverse, overlap_traverse, *_ = traverse_tow_gaps_and_overlaps_lengths(
+        plot=False,
+        histogram_bins=histogram_bins,
+        force_steps=force_steps)
 
-    # --- Run RW-simulated multi-tow analysis ---
-    (_,gap_sim,overlap_sim,gap_fit_sim,overlap_fit_sim) = generate_RW_multitow_layout_lengths(num_tows=num_tows_sim,proposal_type=proposal_type,plot=False,override=override,histogram_bins=histogram_bins,starting_mods=starting_mods,alternate_start=alternate_start)
+    # --- Get RW simulated tow data ---
+    _, gap_sim, overlap_sim, hist_data_sim = generate_RW_multitow_layout_lengths(
+        num_tows=num_tows_sim,
+        proposal_type=proposal_type,
+        plot=False,
+        override=override,
+        histogram_bins=histogram_bins,
+        starting_mods=starting_mods,
+        alternate_start=alternate_start)
 
-    # --- Create figure with 2 subplots (gaps / overlaps) ---
+    # --- Shared histogram bins for fair comparison ---
+    def shared_bins(data1, data2):
+        all_data = np.concatenate([data1, data2]) if len(data1) and len(data2) else np.array([])
+        if len(all_data):
+            return np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
+        else:
+            return histogram_bins
+
+    shared_gap_bins = shared_bins(gap_traverse, gap_sim)
+    shared_overlap_bins = shared_bins(overlap_traverse, overlap_sim)
+
+    # --- Plot histograms ---
     fig, ax = plt.subplots(1, 2, figsize=(14, 3))
 
-    # --- Define shared bin edges for fair comparison ---
-    # GAPS
-    all_gaps = np.concatenate([gap_traverse, gap_sim]) if len(gap_traverse) and len(gap_sim) else np.array([])
-    if len(all_gaps):
-        gap_min, gap_max = np.min(all_gaps), np.max(all_gaps)
-        shared_gap_bins = np.linspace(gap_min, gap_max, histogram_bins + 1)
-    else:
-        shared_gap_bins = histogram_bins
-
-    # OVERLAPS
-    all_overlaps = np.concatenate([overlap_traverse, overlap_sim]) if len(overlap_traverse) and len(overlap_sim) else np.array([])
-    if len(all_overlaps):
-        overlap_min, overlap_max = np.min(all_overlaps), np.max(all_overlaps)
-        shared_overlap_bins = np.linspace(overlap_min, overlap_max, histogram_bins + 1)
-    else:
-        shared_overlap_bins = histogram_bins
-
-    # --- Helper to overlay Pareto fit ---
-    def plot_pareto_overlay(ax, data, fit, bins, color, label):
-        if len(data) == 0:
-            ax.text(0.5, 0.5, f"No {label} data", ha="center", va="center")
-            return
-        counts, bin_edges, _ = ax.hist(data,bins=bins,alpha=0.5,color=color,density=False,label=label,edgecolor="black")
-
-        # Overlay Pareto fit
-        x = np.linspace(min(data), max(data), 400)
-        pdf = pareto.pdf(x, fit["shape"], loc=fit["loc"], scale=fit["scale"])
-        bin_width = bin_edges[1] - bin_edges[0]
-        pdf_scaled = pdf * len(data) * bin_width
-        ax.plot(x, pdf_scaled, color=color, linestyle='--', linewidth=2,
-                label=f"{label} Pareto α={fit['shape']:.2f}")
-        ax.axvline(fit["mean"], color=color, linestyle='--', linewidth=1.5,
-                   label=f"{label} mean={fit['mean']:.2f}")
-
-    # --- Gaps subplot ---
-    plot_pareto_overlay(ax[0], gap_traverse, gap_fit_traverse, shared_gap_bins, 'blue', 'Traverse Tows')
-    plot_pareto_overlay(ax[0], gap_sim, gap_fit_sim, shared_gap_bins, 'orange', 'RW Simulated')
+    # Gaps
+    ax[0].hist(gap_traverse, bins=shared_gap_bins, color="blue", alpha=0.5,
+               label="Traverse Tows", edgecolor="black")
+    ax[0].hist(gap_sim, bins=shared_gap_bins, color="orange", alpha=0.5,
+               label="RW Simulated", edgecolor="black")
+    ax[0].set_xlim(0, 150)
+    ax[0].set_ylim(0, 70)
     ax[0].set_xlabel("Gap Length (mm)")
     ax[0].set_ylabel("Count")
     ax[0].set_title("Gap Length Comparison (Traverse vs RW Simulation)")
     ax[0].legend(fontsize=9)
     ax[0].grid(True, linestyle=":")
 
-    # --- Overlaps subplot ---
-    plot_pareto_overlay(ax[1], overlap_traverse, overlap_fit_traverse, shared_overlap_bins, 'blue', 'Traverse Tows')
-    plot_pareto_overlay(ax[1], overlap_sim, overlap_fit_sim, shared_overlap_bins, 'orange', 'RW Simulated')
+    # Overlaps
+    ax[1].hist(overlap_traverse, bins=shared_overlap_bins, color="blue", alpha=0.5,
+               label="Traverse Tows", edgecolor="black")
+    ax[1].hist(overlap_sim, bins=shared_overlap_bins, color="orange", alpha=0.5,
+               label="RW Simulated", edgecolor="black")
+    ax[1].set_xlim(0, 150)
+    ax[1].set_ylim(0, 70)
     ax[1].set_xlabel("Overlap Length (mm)")
     ax[1].set_ylabel("Count")
     ax[1].set_title("Overlap Length Comparison (Traverse vs RW Simulation)")
@@ -714,13 +709,217 @@ def compare_real_vs_RW_simulated_gaps_overlaps_lengths(
     plt.show()
 
     # --- Print summaries ---
-    print("\n--- Traverse Tows ---")
-    print(f"Gaps: N={len(gap_traverse)}, mean={gap_fit_traverse['mean']:.2f} mm, std={gap_fit_traverse['std']:.2f} mm")
-    print(f"Overlaps: N={len(overlap_traverse)}, mean={overlap_fit_traverse['mean']:.2f} mm, std={overlap_fit_traverse['std']:.2f} mm\n")
+    def summarize(label, data):
+        if len(data):
+            print(f"{label}: N={len(data)}, mean={np.mean(data):.2f} mm, std={np.std(data):.2f} mm")
+        else:
+            print(f"{label}: No data")
 
-    print("--- RW Simulated Multi-Tows ---")
-    print(f"Gaps: N={len(gap_sim)}, mean={gap_fit_sim['mean']:.2f} mm, std={gap_fit_sim['std']:.2f} mm")
-    print(f"Overlaps: N={len(overlap_sim)}, mean={overlap_fit_sim['mean']:.2f} mm, std={overlap_fit_sim['std']:.2f} mm\n")
+    print("\n--- Traverse Tows ---")
+    summarize("Gaps", gap_traverse)
+    summarize("Overlaps", overlap_traverse)
+
+    print("\n--- RW Simulated Multi-Tows ---")
+    summarize("Gaps", gap_sim)
+    summarize("Overlaps", overlap_sim)
+
+def compare_real_vs_RS_simulated_gaps_overlaps_lengths(
+    histogram_bins=300,
+    force_steps=True,
+    num_tows_sim=30,
+    method="Sidd",
+    print_statement=False):
+    """
+    Compare gap and overlap length distributions between real traverse tows
+    and RS-simulated multi-tows.
+
+    Generates two plots: one for gaps, one for overlaps,
+    with aligned histogram bins (no Pareto fitting).
+
+    Args:
+        histogram_bins : int
+            Number of bins for histograms (default=300)
+        force_steps : bool
+            Passed to traverse_tow_gaps_and_overlaps_lengths
+        num_tows_sim : int
+            Number of simulated tows (default=30)
+        method : str
+            RS width generation method ("Sidd" or "Random")
+        print_statement : bool
+            Whether to print layout summary (passed to RS generator)
+
+    Returns:
+        None
+        (Plots and prints statistical summaries)
+    """
+
+    # --- Get real traverse tow data ---
+    gap_traverse, overlap_traverse, *_ = traverse_tow_gaps_and_overlaps_lengths(
+        plot=False,
+        histogram_bins=histogram_bins,
+        force_steps=force_steps
+    )
+
+    # --- Get RS simulated tow data ---
+    _, gap_sim, overlap_sim, hist_data_sim = generate_RS_multitow_layout_lengths(
+        num_tows=num_tows_sim,
+        method=method,
+        plot=False,
+        histogram_bins=histogram_bins,
+        print_statement=print_statement
+    )
+
+    # --- Define shared histogram bins for fair comparison ---
+    def shared_bins(data1, data2):
+        all_data = np.concatenate([data1, data2]) if len(data1) and len(data2) else np.array([])
+        if len(all_data):
+            return np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
+        else:
+            return histogram_bins
+
+    shared_gap_bins = shared_bins(gap_traverse, gap_sim)
+    shared_overlap_bins = shared_bins(overlap_traverse, overlap_sim)
+
+    # --- Plot histograms ---
+    fig, ax = plt.subplots(1, 2, figsize=(14, 3))
+
+    # Gaps
+    ax[0].hist(gap_traverse, bins=shared_gap_bins, color="blue", alpha=0.5,
+               label="Traverse Tows", edgecolor="black")
+    ax[0].hist(gap_sim, bins=shared_gap_bins, color="green", alpha=0.5,
+               label="RS Simulated", edgecolor="black")
+    ax[0].set_xlim(0, 150)
+    ax[0].set_ylim(0, 200)
+    ax[0].set_xlabel("Gap Length (mm)")
+    ax[0].set_ylabel("Count")
+    ax[0].set_title("Gap Length Comparison (Traverse vs RS Simulation)")
+    ax[0].legend(fontsize=9)
+    ax[0].grid(True, linestyle=":")
+
+    # Overlaps
+    ax[1].hist(overlap_traverse, bins=shared_overlap_bins, color="blue", alpha=0.5,
+               label="Traverse Tows", edgecolor="black")
+    ax[1].hist(overlap_sim, bins=shared_overlap_bins, color="green", alpha=0.5,
+               label="RS Simulated", edgecolor="black")
+    ax[1].set_xlim(0, 150)
+    ax[1].set_ylim(0, 200)
+    ax[1].set_xlabel("Overlap Length (mm)")
+    ax[1].set_ylabel("Count")
+    ax[1].set_title("Overlap Length Comparison (Traverse vs RS Simulation)")
+    ax[1].legend(fontsize=9)
+    ax[1].grid(True, linestyle=":")
+
+    plt.tight_layout()
+    plt.show()
+
+    # --- Print summaries ---
+    def summarize(label, data):
+        if len(data):
+            print(f"{label}: N={len(data)}, mean={np.mean(data):.2f} mm, std={np.std(data):.2f} mm")
+        else:
+            print(f"{label}: No data")
+
+    print("\n--- Traverse Tows ---")
+    summarize("Gaps", gap_traverse)
+    summarize("Overlaps", overlap_traverse)
+
+    print("\n--- RS Simulated Multi-Tows ---")
+    summarize("Gaps", gap_sim)
+    summarize("Overlaps", overlap_sim)
+
+def compare_real_vs_RS_RW_gap_length_distributions(
+    histogram_bins=300,
+    force_steps=True,
+    num_tows_sim=30,
+    proposal_type="RWM",
+    override=False,
+    starting_mods=[None, 1, 1],
+    alternate_start=[None, "params"],
+    method="Sidd",
+    print_statement=False,
+    xlim=(0, 140),
+    ylim=(0, 140),
+    ylim_break=(1060, 1100)):  # only for RS broken axis
+    
+    from brokenaxes import brokenaxes
+
+    # --- Real data ---
+    gap_traverse, _, *_ = traverse_tow_gaps_and_overlaps_lengths(
+        plot=False, histogram_bins=histogram_bins, force_steps=force_steps)
+
+    # --- RW simulated ---
+    _, gap_RW, _, _ = generate_RW_multitow_layout_lengths(
+        num_tows=num_tows_sim,
+        proposal_type=proposal_type,
+        plot=False,
+        override=override,
+        histogram_bins=histogram_bins,
+        starting_mods=starting_mods,
+        alternate_start=alternate_start)
+
+    # --- RS simulated ---
+    _, gap_RS, _, _ = generate_RS_multitow_layout_lengths(
+        num_tows=num_tows_sim,
+        method=method,
+        plot=False,
+        histogram_bins=histogram_bins,
+        print_statement=print_statement)
+
+    # --- Compute shared bins for all datasets ---
+    all_data = np.concatenate([gap_traverse, gap_RW, gap_RS])
+    shared_bins = np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
+
+    # --- Plot ---
+    fig = plt.figure(figsize=(14, 4))
+    spec = fig.add_gridspec(1, 2)
+    font_size = 15
+
+    # --- Traverse vs RW (normal axis) ---
+    ax0 = fig.add_subplot(spec[0])
+    ax0.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
+    ax0.hist(gap_RW, bins=shared_bins, color="orange", alpha=0.5, edgecolor="black", label="RW Simulated")
+    ax0.set_xlim(*xlim)
+    ax0.set_ylim(0, 189)
+    ax0.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman")
+    ax0.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman")
+    ax0.legend(prop={"family": "Times New Roman", "size": font_size - 1})
+
+    # --- Traverse vs RS (broken y-axis) ---
+    bax1 = brokenaxes(
+        ylims=[ylim, ylim_break],  # lower and upper ranges
+        hspace=.1,
+        subplot_spec=spec[1])
+    bax1.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
+    bax1.hist(gap_RS, bins=shared_bins, color="green", alpha=0.5, edgecolor="black", label="RS Simulated")
+    bax1.set_xlim(*xlim)
+    bax1.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman")
+    bax1.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman")
+    bax1.legend(prop={"family": "Times New Roman", "size": font_size - 1})
+
+    # --- Box the broken axes properly ---
+    for ax in bax1.axs:
+        for spine in ['top', 'bottom', 'left', 'right']:
+            ax.spines[spine].set_visible(True)
+            ax.spines[spine].set_linewidth(1)
+
+    # --- Hide the touching spines between the two plots ---
+    bax1.axs[0].spines['bottom'].set_visible(False)
+    bax1.axs[1].spines['top'].set_visible(False)
+
+    plt.tight_layout()
+    plt.show()
+
+    # --- Print summaries ---
+    def summarize(name, data):
+        if len(data):
+            print(f"{name}: N={len(data)}, Mean={np.mean(data):.2f} mm, Std={np.std(data):.2f} mm")
+        else:
+            print(f"{name}: No data")
+
+    print("\n--- Summary Statistics ---")
+    summarize("Traverse Gaps", gap_traverse)
+    summarize("RW Simulated Gaps", gap_RW)
+    summarize("RS Simulated Gaps", gap_RS)
 
 ##############################################################################################################
 """Run this file"""
@@ -731,11 +930,13 @@ def main():
     # real_df, sim_df = plot_real_vs_RW_tow(6, plot = True, force_steps = False)
     # compare_real_vs_RW_gaps_overlaps()
 
-    compare_simulated_vs_real_tow(8)
+    # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
     #plot_real_vs_D04_vs_RW_vs_RS_tow(2)
     #compare_real_vs_RW_gaps_overlaps()
-    #compare_real_vs_RW_simulated_gaps_overlaps_lengths()
+    # compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
+    # compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
+    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300)
 
 if __name__ == "__main__":
     main()
