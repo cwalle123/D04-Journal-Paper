@@ -204,16 +204,29 @@ def render_matplotlib_figure(fig):
 
     return image, new_width, new_height
 
+def draw_screen_border(color=(255, 255, 255), thickness=10):
+    pygame.draw.rect(screen, color, (0, 0, SCREEN_WIDTH, SCREEN_HEIGHT), thickness)
+
 # ---------------- UI Drawing Functions ----------------
 
 def draw_menu():
     screen.fill((30, 30, 30))
+
+     # --- Title ---
+    title_text = "Predictive Model of Gap and Overlap Defects in AFP Composites"
+    title_font = pygame.font.SysFont(None, 48, bold=False)
+    title_surface = title_font.render(title_text, True, (255, 255, 255))
+    title_x = SCREEN_WIDTH // 2 - title_surface.get_width() // 2
+    title_y = SCREEN_HEIGHT // 2 - 150  # adjust vertical position as desired
+    screen.blit(title_surface, (title_x, title_y))
+
     button_labels = ["Simulation", "Settings", "Quit"]
     button_width, button_height, spacing = 200, 50, 20
-    start_y = SCREEN_HEIGHT // 2 - (len(button_labels) * button_height + (len(button_labels)-1)*spacing)//2
+    start_y = SCREEN_HEIGHT // 2 - (len(button_labels) * button_height + (len(button_labels)-1)*spacing)//2 + 50
     for i, label in enumerate(button_labels):
         rect = pygame.Rect(SCREEN_WIDTH//2 - button_width//2, start_y + i*(button_height+spacing), button_width, button_height)
         draw_button(label, rect)
+    draw_screen_border()
 
 def draw_settings():
     global field_rects
@@ -260,6 +273,7 @@ def draw_settings():
     draw_button(f"Gridlines: {'ON' if show_gridlines else 'OFF'}", gridlines_rect, green=show_gridlines)
 
     draw_button("Back", pygame.Rect(50, 50, 100, 40))
+    draw_screen_border()
     return visualize_rect, fill_rect, centerline_rect, gridlines_rect
 
 def handle_settings_event(event):
@@ -328,20 +342,45 @@ def handle_settings_event(event):
 def draw_loading_bar():
     global loading_start_time, loading_estimated_time, simulation_thread
     elapsed = time.time() - loading_start_time
-    progress = min(elapsed/loading_estimated_time, 0.95) if simulation_thread.is_alive() else 1.0
+    progress = min(elapsed / loading_estimated_time, 0.95) if simulation_thread.is_alive() else 1.0
     remaining = max(0, loading_estimated_time - elapsed)
+
+    # Determine main message
+    if elapsed < 4:
+        base_text = "Receiving input parameters"
+    elif 4 <= elapsed < 9:
+        base_text = "Loading model"
+    else:
+        base_text = "Generating tows"
+
+    # Create a looping dot animation (... → .. → .)
+    dot_cycle = int((elapsed * 1) % 3)  # changes roughly every second
+    dots = "." * dot_cycle if dot_cycle > 0 else "..."
+    loading_text = f"{base_text}{dots}"
+
+    # --- Draw UI ---
     screen.fill((20, 20, 20))
-    bar_width, bar_height = SCREEN_WIDTH//2, 30
-    bar_x, bar_y = (SCREEN_WIDTH - bar_width)//2, SCREEN_HEIGHT//2
-    pygame.draw.rect(screen, (70,70,70), (bar_x, bar_y, bar_width, bar_height))
-    pygame.draw.rect(screen, (100,200,100), (bar_x, bar_y, int(bar_width*progress), bar_height))
-    screen.blit(font.render("Generating simulation...", True, (255,255,255)), (SCREEN_WIDTH//2 - 150, bar_y - 40))
+    bar_width, bar_height = SCREEN_WIDTH // 2, 30
+    bar_x, bar_y = (SCREEN_WIDTH - bar_width) // 2, SCREEN_HEIGHT // 2
+
+    pygame.draw.rect(screen, (70, 70, 70), (bar_x, bar_y, bar_width, bar_height))
+    pygame.draw.rect(screen, (100, 200, 100), (bar_x, bar_y, int(bar_width * progress), bar_height))
+
+    # Loading text
+    text_surface = font.render(loading_text, True, (255, 255, 255))
+    screen.blit(text_surface, (SCREEN_WIDTH // 2 - text_surface.get_width() // 2, bar_y - 40))
+
+    # Remaining time
     remaining_text = f"Estimated time remaining: {remaining:.1f} s"
-    remaining_surface = font.render(remaining_text, True, (200,200,200))
+    remaining_surface = font.render(remaining_text, True, (200, 200, 200))
     text_x = SCREEN_WIDTH // 2 - remaining_surface.get_width() // 2
     text_y = bar_y + bar_height + 30
     screen.blit(remaining_surface, (text_x, text_y))
+
+    draw_screen_border()
     pygame.display.flip()
+
+    # When simulation thread finishes
     if not simulation_thread.is_alive():
         time.sleep(0.5)
         return True
@@ -369,6 +408,7 @@ def draw_simulation_screen():
     save_rect = pygame.Rect(SCREEN_WIDTH-150, SCREEN_HEIGHT-70, 100, 40)
     draw_button("Back", back_rect)
     draw_button("Save", save_rect, green=save_confirmation)
+    draw_screen_border()
     pygame.display.flip()
 
     # Handle save confirmation timing
@@ -405,7 +445,7 @@ def main():
                     sys.exit()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     button_width, button_height, spacing = 200, 50, 20
-                    start_y = SCREEN_HEIGHT//2 - (3*button_height + 2*spacing)//2
+                    start_y = SCREEN_HEIGHT//2 - (3*button_height + 2*spacing)//2 + 50
                     labels = ["Simulation","Settings","Quit"]
                     for i, label in enumerate(labels):
                         rect = pygame.Rect(SCREEN_WIDTH//2 - button_width//2, start_y + i*(button_height+spacing), button_width, button_height)
