@@ -14,8 +14,7 @@ import os
 import sys
 
 # Internal imports
-from Handling_ALL_Functions import get_synced_data, load_cached_data, LLS_A_excel_to_array, save_cached_data
-import Model_ALL_RandomWalk
+from Handling_ALL_Functions import get_synced_data, load_cached_data, LLS_A_excel_to_array, save_cached_data, get_data
 import constants
 
 ##############################################################################################################
@@ -517,8 +516,9 @@ def main():
     #    title="Error LLS A vs. Error LLS B (ALL TOWS)",
     #    bin_widths=[0.005, 0.005],
     #    run = False)
-
-    data, weights = np.array(Model_ALL_RandomWalk.get_data("CAM", format="merged"))
+    sensor = "LLS_B"
+    data, weights = np.array(get_data(sensor, format="merged"))
+    print(f"Sensor: {sensor}")
     best_fit_distribution(data=data, bins = 40, distributions=None, weights=weights, plot=True)
     
 

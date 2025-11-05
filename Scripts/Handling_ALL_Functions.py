@@ -229,6 +229,43 @@ def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False, p
     # Return as DataFrame
     return pd.DataFrame(processed_data, columns=col_names)
 
+def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = "merged"):
+    """
+    This function gets the required data for the specified sensor.
+    """
+    # Wrong sensor error message
+    if not sensor == "LT" and not sensor == "CAM" and not sensor == "LLS_A" and not sensor == "LLS_B":
+        raise ValueError("Invalid sensor type. Possible values are 'LT', 'CAM', 'LLS_A', and 'LLS_B'.")
+
+    data, weights = [], []
+    # loops through each tow that is specified and get data
+    for tow_num in tows:
+        tow_data = get_synced_data(tow_num, sensor)
+
+        if sensor == "LLS_A":
+            tow_data = tow_data[["error_LLS_A", "Weights"]]
+        elif sensor == "LLS_B":
+            tow_data = tow_data[["error_LLS_B", "Weights"]]
+        elif sensor == "CAM":
+            tow_data = tow_data[["error_CAM", "Weights"]]
+        elif sensor == "LT":
+            tow_data = tow_data[(tow_data["x"] >= 0) & (tow_data["x"] <= 1000)]     # TODO: check if this is correct
+            tow_data = tow_data[["error_LT", "Weights"]]
+        tow_data = np.array(tow_data)
+
+        if format == "merged":
+            # put data into correct format (pairs)
+            for i in range(len(tow_data[:, 0])):
+                data.append(float(tow_data[i, 0]))
+                weights.append(float(tow_data[i, 1]))
+
+        elif format == "separated":
+            data.append(tow_data[:, 0])
+            weights.append(tow_data[:, 1])
+
+        else: print('Invalid format. Possible values are "merged" and "separated".')
+    return data, weights   
+
 ##############################################################################################################
 """Run this file"""
 
