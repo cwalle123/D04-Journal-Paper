@@ -100,7 +100,6 @@ def plot_histograms(data: pd.DataFrame, title: str, bin_widths: list[float] = No
         plt.tight_layout()
         plt.show()
 
-
 def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None, run = bool):
     '''Plots all histograms in different Figures. 
     The x-axis has the same range for all figures.'''
@@ -205,7 +204,6 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
         plt.tight_layout()
         plt.show()
 
-
 def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =None, run = bool):
     '''Plots Tape width before vs after compaction to see the overlap. Not used in this paper.'''
     if run == True:
@@ -251,8 +249,7 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.tight_layout()
         plt.show()
 
-
-def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=False):
+def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=False, print_statement=False):
     '''This function fits the best probability distribution to the four error types automatically, for the weighted data'''
 
     # Compute the histogram of the data
@@ -304,9 +301,10 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=
     loc = params[-2]
     scale = params[-1]
 
-    print("Best:", best_dist.name)
-    print("Shape parameters:", shapes)
-    print("loc:", loc, "scale:", scale)
+    if print_statement == True:
+        print("Best:", best_dist.name)
+        print("Shape parameters:", shapes)
+        print("loc:", loc, "scale:", scale)
     # Return the distribution with the lowest error (SSE)
     
     if plot:
@@ -320,7 +318,6 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=
         plt.show()
 
     return best
-
 
 def build_all_sensors_df(tow_range=range(2, 31), time_key=None):
     """Returns a dataframe with columns:
@@ -399,7 +396,6 @@ def build_all_sensors_df(tow_range=range(2, 31), time_key=None):
     df = pd.concat(dfs, ignore_index=True)
     return df
 
-
 def weighted_mean_std(x, w=None):
     '''Get the statistical data (mean and std) for the four sensors with weights on the data'''
 
@@ -415,7 +411,6 @@ def weighted_mean_std(x, w=None):
     mu = np.sum(w * x)
     var = np.sum(w * (x - mu)**2)
     return mu, np.sqrt(var)
-
 
 def print_weighted_stats_table(df: pd.DataFrame):
     '''function for printing the statistics fo the weighted data'''

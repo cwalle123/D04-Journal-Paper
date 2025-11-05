@@ -413,7 +413,7 @@ def main():
                             if label=="Simulation":
                                 simulation_result = None
                                 loading_start_time = time.time()
-                                loading_estimated_time = 0.237*num_tows + 1.2
+                                loading_estimated_time = 0.237*num_tows + 12.6
                                 simulation_thread = threading.Thread(target=run_simulation, kwargs=dict(GO=visualize_gaps_overlaps, fill=fill_tows, centerline=visualize_centerline, gridlines=show_gridlines))
                                 simulation_thread.start()
                                 state = LOADING
