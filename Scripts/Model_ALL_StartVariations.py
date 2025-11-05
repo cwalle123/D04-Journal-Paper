@@ -145,6 +145,16 @@ def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_da
 
 ### new code by Seán ###
 
+def generate_exp_vs_RW_plot(n_laminates: int=10, num_divisions: int=100, programmed_shift: float=6.35):
+    '''code for comparing experimental to random walk.'''
+    exp_defect_data = calc_experimental_lengthwise(range(2,31), programmed_shift=6.35,
+                                                          num_divisions=num_divisions)
+    RW_defect_data = calc_lengthwise_defect_percent(n_laminates, tows_per_laminate=29, num_divisions=num_divisions,
+                                                                           alternate_start=[norm, [0, 0.45]])
+    #plotting: good=experimental, bad=RW
+    plot_exp_lengthwise_defect_percent(exp_defect_data, RW_defect_data, name="StartVariations-experimental.pdf")
+
+
 def generate_experimental_plot(programmed_shift: float=6.35, num_divisions: int=100):
     average_centerlines = []
     for tow in range(2, 31):
@@ -177,11 +187,7 @@ def generate_experimental_plot(programmed_shift: float=6.35, num_divisions: int=
 
 
 
-
-
-def calc_exp_lengthwise_tow_gap(tow: pd.DataFrame, average_centerline: float, programmed_shift: float=6.35, num_divisions: int=100):   # TODO: fix function!
-    ### function to calculate gap/overlap for single tow w.r.t. 2 'ideal' tows. ###
-    #average_width = programmed_shift/num_divisions  # TODO: find correct value.
+def calc_exp_lengthwise_tow_gap(tow: pd.DataFrame, average_centerline: float, programmed_shift: float=6.35, num_divisions: int=100):
     average_widths = []
     for i in range(2, 31):
         traverse_tow = traverse_tow_constructor(i, normalize=True)
@@ -629,7 +635,8 @@ def main():
     #calc_lengthwise_defect_percent_exp(bin_size_mm=10)
     #generate_multilaminate_layout(2)
 
-    generate_experimental_plot()
+    #generate_experimental_plot()
+    generate_exp_vs_RW_plot()
     
 if __name__ == "__main__":
     main()
