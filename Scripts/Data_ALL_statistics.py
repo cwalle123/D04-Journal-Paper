@@ -249,7 +249,7 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.tight_layout()
         plt.show()
 
-def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=False, print_statement=False):
+def best_fit_distribution(data, sensor: str, bins=40, distributions=None, weights=None, plot=False, print_statement=False):
     '''This function fits the best probability distribution to the four error types automatically, for the weighted data'''
 
     # Compute the histogram of the data
@@ -261,11 +261,13 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=
     bw = np.diff(bin_edges)
 
     # If no distribution list given, use a broad default set
-    if distributions is None:
+    if distributions is None and sensor == "CAM":
         distributions = [
             norm, logistic, gamma, beta, expon, lognorm, skewnorm,
             gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t, poisson, laplace]
-
+        
+    if distributions is None and sensor != "CAM":
+        distributions = [norm, logistic]
 
     best = {'dist': None, 'params': None, 'mse': np.inf}
 
@@ -295,6 +297,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=
     
     best_dist = best['dist']
     params = best['params']
+    mse = best['mse']
 
     # shape parameters (can be empty)
     shapes = params[:-2]    
@@ -305,7 +308,8 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=
         print("Best:", best_dist.name)
         print("Shape parameters:", shapes)
         print("loc:", loc, "scale:", scale)
-    # Return the distribution with the lowest error (SSE)
+        print("MSE:", mse)
+    # Return the distribution with the lowest error (MSE)
     
     if plot:
         x = np.linspace(best_dist.ppf(0.001, *shapes, loc=loc, scale=scale), best_dist.ppf(0.999, *shapes, loc=loc, scale=scale), 200)
@@ -511,10 +515,10 @@ def main():
     #    title="Error LLS A vs. Error LLS B (ALL TOWS)",
     #    bin_widths=[0.005, 0.005],
     #    run = False)
-    sensor = "CAM"
+    sensor = "LLS_B"
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
-    best_fit_distribution(data=data, bins=100, distributions=None, weights=weights, plot=True)
+    best_fit_distribution(data=data, bins=100, sensor=sensor, distributions=None, weights=weights, plot=True, print_statement=True)
     
 
 if __name__ == "__main__":
