@@ -877,7 +877,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # --- Traverse vs RW (normal axis) ---
     ax0 = fig.add_subplot(spec[0])
     ax0.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
-    ax0.hist(gap_RW, bins=shared_bins, color="orange", alpha=0.5, edgecolor="black", label="RW Simulated")
+    ax0.hist(gap_RW, bins=shared_bins, color="green", alpha=0.5, edgecolor="black", label="RW Simulated")
     ax0.set_xlim(*xlim)
     ax0.set_ylim(0, 189)
     ax0.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman")
@@ -890,7 +890,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         hspace=.1,
         subplot_spec=spec[1])
     bax1.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
-    bax1.hist(gap_RS, bins=shared_bins, color="green", alpha=0.5, edgecolor="black", label="RS Simulated")
+    bax1.hist(gap_RS, bins=shared_bins, color="orange", alpha=0.5, edgecolor="black", label="RS Simulated")
     bax1.set_xlim(*xlim)
     bax1.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman")
     bax1.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman")
