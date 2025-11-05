@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """
+
+Written by: Giovanni Zattoni
+
 Model_ALL_Validation_FFT_RW_TowEdges.py
 ---------------------------------------
 FFT amplitude spectrum comparison between:
