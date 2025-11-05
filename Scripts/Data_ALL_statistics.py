@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
-from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t
+from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t, poisson, laplace
 import sklearn.metrics as sklearn
 import os
 import sys
@@ -267,7 +267,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=
     if distributions is None:
         distributions = [
             norm, logistic, gamma, beta, expon, lognorm, skewnorm,
-            gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t]
+            gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t, poisson, laplace]
 
 
     best = {'dist': None, 'params': None, 'mse': np.inf}
@@ -516,10 +516,10 @@ def main():
     #    title="Error LLS A vs. Error LLS B (ALL TOWS)",
     #    bin_widths=[0.005, 0.005],
     #    run = False)
-    sensor = "LLS_B"
+    sensor = "CAM"
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
-    best_fit_distribution(data=data, bins = 40, distributions=None, weights=weights, plot=True)
+    best_fit_distribution(data=data, bins=100, distributions=None, weights=weights, plot=True)
     
 
 if __name__ == "__main__":
