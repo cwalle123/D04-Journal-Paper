@@ -15,7 +15,6 @@ import sys
 
 # Internal imports
 from Handling_ALL_Functions import get_synced_data, load_cached_data, LLS_A_excel_to_array, save_cached_data
-from Model_ALL_RandomWalk import get_data
 import constants
 
 ##############################################################################################################
