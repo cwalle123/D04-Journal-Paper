@@ -82,6 +82,8 @@ tow_spacing_mm = 6.35
 steps_per_mm = 340 / 1000  # ratio: 340 steps = 1000 mm
 visualize_gaps_overlaps = False
 fill_tows = False
+visualize_centerline = True
+show_gridlines = True
 
 # ---------------- Runtime Variables ----------------
 active_input_field = None
@@ -105,7 +107,7 @@ def draw_button(text, rect, active=True, green=False):
     label = font.render(text, True, (255, 255, 255))
     screen.blit(label, label.get_rect(center=rect.center))
 
-def run_simulation(GO=False, fill=False):
+def run_simulation(GO=False, fill=False, centerline=True, gridlines=True):
     global simulation_result
     plt.clf()
 
@@ -119,17 +121,11 @@ def run_simulation(GO=False, fill=False):
         print_statement=False
     )
 
-    # --- Create the figure ---
     fig, ax = plt.subplots(figsize=(10, 6))
+    colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]
 
-    # Define alternating colors
-    colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]  # dark grey, light grey
-
-    # --- Plot each tow ---
     x_vals = RW_all_tows_data[0]["x_mm"]
-
-    # When fill=True, draw lower tows first so higher ones appear on top
-    tow_indices = range(num_tows) if not fill else range(num_tows)
+    tow_indices = range(num_tows)
 
     for i in tow_indices:
         tow_df = RW_all_tows_data[i]
@@ -139,70 +135,42 @@ def run_simulation(GO=False, fill=False):
         bottom_edge = tow_df["bottom_edge"]
 
         if fill:
-            # Filled tow band
-            ax.fill_between(
-                x,
-                bottom_edge,
-                top_edge,
-                color=color,
-                alpha=0.8,
-                label=f"Tow {i+1}" if i == 0 else ""
-            )
+            ax.fill_between(x, bottom_edge, top_edge, color=color, alpha=0.8, label=f"Tow {i+1}" if i == 0 else "")
         else:
-            # Edge and centerline plotting
-            ax.plot(x, top_edge, color=color, lw=1.8, label=f"Tow {i+1}")
+            ax.plot(x, top_edge, color=color, lw=1.8)
             ax.plot(x, bottom_edge, color=color, lw=1.8)
-            ax.plot(x, tow_df["centerline"], color=color, lw=1.0, linestyle="--")
+            if centerline:
+                ax.plot(x, tow_df["centerline"], color=color, lw=1.0, linestyle="--")
 
-    # --- Shade gap and overlap regions between tows ---
+    # --- Gaps and overlaps ---
     if GO:
         for i in range(num_tows - 1):
             top_edge_prev = RW_all_tows_data[i]["top_edge"]
             bottom_edge_next = RW_all_tows_data[i + 1]["bottom_edge"]
+            diff = bottom_edge_next - top_edge_prev
+            ax.fill_between(x_vals, top_edge_prev, bottom_edge_next, where=(diff > 0),
+                            color="white", alpha=0.3)
+            ax.fill_between(x_vals, top_edge_prev, bottom_edge_next, where=(diff < 0),
+                            color="black", alpha=0.3)
 
-            diff = bottom_edge_next - top_edge_prev  # +gap, -overlap
+    # --- Ideal straight lines ---
+    if centerline:
+        x_min = min(df["x_mm"].min() for df in RW_all_tows_data)
+        x_max = max(df["x_mm"].max() for df in RW_all_tows_data)
+        for i in range(num_tows):
+            ideal_y = i * tow_width_mm
+            ax.plot([x_min, x_max], [ideal_y, ideal_y],
+                    color="gray", linestyle=":", lw=1.2, alpha=0.8)
 
-            # Gaps (blue)
-            ax.fill_between(
-                x_vals,
-                top_edge_prev,
-                bottom_edge_next,
-                where=(diff > 0),
-                color="white",
-                alpha=0.3,
-                label="Gap" if i == 0 else ""
-            )
-
-            # Overlaps (red)
-            ax.fill_between(
-                x_vals,
-                top_edge_prev,
-                bottom_edge_next,
-                where=(diff < 0),
-                color="black",
-                alpha=0.3,
-                label="Overlap" if i == 0 else ""
-            )
-
-    # --- Plot ideal (straight) centerlines ---
-    x_min = min(df["x_mm"].min() for df in RW_all_tows_data)
-    x_max = max(df["x_mm"].max() for df in RW_all_tows_data)
-    for i in range(num_tows):
-        ideal_y = i * tow_width_mm
-        ax.plot([x_min, x_max], [ideal_y, ideal_y],
-                color="gray", linestyle=":", lw=1.2, alpha=0.8)
-
-    # --- Labels, title, legend ---
-    ax.set_title("")
+    # --- Axes and grid ---
     ax.set_xlabel("Tow Length (mm)", fontname="Times New Roman", fontsize=15)
     ax.set_ylabel("Position (mm)", fontname="Times New Roman", fontsize=15)
-    ax.grid(True, linestyle="--", alpha=0.8)
-
-    # ax.legend(loc="upper right", fontsize=9)
+    if gridlines:
+        ax.grid(True, linestyle="--", alpha=0.8)
+    else:
+        ax.grid(False)
 
     plt.tight_layout()
-
-    # --- Store the figure and metrics for display ---
     simulation_result = (fig, gap_percent, overlap_percent)
 
 def render_matplotlib_figure(fig):
@@ -251,11 +219,10 @@ def draw_settings():
     global field_rects
     screen.fill((40, 40, 40))
 
-    # --- Layout control ---
-    start_x_label = SCREEN_WIDTH/2 - 240   # X position for labels
-    start_x_input = start_x_label + 250    # X position for input boxes
-    start_y = SCREEN_HEIGHT/2 - 230        # Y starting position
-    vertical_spacing = 70 # Distance between each row
+    start_x_label = SCREEN_WIDTH/2 - 240
+    start_x_input = start_x_label + 250
+    start_y = SCREEN_HEIGHT/2 - 300
+    vertical_spacing = 70
 
     settings = [
         ("Number of Tows", num_tows),
@@ -267,44 +234,40 @@ def draw_settings():
     field_rects = []
     for i, (label_text, value) in enumerate(settings):
         y = start_y + i * vertical_spacing
-
-        # Draw label
         label = font.render(f"{label_text}:", True, (255, 255, 255))
         screen.blit(label, (start_x_label, y))
-
-        # Draw input box
         rect = pygame.Rect(start_x_input, y, 200, 40)
         pygame.draw.rect(screen, (255, 255, 255), rect, 2)
         value_str = input_text if active_input_field == i else str(value)
         screen.blit(font.render(value_str, True, (255, 255, 255)), (rect.x + 5, rect.y + 5))
         field_rects.append(rect)
 
-    # Add instruction text (adjusted to align nicely under fields)
     reminder_text = font.render("Remember to press ENTER to confirm a value", True, (200, 200, 0))
     screen.blit(reminder_text, (start_x_label - 35, start_y + len(settings) * vertical_spacing + 30))
 
-    # --- NEW TOGGLES ---
     toggle_y = start_y + len(settings) * vertical_spacing + 90
     toggle_spacing = 70
     button_width, button_height = 350, 50
 
     visualize_rect = pygame.Rect(SCREEN_WIDTH/2 - button_width/2, toggle_y, button_width, button_height)
     fill_rect = pygame.Rect(SCREEN_WIDTH/2 - button_width/2, toggle_y + toggle_spacing, button_width, button_height)
+    centerline_rect = pygame.Rect(SCREEN_WIDTH/2 - button_width/2, toggle_y + 2*toggle_spacing, button_width, button_height)
+    gridlines_rect = pygame.Rect(SCREEN_WIDTH/2 - button_width/2, toggle_y + 3*toggle_spacing, button_width, button_height)
 
-    draw_button(f"Gaps and Overlaps: {'ON' if visualize_gaps_overlaps else 'OFF'}",visualize_rect,green=visualize_gaps_overlaps)
-    draw_button(f"Fill Tows: {'ON' if fill_tows else 'OFF'}",fill_rect,green=fill_tows)
+    draw_button(f"Gaps and Overlaps: {'ON' if visualize_gaps_overlaps else 'OFF'}", visualize_rect, green=visualize_gaps_overlaps)
+    draw_button(f"Fill Tows: {'ON' if fill_tows else 'OFF'}", fill_rect, green=fill_tows)
+    draw_button(f"Centerlines: {'ON' if visualize_centerline else 'OFF'}", centerline_rect, green=visualize_centerline)
+    draw_button(f"Gridlines: {'ON' if show_gridlines else 'OFF'}", gridlines_rect, green=show_gridlines)
 
-    # --- Back button ---
     draw_button("Back", pygame.Rect(50, 50, 100, 40))
-
-    return visualize_rect, fill_rect
+    return visualize_rect, fill_rect, centerline_rect, gridlines_rect
 
 def handle_settings_event(event):
     global num_tows, tow_width_mm, tow_length_mm, tow_spacing_mm
     global active_input_field, input_text, state
-    global visualize_gaps_overlaps, fill_tows
+    global visualize_gaps_overlaps, fill_tows, visualize_centerline, show_gridlines
 
-    visualize_rect, fill_rect = draw_settings()  # ensure we have latest button rects
+    visualize_rect, fill_rect, centerline_rect, gridlines_rect = draw_settings()  # ensure we have latest button rects
 
     if event.type == pygame.MOUSEBUTTONDOWN:
         back_rect = pygame.Rect(50, 50, 100, 40)
@@ -320,6 +283,12 @@ def handle_settings_event(event):
             return
         elif fill_rect.collidepoint(event.pos):
             fill_tows = not fill_tows
+            return
+        elif centerline_rect.collidepoint(event.pos):
+            visualize_centerline = not visualize_centerline
+            return
+        elif gridlines_rect.collidepoint(event.pos):
+            show_gridlines = not show_gridlines
             return
         
         # --- Handle numeric fields ---
@@ -445,7 +414,7 @@ def main():
                                 simulation_result = None
                                 loading_start_time = time.time()
                                 loading_estimated_time = 0.237*num_tows + 1.2
-                                simulation_thread = threading.Thread(target=run_simulation, kwargs=dict(GO=visualize_gaps_overlaps, fill=fill_tows))
+                                simulation_thread = threading.Thread(target=run_simulation, kwargs=dict(GO=visualize_gaps_overlaps, fill=fill_tows, centerline=visualize_centerline, gridlines=show_gridlines))
                                 simulation_thread.start()
                                 state = LOADING
                             elif label=="Settings":
