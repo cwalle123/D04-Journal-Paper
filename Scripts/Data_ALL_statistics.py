@@ -9,10 +9,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
+import sklearn.metrics as sklearn
 import os
+import sys
 
 # Internal imports
 from Handling_ALL_Functions import get_synced_data, load_cached_data, LLS_A_excel_to_array, save_cached_data
+from Model_ALL_RandomWalk import get_data
 import constants
 
 ##############################################################################################################
@@ -268,7 +271,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None):
             gumbel_r, gumbel_l, genextreme]
 
 
-    best = {'dist': None, 'params': None, 'sse': np.inf}
+    best = {'dist': None, 'params': None, 'mse': np.inf}
 
     # Iterate over each candidate distribution
     for dist in distributions:
@@ -285,11 +288,11 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None):
                 # Evaluate its PDF at the bin centers
                 pdf = dist.pdf(x_mid, *params[:-2], loc=params[-2], scale=params[-1])
                 # Compute sum of squared errors between histogram and PDF to check accuracy
-                sse = np.sum(((y - pdf) ** 2) * bw)
+                mse = sklearn.mean_squared_error(y, pdf)
 
                 # If this fit is better (lower SSE), use it
-                if sse < best['sse']:
-                    best.update(dist=dist, params=params, sse=sse)
+                if mse < best['mse']:
+                    best.update(dist=dist, params=params, mse=mse)
             except Exception:
                 # If fitting fails for any reason, skip to the next distribution
                 continue
@@ -298,7 +301,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None):
     return best
 
 
-def build_all_sensors_df(tow_range=range(2, 32), time_key=None):
+def build_all_sensors_df(tow_range=range(2, 31), time_key=None):
     """Returns a dataframe with columns:
       error_LLS_A, w_LLS_A,
       error_LLS_B, w_LLS_B,
@@ -468,30 +471,35 @@ def get_shifted_LLS_A_data(tow: int, sensor_type: str="LLS_A_shifted", overwrite
 
 def main():
     
-    '''Creates dataframe with sensor data + weights from each sensor'''
-    df = build_all_sensors_df(tow_range=range(2, 32))
-    print(df.columns.tolist())   # just to ensure the dataframe has the correct data
-    print_weighted_stats_table(df)  # prints the statistical values
+    #'''Creates dataframe with sensor data + weights from each sensor'''
+    #df = build_all_sensors_df(tow_range=range(2, 32))
+    #print(df.columns.tolist())   # just to ensure the dataframe has the correct data
+    #print_weighted_stats_table(df)  # prints the statistical values
 
     # To make the plots appear, change run=False to run=True
 
     # All tows are shown
-    plot_histograms(
-        df,
-        title="Sensor Error Histograms ",
-        bin_widths=[0.008, 0.008, 0.008, 0.008], 
-        run = True)
+    #plot_histograms(
+    #    df,
+    #    title="Sensor Error Histograms ",
+    #    bin_widths=[0.008, 0.008, 0.008, 0.008], 
+    #    run = True)
     
-    '''This is the good one'''
-    plot_histograms_separated(
-        df,
-        bin_widths=[0.005, 0.005, 0.005, 0.008],
-        run = False)
+    #'''This is the good one'''
+    #plot_histograms_separated(
+    #    df,
+    #    bin_widths=[0.005, 0.005, 0.005, 0.008],
+    #    run = False)
 
-    plot_LLSA_vs_LLSB(df,
-        title="Error LLS A vs. Error LLS B (ALL TOWS)",
-        bin_widths=[0.005, 0.005],
-        run = False)
+    #plot_LLSA_vs_LLSB(df,
+    #    title="Error LLS A vs. Error LLS B (ALL TOWS)",
+    #    bin_widths=[0.005, 0.005],
+    #    run = False)
+
+    data, weights = get_data("CAM", format="separated")
+    best = best_fit_distribution(data, weights)
+    print(best)
+    #print(sys.path)
 
 if __name__ == "__main__":
     main()
