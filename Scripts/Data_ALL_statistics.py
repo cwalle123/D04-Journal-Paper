@@ -8,13 +8,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
-from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
+from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t
 import sklearn.metrics as sklearn
 import os
 import sys
 
 # Internal imports
 from Handling_ALL_Functions import get_synced_data, load_cached_data, LLS_A_excel_to_array, save_cached_data
+import Model_ALL_RandomWalk
 import constants
 
 ##############################################################################################################
@@ -252,7 +253,7 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.show()
 
 
-def best_fit_distribution(data, bins=40, distributions=None, weights=None):
+def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=False):
     '''This function fits the best probability distribution to the four error types automatically, for the weighted data'''
 
     # Compute the histogram of the data
@@ -267,7 +268,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None):
     if distributions is None:
         distributions = [
             norm, logistic, gamma, beta, expon, lognorm, skewnorm,
-            gumbel_r, gumbel_l, genextreme]
+            gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t]
 
 
     best = {'dist': None, 'params': None, 'mse': np.inf}
@@ -275,8 +276,8 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None):
     # Iterate over each candidate distribution
     for dist in distributions:
         # Skip distributions that require non-negative data if data has negatives
-        if data.min() < 0 and dist in (gamma, beta, expon, lognorm, skewnorm, gumbel_r, genextreme):
-            continue
+        #if data.min() < 0 and dist in (gamma, beta, expon, lognorm, skewnorm, gumbel_r, genextreme):
+        #    continue
 
 
         with warnings.catch_warnings():
@@ -295,8 +296,30 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None):
             except Exception:
                 # If fitting fails for any reason, skip to the next distribution
                 continue
+    
+    best_dist = best['dist']
+    params = best['params']
 
+    # shape parameters (can be empty)
+    shapes = params[:-2]    
+    loc = params[-2]
+    scale = params[-1]
+
+    print("Best:", best_dist.name)
+    print("Shape parameters:", shapes)
+    print("loc:", loc, "scale:", scale)
     # Return the distribution with the lowest error (SSE)
+    
+    if plot:
+        x = np.linspace(best_dist.ppf(0.001, *shapes, loc=loc, scale=scale), best_dist.ppf(0.999, *shapes, loc=loc, scale=scale), 200)
+
+        plt.hist(data, bins=40, density=True, alpha=0.5)
+        plt.plot(x, best_dist.pdf(x, *shapes, loc=loc, scale=scale), linewidth=2)
+        plt.title(f"Best fit: {best_dist.name}")
+        plt.xlabel("Value")
+        plt.ylabel("Density")
+        plt.show()
+
     return best
 
 
@@ -495,10 +518,9 @@ def main():
     #    bin_widths=[0.005, 0.005],
     #    run = False)
 
-    data, weights = get_data("CAM", format="separated")
-    best = best_fit_distribution(data, weights)
-    print(best)
-    #print(sys.path)
+    data, weights = np.array(Model_ALL_RandomWalk.get_data("CAM", format="merged"))
+    best_fit_distribution(data=data, bins = 40, distributions=None, weights=weights, plot=True)
+    
 
 if __name__ == "__main__":
     main()
