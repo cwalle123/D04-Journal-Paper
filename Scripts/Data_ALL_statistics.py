@@ -249,7 +249,7 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.tight_layout()
         plt.show()
 
-def best_fit_distribution(data, sensor: str, bins=40, distributions=None, weights=None, plot=False, print_statement=False):
+def best_fit_distribution(data, bins=40, distributions=None, weights=None, plot=False, print_statement=False):
     '''This function fits the best probability distribution to the four error types automatically, for the weighted data'''
 
     # Compute the histogram of the data
@@ -261,14 +261,10 @@ def best_fit_distribution(data, sensor: str, bins=40, distributions=None, weight
     bw = np.diff(bin_edges)
 
     # If no distribution list given, use a broad default set
-    if distributions is None and sensor == "CAM":
+    if distributions is None:
         distributions = [
             norm, logistic, gamma, beta, expon, lognorm, skewnorm,
             gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t, poisson, laplace]
-        
-    if distributions is None and sensor != "CAM":
-        distributions = [norm, logistic]
-
     best = {'dist': None, 'params': None, 'mse': np.inf}
 
     # Iterate over each candidate distribution
