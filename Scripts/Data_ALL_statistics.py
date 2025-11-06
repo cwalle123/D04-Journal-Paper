@@ -249,7 +249,7 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.show()
 
 # Functions for fitting and collecting data:
-def best_fit_distribution(data, sensor: str, bins=40, distributions=None, weights=None, plot=False, print_statement=False):
+def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_all_dist=False, plot=False, print_statement=False):
     '''This function fits the best probability distribution to the four error types automatically, for the weighted data'''
 
     # Compute the histogram of the data
@@ -467,6 +467,8 @@ def main():
     sensor = "LLS_B"
     if sensor == "CAM":
         use_all_dist = True
+    else:
+        use_all_dist = False
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
     best_fit_distribution(data=data, bins=100, sensor=sensor, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True)
