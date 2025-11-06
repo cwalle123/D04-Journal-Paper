@@ -249,7 +249,7 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.show()
 
 # Functions for fitting and collecting data:
-def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_all_dist=False, plot=False, print_statement=False):
+def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_all_dist=False, plot=False, print_statement=False, shrink_scale_factor=1.0):
     '''This function fits the best probability distribution to the four error types automatically, for the weighted data'''
 
     # Compute the histogram of the data
@@ -262,9 +262,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
 
     # If no distribution list given, use a broad default set
     if distributions is None and use_all_dist is True:
-        distributions = [
-            norm, logistic, gamma, beta, expon, lognorm, skewnorm,
-            gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t, poisson, laplace]
+        distributions = [skewnorm]
     elif distributions is None and use_all_dist is False:
         distributions = [norm, logistic]
     best = {'dist': None, 'params': None, 'mse': np.inf}
@@ -301,6 +299,10 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
     shapes = params[:-2]    
     loc = params[-2]
     scale = params[-1]
+
+    #Manual shrink of scale
+    scale = scale * shrink_scale_factor
+    params = (*shapes, loc, scale)
 
     if print_statement == True:
         print("Best:", best_dist.name)
@@ -467,11 +469,13 @@ def main():
     sensor = "CAM"
     if sensor == "CAM":
         use_all_dist = True
+        shrink_scale_factor = 0.9
     else:
         use_all_dist = False
+        shrink_scale_factor = 1.0
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
-    best_fit_distribution(data=data, bins=250, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True)
+    best_fit_distribution(data=data, bins=250, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True, shrink_scale_factor=shrink_scale_factor)
     
 
 if __name__ == "__main__":
