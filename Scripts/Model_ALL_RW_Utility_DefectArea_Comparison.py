@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-
 Written By: Giovanni Zattoni
-
 
 RW 'Utility' Figure — Average defect area % vs. eliminated error source
 =======================================================================
@@ -45,6 +43,7 @@ import textwrap
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+
 REPO_ROOT = os.path.dirname(__file__)
 SCRIPTS_DIR = os.path.join(REPO_ROOT, "Scripts")
 sys.path.insert(0, SCRIPTS_DIR)
@@ -58,7 +57,7 @@ from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk
 # ---------------------------------------------------------------------
 # Simulation configuration
 # ---------------------------------------------------------------------
-N_RUNS = 100                 # Number of simulations per scenario (for averaging)
+N_RUNS = 10                 # Number of simulations per scenario (for averaging)
 NUM_TOWS = 31               # Number of parallel tows across the lane
 NOMINAL_WIDTH_MM = 6.35     # Nominal tow width [mm]
 PROPOSAL_TYPE = "RWM"       # Proposal type for random walk sampling
@@ -70,7 +69,7 @@ SCENARIO_SHIFT_MM = {
     "CAM":    6.35,   # "No tape lateral movement"
     "LT":     6.35,   # "No robot inaccuracy"
     "LLS_A":  6.35,   # "No width variation"
-    "LLS_B":  6.4321,   # "No compaction variation"
+    "LLS_B":  6.4321, # "No compaction variation"
 }
 
 # Output file locations
@@ -116,6 +115,9 @@ plt.rcParams.update({
 # Color constants for Gap and Overlap bars
 PASTEL_BLUE = "#A7C7E7"   # Gap
 PASTEL_RED  = "#F4A6A6"   # Overlap
+# Thin reference line colors (darker)
+LINE_BLUE = "#1f77b4"
+LINE_RED  = "#d62728"
 
 # ---------------------------------------------------------------------
 # Helper functions
@@ -270,8 +272,8 @@ def run_experiment(n_runs=100, num_tows=6):
         ("All four variations",        None),    # baseline
         ("No tape lateral movement",   "CAM"),   # CAM off
         ("No robot inaccuracy",        "LT"),    # LT off
-        #("No width variation",         "LLS_A"), # width before off (uses rectified compaction error)
-        ("No width variation or compaction variation",    "LLS_B"), # width fixed to NOMINAL
+        # ("No width variation",       "LLS_A"), # width before off (uses rectified compaction error)
+        ("No width variation or compaction variation", "LLS_B"),  # width fixed to NOMINAL
     ]
 
     results = {label: {"gap": [], "ovl": [], "shift": []} for label, _ in scenarios}
@@ -306,14 +308,14 @@ def run_experiment(n_runs=100, num_tows=6):
     return scenarios, summary
 
 # ---------------------------------------------------------------------
-# Plotting function (no outlines)
+# Plotting function (adds thin reference lines at tallest Gap & Overlap bars)
 # ---------------------------------------------------------------------
 def plot_barchart(scenarios, summary, save_path):
     labels = [s[0] for s in scenarios]
     gap_means = [summary[l][0] for l in labels]
     ovl_means = [summary[l][1] for l in labels]
     x = np.arange(len(labels))
-    width = 0.30  # 75% of previous 0.40
+    width = 0.30  # bar width
 
     fig, ax = plt.subplots()
 
@@ -321,28 +323,44 @@ def plot_barchart(scenarios, summary, save_path):
     ax.bar(x - width/2, gap_means, width, label="Gap",     color=PASTEL_BLUE)
     ax.bar(x + width/2, ovl_means, width, label="Overlap", color=PASTEL_RED)
 
-    # Axis labels — NO x-axis caption; y per colleague preference
+    # Axis labels / ticks
     ax.set_ylabel("Defect area %")
-
-    # Wrap x-tick labels to prevent crowding
     wrapped = _wrap_labels(labels, width=18)
     ax.set_xticks(x, wrapped, rotation=0, ha="center")
-
-    # Y-axis: fixed 0–5, no minors
     ax.set_ylim(0, 5)
     ax.yaxis.set_major_locator(MultipleLocator(Y_MAJOR_STEP))
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
     ax.minorticks_off()
 
-    # Legend
-    ax.legend(loc="best")
+    # ------- Reference lines (cover top of tallest bar, then extend) -------
+    # For GAP bars: centers at (x - width/2), span [x - width, x]
+    if gap_means:
+        i_max_g = int(np.argmax(gap_means))
+        y_g = float(gap_means[i_max_g])
+        x_left_edge_tallest_gap  = (x[i_max_g] - width/2) - width/2   # = x[i]-width
+        x_right_edge_last_gap    = x[-1]                               # right edge of last GAP bar
+        if x_right_edge_last_gap > x_left_edge_tallest_gap:
+            ax.hlines(y_g, xmin=x_left_edge_tallest_gap, xmax=x_right_edge_last_gap,
+                      colors=LINE_BLUE, linestyles='-', linewidth=0.9, zorder=5)
 
-    # Room for wrapped labels (since no xlabel, bottom can still be tight)
+    # For OVERLAP bars: centers at (x + width/2), span [x, x + width]
+    if ovl_means:
+        i_max_o = int(np.argmax(ovl_means))
+        y_o = float(ovl_means[i_max_o])
+        x_left_edge_tallest_ovl  = (x[i_max_o] + width/2) - width/2   # = x[i]
+        x_right_edge_last_ovl    = x[-1] + width                      # right edge of last OVERLAP bar
+        if x_right_edge_last_ovl > x_left_edge_tallest_ovl:
+            ax.hlines(y_o, xmin=x_left_edge_tallest_ovl, xmax=x_right_edge_last_ovl,
+                      colors=LINE_RED, linestyles='-', linewidth=0.9, zorder=5)
+    # -----------------------------------------------------------------------
+
+    ax.legend(loc="best")
     fig.tight_layout()
     fig.subplots_adjust(bottom=0.22)
-
     fig.savefig(save_path, bbox_inches="tight", dpi=300)
     print(f"[✓] Saved figure: {save_path}")
+
+
 
 # ---------------------------------------------------------------------
 # CSV saving
@@ -377,4 +395,4 @@ def main():
     save_csv(scenarios, summary, CSV_PATH)
 
 if __name__ == "__main__":
-   main()
+    main()
