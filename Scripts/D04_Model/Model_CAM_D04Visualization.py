@@ -1,9 +1,4 @@
 """
-Vis_D04_3D_Anim_AllBins_Pure.py
---------------------------------
-Now uses the same initialization logic as Model_ALL_Simulation.py
-→ starting error is obtained from generate_starting_error(sensor)
-
 Pure rendering:
 - Renders ALL bins (num_bins shown == num_bins set).
 - Uses TRUE bin widths [x_min, x_max]; no min-thickness inflation, no shifting.
@@ -12,18 +7,22 @@ Pure rendering:
 - Data-faithful: no sigma exaggeration, no smoothing.
 """
 
+##############################################################################################################
+
+# External imports
 import math, inspect
 from typing import Optional, Dict
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-# ---- D04 core imports ----
-from Model_ALL_ConsecutiveErrorTheo import (
-    consecutive_error,
-    generate_error_path,
-    generate_starting_error,   # identical to Model_ALL_Simulation
-)
+# Internal imports
+from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
+
+##############################################################################################################
+"""Functions"""
 
 # ----------------------------
 # Visual style
@@ -305,7 +304,12 @@ def run(sensor: str = "CAM",
 
     plt.show()
 
+##############################################################################################################
+"""Run this file"""
 
-if __name__ == "__main__":
+def main():
     # Exactly 10 curtains; exactly 373 steps
     run(sensor="CAM", used_tows=list(range(2,10)), num_bins=10, n_steps=373, seed=42)
+
+if __name__ == "__main__":
+    main()

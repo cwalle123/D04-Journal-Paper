@@ -51,7 +51,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Import tow generator
-from Model_ALL_Simulation import generate_multitow_layout
+from D04_Model.Model_ALL_Simulation import generate_multitow_layout
 from Model_ALL_RandomWalk import generate_RW_multitow
 
 # ---------------- Screen Setup ----------------

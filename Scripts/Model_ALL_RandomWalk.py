@@ -1,4 +1,4 @@
-"""Explanation of file:..."""
+"""This file contains the Random Walk model"""
 
 ##############################################################################################################
 
@@ -20,7 +20,7 @@ from scipy.stats import pareto
 # Internal imports
 from Handling_ALL_Functions import get_synced_data, get_data
 from constants import tow_width_specified
-from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
+from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 
 ##############################################################################################################
@@ -934,7 +934,7 @@ def main():
     # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31)
     #plot_LLS_hist()
 
-    generate_RW_multitow_layout_lengths(num_tows=30, plot=True, histogram_bins = 300)
+    # generate_RW_multitow_layout_lengths(num_tows=30, plot=True, histogram_bins = 300)
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
 

@@ -1,4 +1,4 @@
-"""This file is used to generate a figure of a simulated tow vs an experimental tow.
+"""This file is used to generate a figures of simulated tows vs experimental tows.
    Written by: Martijn van der Voort, Clifton-John Walle and Manuel Cruz"""
 
 ##############################################################################################################
@@ -10,13 +10,15 @@ import numpy as np
 import pandas as pd
 import random
 from scipy.stats import norm, pareto
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 #Internal imports
 from Data_ALL_importer import LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array
 from Handling_ALL_Functions import get_synced_data
 from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps, traverse_tow_gaps_and_overlaps_lengths
-from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
-from Model_ALL_Simulation import generate_multitow_layout, generate_multitow_layout_lengths
+from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
+from D04_Model.Model_ALL_Simulation import generate_multitow_layout, generate_multitow_layout_lengths
 from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow, generate_RW_multitow_layout_lengths
 from Model_ALL_RandomSampling import generate_RS_multitow, generate_RS_multitow_layout_lengths
 from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse, y_increment_programmed, font_extra_small, font_small, font_medium, font_large, font_extra_large
@@ -24,7 +26,7 @@ from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse
 ##############################################################################################################
 """Functions"""
 
-# Traverse tow
+# Functions to plot traverse tows
 def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True, force_steps: bool = False):
     """
     Plot a real tow profile using Traverse interpolated data
@@ -66,8 +68,8 @@ def plot_real_tow(tow: int, tow_length_mm=1000, plot: bool = True, force_steps: 
 
     return real_df
 
-# Tow comparisons
-def plot_simulated_vs_real_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True, force_steps: bool = False):
+# Functions to plot model tow comparisons
+def plot_real_vs_D04_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot: bool = True, force_steps: bool = False):
     """
     Overlay a simulated tow on a real tow.
     Real tow is built from Traverse Data
@@ -271,7 +273,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
             real_df = real_df.iloc[indices].reset_index(drop=True)
 
     # Extract D04 tow
-    _, sim_df = plot_simulated_vs_real_tow(tow, tow_length_mm=tow_length_mm, scaled=False, plot=False)
+    _, sim_df = plot_real_vs_D04_tow(tow, tow_length_mm=tow_length_mm, scaled=False, plot=False)
     print(sim_df)
     x_D04_right = sim_df["x_mm"].to_numpy()
     y_D04_right = sim_df["bottom_edge"].to_numpy() + 2 * y_increment_programmed
@@ -350,7 +352,8 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     #plt.tight_layout()
     #plt.show()
 
-def compare_simulated_vs_real_tow(tow: int, tow_length_mm=1000, plot: bool = True):
+# Functions to compare tow values and model parameters
+def compare_real_vs_D04_tow(tow: int, tow_length_mm=1000, plot: bool = True):
     """
     Compare simulated and real tow edges by calculating average lateral error.
 
@@ -372,7 +375,7 @@ def compare_simulated_vs_real_tow(tow: int, tow_length_mm=1000, plot: bool = Tru
     real_df = plot_real_tow(tow, tow_length_mm=tow_length_mm)
 
     # --- Generate one simulated tow (no plot, just data) ---
-    _, sim_df = plot_simulated_vs_real_tow(tow, tow_length_mm=tow_length_mm, scaled=False, plot=plot)
+    _, sim_df = plot_real_vs_D04_tow(tow, tow_length_mm=tow_length_mm, scaled=False, plot=plot)
 
     # --- Interpolate real edges to simulated x positions ---
     real_left_interp = np.interp(sim_df["x_mm"], real_df["x_mm"], real_df["left_edge"])
@@ -401,7 +404,7 @@ def compare_simulated_vs_real_tow(tow: int, tow_length_mm=1000, plot: bool = Tru
 
     return errors
 
-def compare_multiple_simulations(tow: int, n_simulations: int = 50, tow_length_mm: int = 1000):
+def compare_real_vs_D04_tow_multiple_simulations(tow: int, n_simulations: int = 50, tow_length_mm: int = 1000):
     """
     Run multiple simulated vs real tow comparisons and return error statistics,
     plus plot histograms with Gaussian fits of the error distributions.
@@ -424,7 +427,7 @@ def compare_multiple_simulations(tow: int, n_simulations: int = 50, tow_length_m
     results = []
 
     for i in range(n_simulations):
-        errors = compare_simulated_vs_real_tow(tow, tow_length_mm=tow_length_mm, plot=False)
+        errors = compare_real_vs_D04_tow(tow, tow_length_mm=tow_length_mm, plot=False)
         results.append(errors)
 
     # Convert to DataFrame for easier aggregation
@@ -470,8 +473,8 @@ def compare_multiple_simulations(tow: int, n_simulations: int = 50, tow_length_m
 
     return stats
 
-# Gap and overlaps for each model
-def compare_real_vs_simulated_gaps_overlaps(tow_length_mm=1000):
+# Functions to compare gap and overlaps for each model
+def compare_real_vs_D04_gaps_overlaps(tow_length_mm=1000):
     """
     Compare real traverse tow layout gap/overlap percentages 
     with simulated tow layout percentages (no plotting).
@@ -535,7 +538,7 @@ def compare_real_vs_RW_gaps_overlaps():
         "sim_gap_percent": sim_gap_percent,
         "sim_overlap_percent": sim_overlap_percent}
 
-def compare_real_vs_simulated_gaps_overlaps_lengths(histogram_bins=100, force_steps=False):
+def compare_real_vs_D04_gaps_overlaps_lengths(histogram_bins=100, force_steps=False):
     """
     Compare gaps and overlaps between traverse tows and simulated multi-tows.
     Generates two plots: one for gaps, one for overlaps.

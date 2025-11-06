@@ -1,7 +1,5 @@
-'''
-This code makes regression models for mean and variation of the data bins that were extracted in the ConsecutiveErrorRegressions.
-Written by: 
-'''
+"""This code makes regression models for mean and variation of the
+   data bins that were extracted in the ConsecutiveErrorRegressions."""
 
 ##############################################################################################################
 
@@ -11,13 +9,16 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 # Internal imports
-import Model_ALL_ConsecutiveErrorTheo
+import Model_ALL_ConsecutiveErrorTheo as Model_ALL_ConsecutiveErrorTheo
 
 ##############################################################################################################
 """Functions"""
 
+# Functions for fitting data
 def fit_linear(data: pd.DataFrame):   #bin_error: np.array, bin_mean: np.array, bin_variance: np.array
     '''a piece of code to fit and plot a linear regression to the data'''
     bin_error = np.array(data["y_mean"])    # TODO: should be x_mean
@@ -81,6 +82,7 @@ def get_regression_cubic(x_cords: np.array, y_cords: np.array):
 
     return Beta[0], Beta[1], Beta[2], Beta[3]    # d, c, b, a
 
+# Functions for plotting
 def plot_function_linear(a: float, b: float, bin_error: list, bin_mean: list, title: str):     # y = a + bx + cx^2
     '''This code plots the linear regression against the data points.'''
     points = 101

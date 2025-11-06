@@ -19,43 +19,7 @@ from Data_ALL_importer import Traverse_LT_excel_to_array, Traverse_Gap_excel_to_
 ##############################################################################################################
 """Functions"""
 
-def traverse_LT_viewer(tow: int):
-    """
-    Plot LT y-data along x for a single tow, using Z-synced traverse data.
-    Shows left and right edges of the tow.
-    """
-    # --- Load trimmed traverse data ---
-    bottom_tow_data = get_synced_data(tow - 1, "Traverse", overwrite=True) 
-    top_tow_data = get_synced_data(tow, "Traverse", overwrite=True)
-
-    # --- Extract data for right edge ---
-    x_bottom = bottom_tow_data["LT_x"].to_numpy()
-    LT_y_bottom = bottom_tow_data["LT_y"].to_numpy()
-    bottom_edge = bottom_tow_data["Gap_leftedge"].to_numpy()
-
-    # --- Extract data for left edge ---
-    x_top = top_tow_data["LT_x"].to_numpy()
-    LT_y_top = top_tow_data["LT_y"].to_numpy()
-    top_edge = top_tow_data["Gap_rightedge"].to_numpy()
-
-    # --- Calculate y positions of edges ---
-    y_bottom = LT_y_bottom + 0.5 * frame_width_traverse - bottom_edge
-    y_top = LT_y_top + 0.5 * frame_width_traverse - top_edge
-
-    # --- Plot ---
-    plt.figure(figsize=(10, 5))
-    plt.plot(x_bottom, LT_y_bottom, "--", color="orange", label="Raw LT_y right")
-    plt.plot(x_top, LT_y_top, "--", color="cyan", label="Raw LT_y left")
-    plt.plot(x_bottom, y_bottom, "-", color="red", linewidth=2, label="Edge right")
-    plt.plot(x_top, y_top, "-", color="blue", linewidth=2, label="Edge left")
-    plt.xlabel("X (mm)")
-    plt.ylabel("Y (mm)")
-    plt.title(f"Traverse LT_y and edges for Tow {tow}")
-    plt.grid(True, linestyle="--", alpha=0.6)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
+# Functions for generating traverse tows and analyzing their gaps and overlaps:
 def traverse_tow_constructor(tow: int, normalize: bool = False):
     """Construct edge lines of a tow from traverse data (outliers already removed in get_synced_data)."""
     
@@ -212,7 +176,7 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_s
         if traverse_tow is None:
             continue
 
-        # --- Apply force_steps logic here ---
+        # --- Force number of data points in a one meter tow ---
         if force_steps:
             target_points = number_of_steps
             n_points = len(traverse_tow["x_centerline"])
@@ -310,6 +274,7 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_s
 
     return gap_lengths, overlap_lengths, gap_fit, overlap_fit
 
+# Functions for checking the behaviour of the data:
 def LT_velocity_check(tow: int):
     # --- Load data ---
     LT_arr, LT_cols = Traverse_LT_excel_to_array(tow)
@@ -458,6 +423,7 @@ def LT_z_check(tow: int):
 
     return t_trim, x_trim, z_trim
 
+# Functions for plotting:
 def plot_all_tows_trimmed():
     tow_numbers = range(1, 32)
     all_data = []

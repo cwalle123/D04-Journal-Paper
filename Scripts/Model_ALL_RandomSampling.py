@@ -1,3 +1,8 @@
+"""This file contains the Random Sampling model"""
+
+##############################################################################################################
+
+# External imports
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,14 +12,17 @@ import functools
 import matplotlib.colors as mcolors
 from matplotlib import cm
 from tqdm import tqdm
-
 from dataclasses import dataclass
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
-from Handling_ALL_Functions import get_synced_data
+
+# Internal imports
+from Handling_ALL_Functions import get_synced_data, get_data
 from constants import tow_width_specified
-from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
+from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
-from Model_ALL_RandomWalk import get_data
+
+##############################################################################################################
+"""Functions"""
 
 def generate_random_sampling_data(sensor: str, steps: int=400, tows: int=1, plot_histogram=False):
     # setting up the distribution from which we are sampling
@@ -399,6 +407,9 @@ def generate_RS_multitow_layout_lengths(
 
     return gap_overlap_df, gap_lengths, overlap_lengths, hist_data
 
+##############################################################################################################
+""""Run this file"""
+
 def main():
     #generate_random_sampling_data("LLS_B", steps=400, tows=300, plot_histogram=True)
     # gap_overlap_df, RS_data = generate_RS_multitow(31, n_steps=400, tow_spacing_mm=12.5, tow_width_mm=6.35)
@@ -407,8 +418,6 @@ def main():
     #generate_siddharth_width(tows=30, plot_histogram=True)
     # run_multiple_RS_simulations_for_gaps_and_overlap_percentages(n_simulations=50,num_tows=31)
     generate_RS_multitow_layout_lengths(num_tows = 31, plot = True, histogram_bins = 20)
-
-
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

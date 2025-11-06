@@ -9,18 +9,16 @@
     because we don’t have enough data points at that precise point. This is why bins have been created: 
     this works, but will obtain a slight bias, because the deviation normal curve does not
     correspond to the exact value of x, but only to the values around it
-
-    Written by: 
 '''
 
 ##############################################################################################################
 
-#ideas for improvement:
-#Find optimum number of bins
-#only extract value of LLS B width if width_LLSB>width_LLSA
-#to smoothen out curve if too much waviness
-#increase resolution of predicting curve and taking mean of predicted points around real datapoint: more realistic dynamics, smoother paths
-#use relation between errors to improve model
+# Ideas for improvement:
+# * Find optimum number of bins
+# * Only extract value of LLS B width if width_LLSB>width_LLSA
+# * To smoothen out curve if too much waviness
+# * Increase resolution of predicting curve and taking mean of predicted points around real datapoint: more realistic dynamics, smoother paths
+# * Use relation between errors to improve model
 
 # EXternal imports
 import pandas as pd
@@ -34,6 +32,8 @@ from scipy.stats import truncnorm
 import time
 import statsmodels.api as sm
 import random
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 # Internal imports
 import constants

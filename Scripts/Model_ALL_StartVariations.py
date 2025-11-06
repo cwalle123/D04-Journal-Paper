@@ -1,3 +1,7 @@
+"""This file analyzes the effects of the starting values for tow generation"""
+
+##############################################################################################################
+
 # External imports
 import pandas as pd
 import numpy as np
@@ -12,10 +16,12 @@ from Handling_ALL_Functions import get_synced_data
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
 from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow, initiate_state_data, update_states, check_state_data
 from Model_ALL_RandomSampling import generate_RS_multitow
-from Model_ALL_Simulation import fit_starting_error_distribution
+from D04_Model.Model_ALL_Simulation import fit_starting_error_distribution
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
 from Data_ALL_traverse import traverse_tow_gaps_and_overlaps, traverse_tow_gaps_and_overlaps_lengths, traverse_tow_constructor
 
+##############################################################################################################
+""""Functions"""
 
 def generate_multilaminate_layout(n_laminates: int, tows_per_laminate: int=29, starting_mods: list=[None, 1, 1], alternate_start: list=[None, "params"]):
     # generating and combining data for all laminates
@@ -141,10 +147,7 @@ def plot_lengthwise_defect_percent(defect_data_original: pd.DataFrame, defect_da
         plt.savefig(name, format="pdf", bbox_inches="tight")
     plt.show()
 
-
-
 ### new code by Seán ###
-
 def generate_exp_vs_RW_plot(n_laminates: int=10, num_divisions: int=100, programmed_shift: float=6.35):
     '''code for comparing experimental to random walk.'''
     exp_defect_data = calc_experimental_lengthwise(range(2,31), programmed_shift=6.35,
@@ -153,7 +156,6 @@ def generate_exp_vs_RW_plot(n_laminates: int=10, num_divisions: int=100, program
                                                                            alternate_start=[norm, [0, 0.45]])
     #plotting: good=experimental, bad=RW
     plot_exp_lengthwise_defect_percent(exp_defect_data, RW_defect_data, name="StartVariations-experimental.pdf")
-
 
 def generate_experimental_plot(programmed_shift: float=6.35, num_divisions: int=100):
     average_centerlines = []
@@ -184,8 +186,6 @@ def generate_experimental_plot(programmed_shift: float=6.35, num_divisions: int=
     # print(averaged_defect_data)
     plot_exp_lengthwise_defect_percent(averaged_defect_data_1, averaged_defect_data_2,
                                        name="StartVariations-experimental.pdf")
-
-
 
 def calc_exp_lengthwise_tow_gap(tow: pd.DataFrame, average_centerline: float, programmed_shift: float=6.35, num_divisions: int=100):
     average_widths = []
@@ -320,8 +320,6 @@ def plot_exp_lengthwise_defect_percent(defect_data_good: pd.DataFrame, defect_da
         plt.savefig(name, format="pdf", bbox_inches="tight")
     plt.show()
 ### end of new code by Seán ###
-
-
 
 def calc_lengthwise_defect_percent_exp(bin_size_mm: float, plot: bool = True):
     """
@@ -520,8 +518,6 @@ def calc_lengthwise_defect_percent_exp(bin_size_mm: float, plot: bool = True):
 
     return df_bins, totals
 
-
-
 def analyze_starting_variation_effects(starting_mods: list=[None, 1, 1], proposal_type="RWM"):
     LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
     CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
@@ -554,7 +550,6 @@ def analyze_starting_variation_effects(starting_mods: list=[None, 1, 1], proposa
                                          proposal_type=proposal_type, plot_path=True, plot_histogram=True)
     LLSB_walk_data = generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist,
                                           LLS_B_params, proposal_type=proposal_type, plot_path=True, plot_histogram=True)
-
 
 def plot_target_vs_start(target_mods: list=[None, 1, 1], starting_mods: list=[1, 1]):
     x_pdf = np.linspace(-2, 2, 100)     # this is for the plotting later on.
@@ -605,7 +600,6 @@ def plot_target_vs_start(target_mods: list=[None, 1, 1], starting_mods: list=[1,
     plt.legend()
     plt.show()
 
-
 def detect_duplicate_states():
     initiate_state_data()       # this initiates the global variable state_data within the RW code
 
@@ -614,6 +608,9 @@ def detect_duplicate_states():
     plot_lengthwise_defect_percent(defect_data_original, defect_data_modified)
 
     check_state_data()      # this check for duplicate states
+
+##############################################################################################################
+"""Run this file"""
 
 def main():
     #analyze_starting_variation_effects(starting_mods = [None, 1, 2], proposal_type = "RWM")

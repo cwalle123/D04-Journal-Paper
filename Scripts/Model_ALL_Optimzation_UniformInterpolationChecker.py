@@ -1,12 +1,17 @@
-# compare_interpolation_traverse.py
-""" Written by: """
-# Standalone comparison of NON-INTERPOLATED vs INTERPOLATED (uniform) traverse edges for a given tow.
+"""Standalone comparison of NON-INTERPOLATED vs INTERPOLATED (uniform) traverse edges for a given tow."""
+
+##############################################################################################################
+
+# External imports
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 
-# ---- Your project import (must be available on PYTHONPATH) ----
+# Internal imports
 from Data_ALL_traverse import traverse_tow_constructor
+
+##############################################################################################################
+"""Functions"""
 
 # -------- helper: pick target_steps to match native density --------
 def choose_target_steps_from_raw(x_raw: np.ndarray, scale: float = 1.0) -> int:
@@ -161,7 +166,10 @@ def compare_interpolation_for_tow(
     if np.isfinite(dx_uni):
         print(f"[Tow {tow}] Uniform Δx ≈ {dx_uni:.6g}  |  Target steps: {len(x_uni)}")
 
-if __name__ == "__main__":
+##############################################################################################################
+""""Run this file"""
+
+def main():
     # Example usage: auto-match native density (no manual N)
     compare_interpolation_for_tow(
         tow=3,
@@ -169,3 +177,6 @@ if __name__ == "__main__":
         per_edge_normalize=True,
         scale=1.0            # 1.0=match; >1 densify slightly
     )
+
+if __name__ == "__main__":
+    main()

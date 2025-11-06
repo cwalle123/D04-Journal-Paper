@@ -1,5 +1,4 @@
-'''This file is meant to run a large number of simulations at a time.
-   Written by: '''
+'''This file is meant to run a large number of simulations at a time.'''
 
 ##############################################################################################################
 
@@ -17,10 +16,10 @@ import seaborn as sns
 # Internal imports
 from constants import tow_width_specified, font_extra_small, font_small, font_medium, font_large, font_extra_large
 from Handling_ALL_Functions import get_synced_data
-from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
+from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
 from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow, get_data
-from Model_ALL_Simulation import generate_multitow_layout
+from D04_Model.Model_ALL_Simulation import generate_multitow_layout
 from Model_ALL_RandomSampling import generate_RS_multitow
 
 ##############################################################################################################
@@ -142,8 +141,6 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
         plt.savefig("source wise validation.pdf", format="pdf", bbox_inches="tight")
 
     plt.show()
-
-
 
 def plot_histograms(real_data: pd.DataFrame, sim_data: list, RW_data: list, title: str, bin_widths: list[float] = None):
     '''This function plots a histogram of real and simulated data
@@ -470,8 +467,6 @@ def run_model(generate_varying_bin_plots: bool=False, return_data: bool=True):
     if return_data:
         return total_D04_error
 
-
-
 def Gap_Histogram(tows_simulated: int, plot: bool=False):
     # ------getting experimental data---------
     real_gap_data = []
@@ -559,7 +554,6 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
         plt.show()
     
     return real_gap_data, D04_gap_data, RW_gap_data, RS_gap_data, experimental_mean, D04_mean, RW_mean, RS_mean, gap_center, bins
-
 
 def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal: bool):
     """

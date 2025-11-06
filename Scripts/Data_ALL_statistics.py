@@ -10,16 +10,15 @@ import numpy as np
 import warnings
 from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t, poisson, laplace
 import sklearn.metrics as sklearn
-import os
-import sys
 
 # Internal imports
-from Handling_ALL_Functions import get_synced_data, load_cached_data, LLS_A_excel_to_array, save_cached_data, get_data
+from Handling_ALL_Functions import get_synced_data, get_data
 import constants
 
 ##############################################################################################################
 """Functions"""
 
+# Functions for plotting:
 def plot_histograms(data: pd.DataFrame, title: str, bin_widths: list[float] = None, run = bool):
     '''Plots all histograms in the same Figure. 
     The x-axis is manually set for each plot for better visualization.'''
@@ -249,6 +248,7 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.tight_layout()
         plt.show()
 
+# Functions for fitting and collecting data:
 def best_fit_distribution(data, sensor: str, bins=40, distributions=None, weights=None, plot=False, print_statement=False):
     '''This function fits the best probability distribution to the four error types automatically, for the weighted data'''
 
@@ -436,56 +436,6 @@ def print_weighted_stats_table(df: pd.DataFrame):
     for col, n, mu, sd, kind in rows:
         print(f"- {col:<12} n={n:5d}  mean={mu: .4f}  std={sd: .4f}  ({kind})")
 
-def get_shifted_LLS_A_data(tow: int, sensor_type: str="LLS_A_shifted", overwrite=False, helper=False, print_statement=False) -> pd.DataFrame:
-    """
-    Loads processed data for a given tow & sensor, with caching.
-    Combines multiple arrays horizontally if needed.
-    Adds error column based on nominal value for the sensor type.
-    Returns a Pandas DataFrame instead of NumPy array.
-    """
-    if sensor_type not in ["LLS_A_shifted"]:
-        raise KeyError(f"The key '{sensor_type}' is invalid")
-    if tow not in range(1, 32):
-        raise IndexError(f"Tow ID {tow} is out of range")
-
-    name = f"{sensor_type}_{tow}"
-
-    # --- Try cache ---
-    if not helper and not overwrite:
-        try:
-            cached_array, cached_cols = load_cached_data(name)
-            if print_statement: print(f"[CACHE] Loaded '{name}' from cache")
-            return pd.DataFrame(cached_array, columns=cached_cols)
-        except FileNotFoundError:
-            print(f"[CACHE] No cache found for '{name}'. Processing new data...")
-
-    arrays = []
-    col_names = []
-
-    if sensor_type == "LLS_A_shifted":
-        arr, cols = LLS_A_excel_to_array(tow)
-        arrays.append(arr)
-        col_names.extend(cols)
-
-        # Error from first column
-        error_col = arr[:, 0] - 6.188
-        arrays.append(error_col[:, None])
-        col_names.append("error_LLS_A")
-    
-    processed_data = arrays[0] if len(arrays) == 1 else np.hstack(arrays)
-    #drop_cols = ["time", "leftedge", "rightedge", "gap"]  # adjust as needed
-    #keep_cols = [c for c in col_names if c not in drop_cols]
-    #keep_indices = [col_names.index(c) for c in keep_cols]
-    #processed_data = processed_data[:, keep_indices]
-    #col_names = keep_cols
-
-    # Save to cache unless helper
-    if not helper:
-        save_cached_data(name, processed_data, col_names)
-
-    # Return as DataFrame
-    return pd.DataFrame(processed_data, columns=col_names)
-
 ##############################################################################################################
 """Run this file"""
 
@@ -515,6 +465,7 @@ def main():
     #    title="Error LLS A vs. Error LLS B (ALL TOWS)",
     #    bin_widths=[0.005, 0.005],
     #    run = False)
+    
     sensor = "LLS_B"
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")

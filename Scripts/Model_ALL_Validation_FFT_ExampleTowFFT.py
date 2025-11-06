@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 FFT comparison for tow EDGES (left/right) + CENTERLINE
 
@@ -15,17 +14,23 @@ Fixes:
   • Normalize FFT magnitudes by ORIGINAL N (not padded N)
   • Pairing SWAPPED: Top ↔ Right, Bottom ↔ Left
 
-Written by: 
+Written by: Giovanni Zattoni
 """
 
+##############################################################################################################
+
+# External imports
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 
-# --- Project imports ---
-from Model_ALL_Simulation import generate_error_path, consecutive_error
+# Internal imports
+from D04_Model.Model_ALL_Simulation import generate_error_path, consecutive_error
 from Data_ALL_traverse import traverse_tow_constructor
 import constants
+
+##############################################################################################################
+""""Functions and constants"""
 
 # ---------------- PARAMETERS ----------------
 tow_number = 3
@@ -51,14 +56,11 @@ sampling_rate_sim  = n_steps / float(length_tow)    # samples per mm
 
 # ---------------- MODEL FITTING (CAM, LT, LLS_B) ----------------
 bin_stats_cam, slope_cam, intercept_cam, _, _, _, x_sorted_cam, bin_edges_cam, devs_cam = consecutive_error(
-    "CAM", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False
-)
+    "CAM", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False)
 bin_stats_lt, slope_lt, intercept_lt, _, _, _, x_sorted_lt, bin_edges_lt, devs_lt = consecutive_error(
-    "LT", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False
-)
+    "LT", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False)
 bin_stats_llsb, slope_llsb, intercept_llsb, _, _, _, x_sorted_llsb, bin_edges_llsb, devs_llsb = consecutive_error(
-    "LLS_B", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False
-)
+    "LLS_B", test_ratio=0.5, num_bins=num_bins, bins_show=False, plot_fit=False)
 
 # ------------ SIMULATED PATHS (EDGES like visualizer) ------------
 if use_seed:

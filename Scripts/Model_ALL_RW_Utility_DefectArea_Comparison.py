@@ -35,9 +35,9 @@ Outputs generated:
 - rw_defect_summary.csv — CSV summary with Gap%, Overlap%, and shift stats (std=0 here)
 """
 
-# ---------------------------------------------------------------------
-# Imports
-# ---------------------------------------------------------------------
+##############################################################################################################
+
+# External imports
 import os
 import sys
 import csv
@@ -45,16 +45,15 @@ import textwrap
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-
-# ---------------------------------------------------------------------
-# Path setup and project imports
-# ---------------------------------------------------------------------
 REPO_ROOT = os.path.dirname(__file__)
 SCRIPTS_DIR = os.path.join(REPO_ROOT, "Scripts")
 sys.path.insert(0, SCRIPTS_DIR)
 
-# Import project-specific model functions (for error generation)
+# Internal imports
 from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk
+
+##############################################################################################################
+""""Functions and constants"""
 
 # ---------------------------------------------------------------------
 # Simulation configuration
@@ -364,10 +363,10 @@ def save_csv(scenarios, summary, save_path):
             writer.writerow([label, f"{gap:.6f}", f"{ovl:.6f}", f"{shift_avg:.6f}", f"{shift_std:.6f}"])
     print(f"[✓] Saved CSV: {save_path}")
 
-# ---------------------------------------------------------------------
-# Main entry point
-# ---------------------------------------------------------------------
-if __name__ == "__main__":
+##############################################################################################################
+""""Run this file"""
+
+def main():
     # Ensure reproducibility
     if RANDOM_SEED is not None:
         np.random.seed(RANDOM_SEED)
@@ -376,3 +375,6 @@ if __name__ == "__main__":
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
     plot_barchart(scenarios, summary, FIG_PATH)
     save_csv(scenarios, summary, CSV_PATH)
+
+if __name__ == "__main__":
+   main()

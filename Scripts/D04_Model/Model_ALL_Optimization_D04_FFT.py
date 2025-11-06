@@ -1,5 +1,5 @@
 """This file is used to find the optimum number of steps and bins.
-   Written by: """
+   Written by: Giovanni Zattoni"""
 
 ##############################################################################################################
 
@@ -10,11 +10,13 @@ from sklearn.metrics import mean_squared_error
 from mpl_toolkits.mplot3d import Axes3D
 import sys
 from scipy.stats import pareto
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 #Internal imports
 from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps_lengths
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
-from Model_ALL_Validation_Tow_Visualiser import plot_simulated_vs_real_tow
+from Model_ALL_Validation_Tow_Visualiser import plot_real_vs_D04_tow
 from Model_ALL_Simulation import generate_multitow_layout_lengths
 
 ##############################################################################################################
@@ -80,7 +82,6 @@ def build_real_traverse_edges_like_A(
     x     = x_uni
 
     return x, left, right
-
 
 def simulate_edges_like_visualizer(
     n_steps: int,
@@ -160,8 +161,6 @@ def mse_over_common_freq_band(freq_a, amp_a, freq_b, amp_b):
     Ab_i = np.interp(fa, freq_b, amp_b)
     return mean_squared_error(Aa, Ab_i)
 
-# ----------------- Progress helper -----------------
-
 def _print_progress(done: int, total: int):
     """Inline textual progress bar + percent."""
     if total <= 0:
@@ -176,7 +175,7 @@ def _print_progress(done: int, total: int):
         sys.stdout.write("\n")
         sys.stdout.flush()
 
-# ----------------- Main optimizer -----------------
+# ----------------- Main optimizers -----------------
 
 def find_best_nsteps_and_bins_edges(
     tow_range=range(2, 31),
@@ -320,7 +319,7 @@ def find_best_bins_fft_mse_real_vs_sim(tow: int,bins_min: int = 20,bins_max: int
         Consecutive_Error_Bins = num_bins  # temporarily override global value
 
         # --- Generate real & simulated data ---
-        real_data, sim_data = plot_simulated_vs_real_tow(
+        real_data, sim_data = plot_real_vs_D04_tow(
             tow=tow,
             tow_length_mm=tow_length_mm,
             plot=False,
@@ -371,7 +370,7 @@ def find_best_bins_fft_mse_real_vs_sim(tow: int,bins_min: int = 20,bins_max: int
 
     # --- Recompute FFTs for best bin setting (for visualization) ---
     Consecutive_Error_Bins = best_bins
-    real_data, sim_data = plot_simulated_vs_real_tow(
+    real_data, sim_data = plot_real_vs_D04_tow(
         tow=tow,
         tow_length_mm=tow_length_mm,
         plot=False,
@@ -488,7 +487,7 @@ def analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min: int = 20
 
     print(f"[INFO] Plotting example FFT for Tow {example_tow} using mean bins = {Consecutive_Error_Bins}")
 
-    real_data, sim_data = plot_simulated_vs_real_tow(
+    real_data, sim_data = plot_real_vs_D04_tow(
         tow=example_tow,
         tow_length_mm=tow_length_mm,
         plot=False,
@@ -697,7 +696,6 @@ def lengths_consecutive_error_bins_mse(histogram_bins=100, tow_length_mm=1000, n
 
 def main():
     # find_best_nsteps_and_bins_edges()
-
     # best_bins, mse_curve = find_best_bins_fft_mse_real_vs_sim(tow=7,bins_min=2,bins_max=3000,bins_step=20,zero_padding_factor=2)
     # results = analyze_all_tows_best_bins_fft_mse(tow_range=range(2, 31),bins_min=20,bins_max=500,bins_step=5,zero_padding_factor= 2)
     lengths_consecutive_error_bins_mse()

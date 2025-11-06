@@ -1,7 +1,5 @@
 """A genera data plotter in order to see relations between consecutive steps"""
-
 """This file is currently not being used for anything except plotting"""
-"""Written by: """
 
 ##############################################################################################################
 
@@ -11,6 +9,8 @@ import numpy as np
 from scipy.stats import norm
 from sklearn.linear_model import LinearRegression
 from mpl_toolkits.mplot3d import Axes3D, art3d
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 #Internal imports
 from Handling_ALL_Functions import get_synced_data

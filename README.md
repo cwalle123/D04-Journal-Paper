@@ -12,13 +12,7 @@ This means that many of the syncing and files relates to the syncing is no longe
 and means that we are continuing with the assumptions that there is no correlation between
 different error types.
 
-Right now there is only 1 task that needs to be tackled to make our model work:
-We need to validate the model
-
-This might seem like we need to redo a lot of things, but this isnt true. We already have our
-existing code working. All we have to do is regenerate the result figures.
-
-More specific tasks and updates are to be added/completed in the TODO file.
+Specific tasks and updates are to be added/completed in the TODO file.
 
 If you have any questions, dont hesitate to ask!
 

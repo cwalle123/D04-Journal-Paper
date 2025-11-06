@@ -1,5 +1,5 @@
 '''This file imports all the data from the "Synced data from Siddharth" excel files and groups them into one array per sensor
-   Written by: Martijn van der Voort, Clifton-John Walle and Manuel Cruz"""'''
+   Written by: Martijn van der Voort, Clifton-John Walle and Manuel Cruz'''
 
 ##############################################################################################################
 
@@ -318,20 +318,6 @@ def Traverse_LT_excel_to_array(tow_nr):
 
     return tow_traverse_data, ['LT_time', 'LT_x', 'LT_y', 'LT_z']
 
-def _first_existing(base: Path, tow_a: int, tow_b: int) -> Path:
-    """Return the first existing path among padded and unpadded variants. Partially created with AI"""
-    candidates = [
-        base / f"TraverseData_Gap_{tow_a:02d}_{tow_b:02d}.csv",
-        base / f"TraverseData_Gap_{tow_a}_{tow_b}.csv",
-        base / f"TraverseData_Gap_{tow_a:02d}_{tow_b:02d}.xlsx",
-        base / f"TraverseData_Gap_{tow_a}_{tow_b}.xlsx",
-    ]
-    for p in candidates:
-        if p.exists():
-            return p
-    # Just return the first candidate (padded csv) for error messaging
-    return candidates[0]
-
 def Traverse_Gap_excel_to_array(tows_nrs: int):
     """
     Reads traverse-gap data between tow n and n+1,
@@ -350,6 +336,21 @@ def Traverse_Gap_excel_to_array(tows_nrs: int):
     right_col = "TapeEdgeRight"
     gap_col = "Gap"
     wanted_cols = [time_col, left_col, right_col, gap_col]
+
+    # Helper function
+    def _first_existing(base: Path, tow_a: int, tow_b: int) -> Path:
+        """Return the first existing path among padded and unpadded variants. Partially created with AI"""
+        candidates = [
+            base / f"TraverseData_Gap_{tow_a:02d}_{tow_b:02d}.csv",
+            base / f"TraverseData_Gap_{tow_a}_{tow_b}.csv",
+            base / f"TraverseData_Gap_{tow_a:02d}_{tow_b:02d}.xlsx",
+            base / f"TraverseData_Gap_{tow_a}_{tow_b}.xlsx",
+        ]
+        for p in candidates:
+            if p.exists():
+                return p
+        # Just return the first candidate (padded csv) for error messaging
+        return candidates[0]
 
     # Find global smallest valid length across all files that exist
     smallest_file_length = None
@@ -383,7 +384,7 @@ def Traverse_Gap_excel_to_array(tows_nrs: int):
 
     return arr, ['Gap_time', 'Gap_leftedge', 'Gap_rightedge', 'Gap_gap']
 
-def layup_stepsize_check(type: str):
+def Layup_stepsize_check(type: str):
     """
     Check data step size parameters
     Arguments:
@@ -506,7 +507,7 @@ def main():
     #arr, data = Traverse_Gap_excel_to_array(4)
     #print(arr)
     #print(data)
-    layup_stepsize_check("largest")
+    Layup_stepsize_check("largest")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

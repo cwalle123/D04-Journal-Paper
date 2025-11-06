@@ -14,12 +14,12 @@ from scipy.interpolate import interp1d
 # Internal imports
 from Data_ALL_importer import LLS_A_excel_to_array, LLS_B_excel_to_array, CAM_excel_to_array, LT_x_excel_to_array, LT_y_normalized_excel_to_array, Traverse_Gap_excel_to_array, Traverse_LT_excel_to_array
 from constants import NOMINAL_LLS_A, NOMINAL_CAM, NOMINAL_LLS_B, NOMINAL_LT_Y, y_offset_traverse, y_increment_traverse, frame_width_traverse, TCP_LLS_B
-
-##############################################################################################################
-"""Functions for saving, loading, and purging data"""
-
 CACHE_FOLDER = "Cached Data"
 
+##############################################################################################################
+"""Functions"""
+
+# Functions for saving, loading, and purging data:
 def save_cached_data(name: str, array: np.ndarray, columns: list[str]):
     """
     Save array to 'Cached Data' with given column names in first row.
@@ -54,9 +54,7 @@ def purge_cached_data():
             os.remove(os.path.join(CACHE_FOLDER, file))
         print("[CACHE] All cached data purged.")
 
-##############################################################################################################
-"""Functions for calling data"""
-
+# Functions for calling data:
 def get_synced_data(tow: int, sensor_type: str, overwrite=False, helper=False, print_statement=False) -> pd.DataFrame:
     """
     Loads processed data for a given tow & sensor, with caching.
@@ -270,7 +268,7 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 
 """Run this file"""
 
 def main():
-    x = get_synced_data(5, "Traverse", overwrite=True)
+    x = get_synced_data(5, "Traverse", overwrite=False)
 
     # Just to check if the new data with weights is correct (it is)
     # for tow in range(1,32):
@@ -278,7 +276,6 @@ def main():
     #     print(np.shape(x))
 
     #print("Columns:", x.columns.tolist())
-
     #print(get_synced_data(10, "TRAVERSE_LT"))
     
 if __name__ == "__main__":

@@ -1,9 +1,6 @@
-#!/usr/bin/env python3
 """
-
 Written by: Giovanni Zattoni
 
-Model_ALL_Validation_FFT_RW_TowEdges.py
 ---------------------------------------
 FFT amplitude spectrum comparison between:
 - Random-Walk model (RW) tow (top/bottom edges + centerline)
@@ -21,11 +18,21 @@ Features:
 - Publication formatting (Times New Roman, colorblind-safe blue/green, no titles)
 """
 
+##############################################################################################################
+
+# External imports
 import argparse
 import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+
+# Internal imports
+from Model_ALL_RandomWalk import generate_RW_multitow
+from Data_ALL_traverse import traverse_tow_constructor
+
+##############################################################################################################
+"""Functions"""
 
 # ----------------- Global plot formatting -----------------
 plt.rcParams.update({
@@ -63,11 +70,6 @@ if SCRIPT_DIR not in sys.path:
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# ----------------- Project imports -----------------
-from Model_ALL_RandomWalk import generate_RW_multitow
-from Data_ALL_traverse import traverse_tow_constructor
-
-
 # ----------------- FFT helpers -----------------
 def linear_detrend(y, x=None):
     y = np.asarray(y, dtype=float)
@@ -80,10 +82,8 @@ def linear_detrend(y, x=None):
     coef, _, _, _ = np.linalg.lstsq(A, y, rcond=None)
     return y - (A @ coef)
 
-
 def interp_to_grid(x_src, y_src, x_grid):
     return np.interp(x_grid, x_src, y_src)
-
 
 def one_sided_amplitude_spectrum(y, dx_m, pad_factor=4, window='hann'):
     y = np.asarray(y, dtype=float)
@@ -104,7 +104,6 @@ def one_sided_amplitude_spectrum(y, dx_m, pad_factor=4, window='hann'):
         A[1:] *= 2
     return f_cperm, A
 
-
 def resample_and_fft(x_src_mm, y_src, x_grid_mm, detrend=True, window='hann', pad_factor=4):
     yg = interp_to_grid(x_src_mm, y_src, x_grid_mm)
     if detrend:
@@ -112,7 +111,6 @@ def resample_and_fft(x_src_mm, y_src, x_grid_mm, detrend=True, window='hann', pa
         yg = linear_detrend(yg, x_grid_mm * 1e-3)
     dx_m = (x_grid_mm[1] - x_grid_mm[0]) * 1e-3
     return one_sided_amplitude_spectrum(yg, dx_m, pad_factor=pad_factor, window=window)
-
 
 # ----------------- Data extraction -----------------
 def extract_model_edges_centerline(num_tows=1, seed=42):
@@ -126,7 +124,6 @@ def extract_model_edges_centerline(num_tows=1, seed=42):
             tow_df["bottom_edge"].to_numpy(),
             tow_df["centerline"].to_numpy())
 
-
 def extract_experimental_edges_centerline(tow, normalize=True):
     df = traverse_tow_constructor(tow, normalize=normalize)
     if df is None:
@@ -134,7 +131,6 @@ def extract_experimental_edges_centerline(tow, normalize=True):
     return ((df["x_left"].to_numpy(),       df["y_left"].to_numpy()),
             (df["x_right"].to_numpy(),      df["y_right"].to_numpy()),
             (df["x_centerline"].to_numpy(), df["y_centerline"].to_numpy()))
-
 
 # ----------------- Main comparison routine -----------------
 def run_fft_compare(tow=5, seed=42, show_plots=True, show_loglog=False):
@@ -210,7 +206,6 @@ def run_fft_compare(tow=5, seed=42, show_plots=True, show_loglog=False):
     if show_plots or show_loglog:
         plt.show()
 
-
 # ----------------- CLI -----------------
 def parse_args():
     p = argparse.ArgumentParser(
@@ -221,7 +216,12 @@ def parse_args():
     p.add_argument("--loglog", action="store_true", help="Also show log–log spectra (in addition to linear plots).")
     return p.parse_args()
 
+##############################################################################################################
+"""Run this file"""
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
     run_fft_compare(tow=args.tow, seed=args.seed, show_plots=True, show_loglog=args.loglog)
+
+if __name__ == "__main__":
+    main()

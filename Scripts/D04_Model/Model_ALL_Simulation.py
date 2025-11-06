@@ -1,5 +1,4 @@
-"""This file deals with generating simulated tows using the model.
-   Written by: """
+"""This file deals with generating simulated tows using the model."""
 
 ##############################################################################################################
 
@@ -10,16 +9,17 @@ import matplotlib.pyplot as plt
 import random
 import scipy.stats as stats
 from scipy.stats import pareto
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 # Internal imports
-from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
+from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
 from Handling_ALL_Functions import get_synced_data
 from constants import number_of_steps, Consecutive_Error_Bins
 
 ##############################################################################################################
-"""Functions for generating simulated tows"""
+"""Functions"""
 
-#starting error distribution can be found here, but is assumed to be uniform based on these graphs ranges of values
 def fit_starting_error_distribution(sensor: str, plot=True):
     """
     Fits a normal distribution to the first non-NaN values of a sensor's error
