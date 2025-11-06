@@ -261,14 +261,12 @@ def best_fit_distribution(data, sensor: str, bins=40, distributions=None, weight
     bw = np.diff(bin_edges)
 
     # If no distribution list given, use a broad default set
-    if distributions is None and sensor == "CAM":
+    if distributions is None and use_all_dist is True:
         distributions = [
             norm, logistic, gamma, beta, expon, lognorm, skewnorm,
             gumbel_r, gumbel_l, genextreme, pareto, weibull_min, weibull_max, cauchy, t, poisson, laplace]
-        
-    if distributions is None and sensor != "CAM":
+    elif distributions is None and use_all_dist is False:
         distributions = [norm, logistic]
-
     best = {'dist': None, 'params': None, 'mse': np.inf}
 
     # Iterate over each candidate distribution
@@ -467,9 +465,11 @@ def main():
     #    run = False)
     
     sensor = "LLS_B"
+    if sensor == "CAM":
+        use_all_dist = True
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
-    best_fit_distribution(data=data, bins=100, sensor=sensor, distributions=None, weights=weights, plot=True, print_statement=True)
+    best_fit_distribution(data=data, bins=100, sensor=sensor, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True)
     
 
 if __name__ == "__main__":
