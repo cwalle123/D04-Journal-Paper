@@ -45,8 +45,10 @@ def propose_new_RWM_value(x_current, dist_std):    # random walk metropolis (RWM
 def fit_random_walk(sensor: str):
     n_steps = get_n_steps(sensor)
     data, weights = get_data(sensor, format='merged')
-
-    best = best_fit_distribution(np.array(data), weights=np.array(weights))
+    if sensor != "CAM":
+        best = best_fit_distribution(np.array(data), weights=np.array(weights))
+    elif sensor == "CAM":
+                best = best_fit_distribution(np.array(data), weights=np.array(weights), use_all_dist=True)
     dist, params = best['dist'], best['params']
     target_distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
 
