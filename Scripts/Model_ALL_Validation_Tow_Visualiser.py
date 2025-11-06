@@ -841,8 +841,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     method="Sidd",
     print_statement=False,
     xlim=(0, 140),
-    ylim=(0, 140),
-    ylim_break=(1060, 1100)):  # only for RS broken axis
+    ylim=(0, 108),
+    ylim_break=(1065, 1090)):  # only for RS broken axis
     
     from brokenaxes import brokenaxes
 
@@ -875,17 +875,20 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # --- Plot ---
     fig = plt.figure(figsize=(14, 4))
     spec = fig.add_gridspec(1, 2)
-    font_size = 15
+    font_size = 25
+    tick_size = font_size - 10
 
     # --- Traverse vs RW (normal axis) ---
     ax0 = fig.add_subplot(spec[0])
     ax0.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
     ax0.hist(gap_RW, bins=shared_bins, color="green", alpha=0.5, edgecolor="black", label="RW Simulated")
     ax0.set_xlim(*xlim)
-    ax0.set_ylim(0, 189)
+    ax0.set_ylim(0, 140)
     ax0.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman")
     ax0.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman")
-    ax0.legend(prop={"family": "Times New Roman", "size": font_size - 1})
+    ax0.tick_params(axis='both', labelsize=tick_size)
+    ax0.legend(prop={"family": "Times New Roman", "size": font_size - 5})
+    # ax0.grid(True)
 
     # --- Traverse vs RS (broken y-axis) ---
     bax1 = brokenaxes(
@@ -895,9 +898,12 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     bax1.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
     bax1.hist(gap_RS, bins=shared_bins, color="orange", alpha=0.5, edgecolor="black", label="RS Simulated")
     bax1.set_xlim(*xlim)
-    bax1.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman")
-    bax1.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman")
-    bax1.legend(prop={"family": "Times New Roman", "size": font_size - 1})
+    bax1.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman", labelpad=25)
+    bax1.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman", labelpad=40)
+    for ax in bax1.axs:
+        ax.tick_params(axis='both', labelsize=tick_size)
+        # ax.grid(True)
+    bax1.legend(prop={"family": "Times New Roman", "size": font_size - 5})
 
     # --- Box the broken axes properly ---
     for ax in bax1.axs:
