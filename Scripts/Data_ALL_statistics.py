@@ -312,7 +312,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
     if plot:
         x = np.linspace(best_dist.ppf(0.001, *shapes, loc=loc, scale=scale), best_dist.ppf(0.999, *shapes, loc=loc, scale=scale), 200)
 
-        plt.hist(data, bins=40, density=True, alpha=0.5)
+        plt.hist(data, bins=bins, density=True, alpha=0.5)
         plt.plot(x, best_dist.pdf(x, *shapes, loc=loc, scale=scale), linewidth=2)
         plt.title(f"Best fit: {best_dist.name}")
         plt.xlabel("Value")
@@ -464,14 +464,14 @@ def main():
     #    bin_widths=[0.005, 0.005],
     #    run = False)
     
-    sensor = "LLS_B"
+    sensor = "CAM"
     if sensor == "CAM":
         use_all_dist = True
     else:
         use_all_dist = False
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
-    best_fit_distribution(data=data, bins=100, sensor=sensor, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True)
+    best_fit_distribution(data=data, bins=250, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True)
     
 
 if __name__ == "__main__":
