@@ -416,8 +416,8 @@ def main():
     # print(gap_overlap_df, RS_data)
     #print(gap_overlap_df)
     #generate_siddharth_width(tows=30, plot_histogram=True)
-    # run_multiple_RS_simulations_for_gaps_and_overlap_percentages(n_simulations=50,num_tows=31)
-    generate_RS_multitow_layout_lengths(num_tows = 31, plot = True, histogram_bins = 20)
+    run_multiple_RS_simulations_for_gaps_and_overlap_percentages(n_simulations=50,num_tows=31)
+    # generate_RS_multitow_layout_lengths(num_tows = 31, plot = True, histogram_bins = 20)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

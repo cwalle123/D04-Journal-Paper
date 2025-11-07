@@ -16,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 #Internal imports
 from Data_ALL_traverse import traverse_tow_constructor, traverse_tow_gaps_and_overlaps_lengths
 from Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path
-from Model_ALL_Validation_Tow_Visualiser import plot_real_vs_D04_tow
+from Validation_ALL_Tow_Visualiser import plot_real_vs_D04_tow
 from Model_ALL_Simulation import generate_multitow_layout_lengths
 
 ##############################################################################################################
