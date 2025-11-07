@@ -346,9 +346,7 @@ def draw_loading_bar():
     remaining = max(0, loading_estimated_time - elapsed)
 
     # Determine main message
-    if elapsed < 4:
-        base_text = "Receiving input parameters"
-    elif 4 <= elapsed < 9:
+    if elapsed < 1.5:
         base_text = "Loading model"
     else:
         base_text = "Generating tows"
@@ -453,7 +451,7 @@ def main():
                             if label=="Simulation":
                                 simulation_result = None
                                 loading_start_time = time.time()
-                                loading_estimated_time = 0.237*num_tows + 12.6 # 1.2
+                                loading_estimated_time = 0.36*num_tows + 1.85
                                 simulation_thread = threading.Thread(target=run_simulation, kwargs=dict(GO=visualize_gaps_overlaps, fill=fill_tows, centerline=visualize_centerline, gridlines=show_gridlines))
                                 simulation_thread.start()
                                 state = LOADING
