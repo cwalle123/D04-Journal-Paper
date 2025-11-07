@@ -1020,7 +1020,7 @@ def main():
     #Gap_Histogram(30)
     #KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04")
-    plot_RW_vs_exp_histograms(RW_tows=500, save_PDF=False)
+    plot_RW_vs_exp_histograms(RW_tows=500, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
