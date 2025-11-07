@@ -295,6 +295,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
     best_dist = best['dist']
     params = best['params']
     mse = best['mse']
+    
 
     # shape parameters (can be empty)
     shapes = params[:-2]    
