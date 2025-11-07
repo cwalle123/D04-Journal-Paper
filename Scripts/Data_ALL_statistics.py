@@ -281,6 +281,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
                 params = dist.fit(data)
                 # Evaluate its PDF at the bin centers
                 pdf = dist.pdf(x_mid, *params[:-2], loc=params[-2], scale=params[-1])
+
                 # Compute sum of squared errors between histogram and PDF to check accuracy
                 mse = sklearn.mean_squared_error(y, pdf)
 
