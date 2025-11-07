@@ -133,8 +133,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[0].hist(LT_exp, color='blue', bins=100, density=True, alpha=0.6, label="Experimental Data")
     axs[0].hist(LT_walk_data, color='green', bins=100, density=True, alpha=0.6, label="Random Walk Data")
     axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Probability Density Function")
-    axs[0].set_xlabel("Error, robot position")
-    axs[0].set_ylabel("Density")
+    axs[0].set_xlabel("Error, robot position", size=12)
+    axs[0].set_ylabel("Density", size=12)
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
     ax = plt.gca()
     #axs[0].set_yticks(np.linspace(-1.2, -0.6, 3))
@@ -1020,7 +1020,7 @@ def main():
     #Gap_Histogram(30)
     #KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04")
-    plot_RW_vs_exp_histograms(RW_tows=100, save_PDF=False)
+    plot_RW_vs_exp_histograms(RW_tows=500, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
