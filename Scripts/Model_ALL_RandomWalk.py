@@ -932,7 +932,7 @@ def main():
     # generate_RW_multitow(num_tows=10)
     #plot_RW_tows(2, plot_individual_histograms=True)
     # analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
-    analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv") # Only plots data
+    analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate_1.csv") # Only plots data
     # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31)
     #plot_LLS_hist()
 
