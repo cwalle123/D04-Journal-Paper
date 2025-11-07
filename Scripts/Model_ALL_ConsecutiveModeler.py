@@ -81,7 +81,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     y_pdf_LT = best_LT_dist.pdf(x_pdf, *shapes_LT, loc=loc_LT, scale=scale_LT)
 
     #CAM
-    shrink_scale_factor_CAM = 0.9
+    shrink_scale_factor_CAM = 0.9 # This factor is used to artifically stretch the skewnorm distribution to visually better fit the histogram
     best_CAM = best_fit_distribution(CAM_exp, bins=250, use_all_dist=True, shrink_scale_factor=shrink_scale_factor_CAM)
     best_CAM_dist = best_CAM['dist']
     params_CAM = best_CAM['params']
