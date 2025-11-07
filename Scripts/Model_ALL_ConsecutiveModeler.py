@@ -67,13 +67,56 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
         dist = sensor_dist
         dist_labels.append(distribution_label_names.get(dist.name, dist.name))
 
+    #These actually have to be the distributions of the experimental data
+    x_pdf = np.linspace(-1.2, 1.2, 300)
+
+    #LT
+    best_LT = best_fit_distribution(LT_exp, bins=100)
+    best_LT_dist = best_LT['dist']
+    params_LT = best_LT['params']
+    mse_LT = best_LT['mse']
+    shapes_LT = params_LT[:-2]    
+    loc_LT = params_LT[-2]
+    scale_LT = params_LT[-1]
+    y_pdf_LT = best_LT_dist.pdf(x_pdf, *shapes_LT, loc=loc_LT, scale=scale_LT)
+
+    #CAM
+    shrink_scale_factor_CAM = 0.9
+    best_CAM = best_fit_distribution(CAM_exp, bins=250, use_all_dist=True, shrink_scale_factor=shrink_scale_factor_CAM)
+    best_CAM_dist = best_CAM['dist']
+    params_CAM = best_CAM['params']
+    mse_CAM = best_CAM['mse']
+    shapes_CAM = params_CAM[:-2]    
+    loc_CAM = params_CAM[-2]
+    scale_CAM = params_CAM[-1] * shrink_scale_factor_CAM
+    y_pdf_CAM = best_CAM_dist.pdf(x_pdf, *shapes_CAM, loc=loc_CAM, scale=scale_CAM)
+
+    #LSS A
+    best_LLSA = best_fit_distribution(LLSA_exp, bins=100)
+    best_LLSA_dist = best_LLSA['dist']
+    params_LLSA = best_LLSA['params']
+    mse_LLSA = best_LLSA['mse']
+    shapes_LLSA = params_LLSA[:-2]    
+    loc_LLSA = params_LLSA[-2]
+    scale_LLSA = params_LLSA[-1]
+    y_pdf_LLS_A = best_LLSA_dist.pdf(x_pdf, *shapes_LLSA, loc=loc_LLSA, scale=scale_LLSA)
+
+    #LLS B
+    best_LLSB = best_fit_distribution(LLSB_exp, bins=100)
+    best_LLSB_dist = best_LLSB['dist']
+    params_LLSB = best_LLSB['params']
+    mse_LLSB = best_LLSB['mse']
+    shapes_LLSB = params_LLSB[:-2]    
+    loc_LLSB = params_LLSB[-2]
+    scale_LLSB = params_LLSB[-1]
+    y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
 
     # setting up the target distribution plots for later
-    x_pdf = np.linspace(-1.2, 1.2, 300)
-    y_pdf_LT = LT_target_dist(x_pdf)
-    y_pdf_CAM = CAM_target_dist(x_pdf)
-    y_pdf_LLS_A = LLS_A_target_dist(x_pdf)
-    y_pdf_LLS_B = LLS_B_target_dist(x_pdf)
+    #x_pdf = np.linspace(-1.2, 1.2, 300)
+    #y_pdf_LT = LT_target_dist(x_pdf)
+    #y_pdf_CAM = CAM_target_dist(x_pdf)
+    #y_pdf_LLS_A = LLS_A_target_dist(x_pdf)
+    #y_pdf_LLS_B = LLS_B_target_dist(x_pdf)
 
     # --------PLotting----------
     plt.rc('font', family='Times New Roman')
