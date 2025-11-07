@@ -86,9 +86,10 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     best_CAM_dist = best_CAM['dist']
     params_CAM = best_CAM['params']
     mse_CAM = best_CAM['mse']
-    shapes_CAM = params_CAM[:-2]    
+    shapes_CAM = params_CAM[:-2] 
     loc_CAM = params_CAM[-2]
-    scale_CAM = params_CAM[-1] * shrink_scale_factor_CAM
+    scale_CAM = params_CAM[-1]
+    print(f'Scale_CAM: {scale_CAM}')
     y_pdf_CAM = best_CAM_dist.pdf(x_pdf, *shapes_CAM, loc=loc_CAM, scale=scale_CAM)
 
     #LSS A
@@ -1018,8 +1019,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04")
-    #plot_RW_vs_exp_histograms(RW_tows=100, save_PDF=False)
+    #model_distribution_figures(29, plottype="single no D04")
+    plot_RW_vs_exp_histograms(RW_tows=100, save_PDF=False)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
