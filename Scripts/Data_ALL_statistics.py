@@ -279,13 +279,14 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
             try:
                 # Fit the best distribution to the data
                 params = dist.fit(data)
+                params[-1] = params[-1] * shrink_scale_factor
                 # Evaluate its PDF at the bin centers
                 pdf = dist.pdf(x_mid, *params[:-2], loc=params[-2], scale=params[-1])
 
                 # Compute sum of squared errors between histogram and PDF to check accuracy
                 mse = sklearn.mean_squared_error(y, pdf)
 
-                # If this fit is better (lower SSE), use it
+                # If this fit is better (lower MSE), use it
                 if mse < best['mse']:
                     best.update(dist=dist, params=params, mse=mse)
             except Exception:
@@ -477,8 +478,8 @@ def main():
         shrink_scale_factor = 1.0
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
-    best_fit_distribution(data=data, bins=250, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True, shrink_scale_factor=shrink_scale_factor)
-    
+    best = best_fit_distribution(data=data, bins=250, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True, shrink_scale_factor=shrink_scale_factor)
+    print(best)
 
 if __name__ == "__main__":
     main()
