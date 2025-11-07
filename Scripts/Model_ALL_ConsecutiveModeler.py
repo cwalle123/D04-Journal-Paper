@@ -36,10 +36,10 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     LLSB_exp = get_data("LLS_B", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
 
     # getting RW data per sensor
-    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
-    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
-    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A")
-    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT", bins=100)
+    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM", bins=250)
+    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A", bins=100)
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B", bins=100)
 
     LT_walk_data, CAM_walk_data, LLSA_walk_data, LLSB_walk_data = [], [], [], []
     for tow in range(RW_tows):
