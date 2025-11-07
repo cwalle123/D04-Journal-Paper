@@ -473,22 +473,22 @@ def analyze_tow_spacing_effect(
     tow_length_mm: float = 1000,
     proposal_type: str = "RWM",
     print_progress: bool = True,
-    existing_data: pd.DataFrame | str | None = None):
+    existing_data: pd.DataFrame | str | None = None,
+    error_bars: bool = True,  # show error bars
+    minmax: bool = False       # use min/max instead of std
+):
     """
     Analyzes the effect of tow spacing on gap and overlap percentage.
 
-    If `existing_data` is None, the function runs simulations, saves the results as a CSV 
-    in the "Cached Data" folder (including intersection info), and plots the data.
-    If `existing_data` is a DataFrame or CSV path, it will plot that data directly.
-
-    Returns
-    -------
-    results_df : pd.DataFrame
-        DataFrame with average gap and overlap percentages vs tow spacing,
-        including intersection spacing and value columns.
+    Includes:
+      ✅ Standard deviation columns for gap & overlap
+      ✅ Optional vertical error bars (std or min/max)
+      ✅ Reuses saved std/min/max values if they exist
+      ✅ Original axis limits preserved (5–7.5 mm, 0–10%)
+      ✅ No markers/dots on the plot
     """
 
-    # --- CASE 1: Data provided (plot only) ---
+    # -------- CASE 1: Load existing data --------
     if existing_data is not None:
         if isinstance(existing_data, str):
             results_df = pd.read_csv(existing_data)
@@ -497,13 +497,19 @@ def analyze_tow_spacing_effect(
         else:
             raise ValueError("`existing_data` must be a pandas DataFrame or a CSV file path.")
 
-    # --- CASE 2: Run simulations and save ---
+    # -------- CASE 2: Run fresh simulations --------
     else:
         if spacing_values_mm is None:
             spacing_values_mm = np.linspace(5.0, 7.5, 9)
 
         avg_gap_percentages = []
         avg_overlap_percentages = []
+        std_gap_percentages = []
+        std_overlap_percentages = []
+        gap_min_percentages = []
+        gap_max_percentages = []
+        overlap_min_percentages = []
+        overlap_max_percentages = []
 
         for spacing in tqdm(spacing_values_mm, desc="Start Values"):
             if print_progress:
@@ -512,7 +518,9 @@ def analyze_tow_spacing_effect(
             gap_results = []
             overlap_results = []
 
-            for sim in tqdm(range(num_simulations), desc=f"Spacing={spacing:.2f}", leave=False):
+            for _ in tqdm(range(num_simulations),
+                          desc=f"Spacing={spacing:.2f}", leave=False):
+
                 _, _, _, gap_percent, overlap_percent, _ = generate_RW_multitow(
                     num_tows=num_tows_per_simulation,
                     tow_spacing_mm=spacing,
@@ -526,30 +534,49 @@ def analyze_tow_spacing_effect(
 
             avg_gap = np.mean(gap_results)
             avg_overlap = np.mean(overlap_results)
+            std_gap = np.std(gap_results)
+            std_overlap = np.std(overlap_results)
+            gap_min = np.min(gap_results)
+            gap_max = np.max(gap_results)
+            overlap_min = np.min(overlap_results)
+            overlap_max = np.max(overlap_results)
+
             avg_gap_percentages.append(avg_gap)
             avg_overlap_percentages.append(avg_overlap)
+            std_gap_percentages.append(std_gap)
+            std_overlap_percentages.append(std_overlap)
+            gap_min_percentages.append(gap_min)
+            gap_max_percentages.append(gap_max)
+            overlap_min_percentages.append(overlap_min)
+            overlap_max_percentages.append(overlap_max)
 
             if print_progress:
-                print(f"  → Average gap: {avg_gap:.3f}% | Average overlap: {avg_overlap:.3f}%")
+                print(f"  → Avg gap: {avg_gap:.3f}% (±{std_gap:.3f}) | "
+                      f"Avg overlap: {avg_overlap:.3f}% (±{std_overlap:.3f})")
 
-        # Create DataFrame
         results_df = pd.DataFrame({
             "Tow Spacing (mm)": spacing_values_mm,
             "Average Gap (%)": avg_gap_percentages,
-            "Average Overlap (%)": avg_overlap_percentages})
+            "Gap Std (%)": std_gap_percentages,
+            "Gap Min (%)": gap_min_percentages,
+            "Gap Max (%)": gap_max_percentages,
+            "Average Overlap (%)": avg_overlap_percentages,
+            "Overlap Std (%)": std_overlap_percentages,
+            "Overlap Min (%)": overlap_min_percentages,
+            "Overlap Max (%)": overlap_max_percentages
+        })
 
-    # --- Find intersection (where gap = overlap) ---
+    # -------- Compute intersection --------
     gap_arr = np.array(results_df["Average Gap (%)"])
     overlap_arr = np.array(results_df["Average Overlap (%)"])
-    spacing_values_mm = np.array(results_df["Tow Spacing (mm)"])
+    spacing_arr = np.array(results_df["Tow Spacing (mm)"])
     diff = gap_arr - overlap_arr
 
     intersection_spacing = None
     intersection_gap_value = None
-
     for i in range(len(diff) - 1):
         if diff[i] * diff[i + 1] < 0:
-            x1, x2 = spacing_values_mm[i], spacing_values_mm[i + 1]
+            x1, x2 = spacing_arr[i], spacing_arr[i + 1]
             y1, y2 = diff[i], diff[i + 1]
             intersection_spacing = x1 - y1 * (x2 - x1) / (y2 - y1)
 
@@ -557,33 +584,57 @@ def analyze_tow_spacing_effect(
             intersection_gap_value = g1 + (g2 - g1) * ((intersection_spacing - x1) / (x2 - x1))
             break
 
-    # --- Add intersection info as new columns ---
     results_df["Intersection Spacing (mm)"] = intersection_spacing
     results_df["Intersection Gap/Overlap (%)"] = intersection_gap_value
 
-    # --- Save updated CSV if data was freshly generated ---
+    # -------- Save CSV if new data --------
     if existing_data is None:
         os.makedirs("Cached Data", exist_ok=True)
         csv_path = os.path.join(
             "Cached Data",
             f"Tow_spacing_effect_{proposal_type}_with_{num_simulations}_simulations_of_a_{num_tows_per_simulation}_tow_laminate.csv")
         results_df.to_csv(csv_path, index=False)
-        print(f"\n✅ Results (including intersection columns) saved to: {csv_path}")
+        print(f"\n✅ Results (with std/min/max + intersections) saved to:\n   {csv_path}")
 
-    # --- Plot ---
+    # -------- Plot --------
     plt.figure(figsize=(9.25, 2.90))
     ax = plt.gca()
 
-    plt.plot(spacing_values_mm, gap_arr, color="blue", label="Gap", linewidth=1)
-    plt.plot(spacing_values_mm, overlap_arr, color="red", label="Overlap", linewidth=1)
+    # Lines
+    ax.plot(spacing_arr, gap_arr, color="blue", label="Gap", linewidth=1)
+    ax.plot(spacing_arr, overlap_arr, color="red", label="Overlap", linewidth=1)
 
-    # Labels (Times New Roman)
+    # Error bars
+    if error_bars:
+        if minmax:
+            # min/max as asymmetric errors
+            yerr_gap = np.array([gap_arr - results_df["Gap Min (%)"],
+                                results_df["Gap Max (%)"] - gap_arr])
+            yerr_overlap = np.array([overlap_arr - results_df["Overlap Min (%)"],
+                                    results_df["Overlap Max (%)"] - overlap_arr])
+
+            ax.errorbar(spacing_arr, gap_arr, yerr=yerr_gap, fmt='none', color='blue', capsize=3, linewidth=1)
+            ax.errorbar(spacing_arr, overlap_arr, yerr=yerr_overlap, fmt='none', color='red', capsize=3, linewidth=1)
+
+        else:
+            # Std error bars
+            ax.errorbar(spacing_arr, gap_arr, yerr=results_df["Gap Std (%)"], fmt='none', color='blue', capsize=3, linewidth=1)
+            ax.errorbar(spacing_arr, overlap_arr, yerr=results_df["Overlap Std (%)"], fmt='none', color='red', capsize=3, linewidth=1)
+
+    # Formatting
     plt.xlabel("Programmed shift (mm)", fontname="Times New Roman", fontsize=15)
     plt.ylabel("Defect area (%)", fontname="Times New Roman", fontsize=15)
-    plt.title("")
+    plt.xticks(fontname="Times New Roman", fontsize=15)
+    plt.yticks(fontname="Times New Roman", fontsize=15)
+    plt.legend(prop={"family": "Times New Roman", "size": 15})
+    plt.tight_layout()
 
-    # Remove grid
-    plt.grid(False)
+    ax.tick_params(top=True, bottom=True, left=True, right=True,
+                   direction='in', length=6, width=1)
+
+    # Axis limits (original)
+    ax.set_xlim(5, 7.5)
+    ax.set_ylim(0, 10)
 
     # Box border
     for spine in ax.spines.values():
@@ -591,28 +642,12 @@ def analyze_tow_spacing_effect(
         spine.set_linewidth(1)
         spine.set_color("black")
 
-    plt.xticks(fontname="Times New Roman", fontsize=15)
-    plt.yticks(fontname="Times New Roman", fontsize=15)
-    plt.legend(prop={"family": "Times New Roman", "size": 15})
-    plt.tight_layout()
-    
-    ax.tick_params(top=True, bottom=True, left=True, right=True,
-                direction='in',  # Ticks point inward (optional, for a clean boxed look)
-                length=6, width=1)  # Adjust tick size and thickness
-
-    xmin, xmax = 5, 7.5
-    ymin, ymax = 0, 10
-
-    ax.set_xlim(xmin - 0.02*(xmax-xmin), xmax + 0.02*(xmax-xmin))
-    ax.set_ylim(ymin - 0.1*(ymax-ymin), ymax + 0.1*(ymax-ymin))
-
     plt.show()
 
+    # Intersection print
     if intersection_spacing is not None:
         print(f"\n🔴 Intersection point at {intersection_spacing:.3f} mm "
               f"(Gap ≈ Overlap = {intersection_gap_value:.3f}%)")
-    else:
-        print("\n⚠️ No intersection found between gap and overlap curves.")
 
     return results_df
 
@@ -835,15 +870,15 @@ def run_multiple_RW_simulations_for_gaps_and_overlap_percentages(
     alternate_start: list = [None, "params"],
     override: bool = False,
     verbose: bool = False,
-    progress_bar: bool = True):
+    progress_bar: bool = True,
+    print_statement: bool = True):
     """
     Runs multiple random walk multitow simulations and computes the average
     and standard deviation of the gap and overlap percentages.
 
-    Returns:
-        summary_df (pd.DataFrame): simulation results table
-        stats (dict): mean and std of gap and overlap percentages
+    If print_statement=True, prints running averages after each simulation.
     """
+
     gap_percents = []
     overlap_percents = []
 
@@ -868,25 +903,28 @@ def run_multiple_RW_simulations_for_gaps_and_overlap_percentages(
             if verbose:
                 print(f"Sim {i+1}: Gap={gap_percent:.2f}%, Overlap={overlap_percent:.2f}%")
 
+            if print_statement:
+                avg_gap = np.mean(gap_percents)
+                avg_overlap = np.mean(overlap_percents)
+                print(f"After {i+1}/{n_simulations}: Avg Gap={avg_gap:.2f}%, Avg Overlap={avg_overlap:.2f}%")
+
         except Exception as e:
             print(f"Simulation {i+1} failed: {e}")
             continue
 
-    # compile results
+    # Compile final results
     summary_df = pd.DataFrame({
         "Simulation": np.arange(1, len(gap_percents) + 1),
         "Gap_%": gap_percents,
-        "Overlap_%": overlap_percents
-    })
+        "Overlap_%": overlap_percents})
 
     stats = {
         "Mean_Gap_%": np.mean(gap_percents),
         "Std_Gap_%": np.std(gap_percents),
         "Mean_Overlap_%": np.mean(overlap_percents),
-        "Std_Overlap_%": np.std(overlap_percents)
-    }
+        "Std_Overlap_%": np.std(overlap_percents)}
 
-    print("\n=== Simulation Summary ===")
+    print("\n=== Final Simulation Summary ===")
     print(f"Average Gap: {stats['Mean_Gap_%']:.3f}% ± {stats['Std_Gap_%']:.3f}%")
     print(f"Average Overlap: {stats['Mean_Overlap_%']:.3f}% ± {stats['Std_Overlap_%']:.3f}%")
 
@@ -931,9 +969,9 @@ def main():
 
     # generate_RW_multitow(num_tows=10)
     #plot_RW_tows(2, plot_individual_histograms=True)
-    # analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
-    analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate_1.csv") # Only plots data
-    # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31)
+    analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
+    # analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate_1.csv") # Only plots data
+    # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31) #Seems to converge at 120 sims
     #plot_LLS_hist()
 
     # generate_RW_multitow_layout_lengths(num_tows=30, plot=True, histogram_bins = 300)

@@ -843,7 +843,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     print_statement=False,
     xlim=(0, 140),
     ylim=(0, 108),
-    ylim_break=(1065, 1090)):  # only for RS broken axis
+    ylim_break=(1065, 1090),
+    stack_graphs=False):
     
     from brokenaxes import brokenaxes
 
@@ -869,17 +870,22 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         histogram_bins=histogram_bins,
         print_statement=print_statement)
 
-    # --- Compute shared bins for all datasets ---
+    # --- Compute shared bins ---
     all_data = np.concatenate([gap_traverse, gap_RW, gap_RS])
     shared_bins = np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
 
     # --- Plot ---
-    fig = plt.figure(figsize=(14, 4))
-    spec = fig.add_gridspec(1, 2)
-    font_size = 25
+    if stack_graphs:
+        fig = plt.figure(figsize=(12, 8))
+        spec = fig.add_gridspec(2, 1)
+    else:
+        fig = plt.figure(figsize=(14, 4))
+        spec = fig.add_gridspec(1, 2)
+
+    font_size = 23
     tick_size = font_size - 10
 
-    # --- Traverse vs RW (normal axis) ---
+    # --- Traverse vs RW ---
     ax0 = fig.add_subplot(spec[0])
     ax0.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
     ax0.hist(gap_RW, bins=shared_bins, color="green", alpha=0.5, edgecolor="black", label="RW Simulated")
@@ -889,11 +895,10 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     ax0.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman")
     ax0.tick_params(axis='both', labelsize=tick_size)
     ax0.legend(prop={"family": "Times New Roman", "size": font_size - 5})
-    # ax0.grid(True)
 
     # --- Traverse vs RS (broken y-axis) ---
     bax1 = brokenaxes(
-        ylims=[ylim, ylim_break],  # lower and upper ranges
+        ylims=[ylim, ylim_break],
         hspace=.1,
         subplot_spec=spec[1])
     bax1.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
@@ -903,23 +908,21 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     bax1.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman", labelpad=40)
     for ax in bax1.axs:
         ax.tick_params(axis='both', labelsize=tick_size)
-        # ax.grid(True)
     bax1.legend(prop={"family": "Times New Roman", "size": font_size - 5})
 
-    # --- Box the broken axes properly ---
     for ax in bax1.axs:
         for spine in ['top', 'bottom', 'left', 'right']:
             ax.spines[spine].set_visible(True)
             ax.spines[spine].set_linewidth(1)
 
-    # --- Hide the touching spines between the two plots ---
     bax1.axs[0].spines['bottom'].set_visible(False)
     bax1.axs[1].spines['top'].set_visible(False)
 
     plt.tight_layout()
+    fig.savefig("gap_length_comparison.svg", format="svg", dpi=300)
     plt.show()
 
-    # --- Print summaries ---
+    # --- Summaries ---
     def summarize(name, data):
         if len(data):
             print(f"{name}: N={len(data)}, Mean={np.mean(data):.2f} mm, Std={np.std(data):.2f} mm")
@@ -942,11 +945,11 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    plot_real_vs_D04_vs_RW_vs_RS_tow(2)
+    # plot_real_vs_D04_vs_RW_vs_RS_tow(2)
     #compare_real_vs_RW_gaps_overlaps()
     # compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     # compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    #compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300)
+    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True)
 
 if __name__ == "__main__":
     main()
