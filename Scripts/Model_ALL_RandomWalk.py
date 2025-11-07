@@ -46,9 +46,9 @@ def fit_random_walk(sensor: str, bins=40):
     n_steps = get_n_steps(sensor)
     data, weights = get_data(sensor, format='merged')
     if sensor != "CAM":
-        best = best_fit_distribution(np.array(data), bins=bins, weights=np.array(weights))
+        best = best_fit_distribution(np.array(data), bins=bins, weights=np.array(weights), print_statement=True)
     elif sensor == "CAM":
-                best = best_fit_distribution(np.array(data), weights=np.array(weights), use_all_dist=True, shrink_scale_factor=0.9)
+                best = best_fit_distribution(np.array(data), weights=np.array(weights), use_all_dist=True, print_statement=True, shrink_scale_factor=0.9)
     dist, params = best['dist'], best['params']
     target_distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
 
