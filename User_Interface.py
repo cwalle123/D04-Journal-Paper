@@ -51,8 +51,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Import tow generator
-from D04_Model.Model_ALL_Simulation import generate_multitow_layout
-from Model_ALL_RandomWalk import generate_RW_multitow
+from Scripts.D04_Model.Model_ALL_Simulation import generate_multitow_layout
+from Scripts.Model_ALL_RandomWalk import generate_RW_multitow
 
 # ---------------- Screen Setup ----------------
 root = tk.Tk()
