@@ -279,7 +279,9 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
             try:
                 # Fit the best distribution to the data
                 params = dist.fit(data)
+                params = list(params)
                 params[-1] = params[-1] * shrink_scale_factor
+                params = tuple(params)
                 # Evaluate its PDF at the bin centers
                 pdf = dist.pdf(x_mid, *params[:-2], loc=params[-2], scale=params[-1])
 
@@ -304,7 +306,7 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
     scale = params[-1]
 
     #Manual shrink of scale
-    scale = scale * shrink_scale_factor
+    #scale = scale * shrink_scale_factor
     params = (*shapes, loc, scale)
 
     if print_statement == True:
