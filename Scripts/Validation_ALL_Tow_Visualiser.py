@@ -243,7 +243,7 @@ def plot_real_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot
 
     return real_data, RW_data
 
-def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: bool = False, offset: float=y_increment_programmed):
+def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: bool = False, offset: float=y_increment_programmed, save_PDF=False):
     """
     Make a figure with tows below each other obtained from the 4 different methods for visual comparison.
     """
@@ -344,6 +344,8 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
         label.set_fontname('Times New Roman')
         label.set_fontsize(10)
     plt.tight_layout()
+    if save_PDF == True:
+        plt.savefig("Tow comparison of 3 methods", format="pdf", bbox_inches="tight")
     plt.show()
 
     #plt.legend()
@@ -945,7 +947,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    # plot_real_vs_D04_vs_RW_vs_RS_tow(2)
+    # plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
     #compare_real_vs_RW_gaps_overlaps()
     # compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     # compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
