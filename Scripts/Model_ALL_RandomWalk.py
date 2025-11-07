@@ -642,6 +642,8 @@ def analyze_tow_spacing_effect(
         spine.set_linewidth(1)
         spine.set_color("black")
 
+    plt.savefig(f"Tow_spacing_effect_{proposal_type}_with_{num_simulations}_simulations_of_a_{num_tows_per_simulation}_tow_laminate.svg", format="svg", dpi=300)
+
     plt.show()
 
     # Intersection print
