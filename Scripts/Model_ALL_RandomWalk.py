@@ -474,18 +474,13 @@ def analyze_tow_spacing_effect(
     proposal_type: str = "RWM",
     print_progress: bool = True,
     existing_data: pd.DataFrame | str | None = None,
-    error_bars: bool = True,  # show error bars
-    minmax: bool = False       # use min/max instead of std
-):
+    error_bars: bool = True,    # show error bars
+    minmax: bool = True,        # use min/max instead of std for error bars
+    error_areas: bool = False): # Fill error regions 
+
     """
     Analyzes the effect of tow spacing on gap and overlap percentage.
 
-    Includes:
-      ✅ Standard deviation columns for gap & overlap
-      ✅ Optional vertical error bars (std or min/max)
-      ✅ Reuses saved std/min/max values if they exist
-      ✅ Original axis limits preserved (5–7.5 mm, 0–10%)
-      ✅ No markers/dots on the plot
     """
 
     # -------- CASE 1: Load existing data --------
@@ -604,22 +599,45 @@ def analyze_tow_spacing_effect(
     ax.plot(spacing_arr, gap_arr, color="blue", label="Gap", linewidth=1)
     ax.plot(spacing_arr, overlap_arr, color="red", label="Overlap", linewidth=1)
 
-    # Error bars
+    # ----- Error Display Logic -----
+    # ----- Error areas (shaded regions) -----
+    if error_areas:
+        error_bars = False # If error areas are enabled, disable error bars
+
+        if minmax:
+            gap_lower = results_df["Gap Min (%)"]
+            gap_upper = results_df["Gap Max (%)"]
+            overlap_lower = results_df["Overlap Min (%)"]
+            overlap_upper = results_df["Overlap Max (%)"]
+        else:
+            gap_lower = gap_arr - results_df["Gap Std (%)"]
+            gap_upper = gap_arr + results_df["Gap Std (%)"]
+            overlap_lower = overlap_arr - results_df["Overlap Std (%)"]
+            overlap_upper = overlap_arr + results_df["Overlap Std (%)"]
+
+        ax.fill_between(spacing_arr, gap_lower, gap_upper,
+                        alpha=0.15, color="blue")
+        ax.fill_between(spacing_arr, overlap_lower, overlap_upper,
+                        alpha=0.15, color="red")
+
+    # ----- Error bars (only if NOT using shaded areas) -----
     if error_bars:
         if minmax:
-            # min/max as asymmetric errors
             yerr_gap = np.array([gap_arr - results_df["Gap Min (%)"],
                                 results_df["Gap Max (%)"] - gap_arr])
             yerr_overlap = np.array([overlap_arr - results_df["Overlap Min (%)"],
                                     results_df["Overlap Max (%)"] - overlap_arr])
 
-            ax.errorbar(spacing_arr, gap_arr, yerr=yerr_gap, fmt='none', color='blue', capsize=3, linewidth=1)
-            ax.errorbar(spacing_arr, overlap_arr, yerr=yerr_overlap, fmt='none', color='red', capsize=3, linewidth=1)
+            ax.errorbar(spacing_arr, gap_arr, yerr=yerr_gap,
+                        fmt='none', color='blue', capsize=3, linewidth=1)
+            ax.errorbar(spacing_arr, overlap_arr, yerr=yerr_overlap,
+                        fmt='none', color='red', capsize=3, linewidth=1)
 
         else:
-            # Std error bars
-            ax.errorbar(spacing_arr, gap_arr, yerr=results_df["Gap Std (%)"], fmt='none', color='blue', capsize=3, linewidth=1)
-            ax.errorbar(spacing_arr, overlap_arr, yerr=results_df["Overlap Std (%)"], fmt='none', color='red', capsize=3, linewidth=1)
+            ax.errorbar(spacing_arr, gap_arr, yerr=results_df["Gap Std (%)"],
+                        fmt='none', color='blue', capsize=3, linewidth=1)
+            ax.errorbar(spacing_arr, overlap_arr, yerr=results_df["Overlap Std (%)"],
+                        fmt='none', color='red', capsize=3, linewidth=1)
 
     # Formatting
     plt.xlabel("Programmed shift (mm)", fontname="Times New Roman", fontsize=15)
@@ -642,7 +660,8 @@ def analyze_tow_spacing_effect(
         spine.set_linewidth(1)
         spine.set_color("black")
 
-    plt.savefig(f"Tow_spacing_effect_{proposal_type}_with_{num_simulations}_simulations_of_a_{num_tows_per_simulation}_tow_laminate.svg", format="svg", dpi=300)
+    if existing_data is None:
+        plt.savefig(f"Tow_spacing_effect_{proposal_type}_with_{num_simulations}_simulations_of_a_{num_tows_per_simulation}_tow_laminate.svg", format="svg", dpi=300)
 
     plt.show()
 
@@ -971,8 +990,8 @@ def main():
 
     # generate_RW_multitow(num_tows=10)
     #plot_RW_tows(2, plot_individual_histograms=True)
-    analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
-    # analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate_1.csv") # Only plots data
+    # analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
+    analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv", error_areas=True) # Only plots data
     # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31) #Seems to converge at 120 sims
     #plot_LLS_hist()
 
