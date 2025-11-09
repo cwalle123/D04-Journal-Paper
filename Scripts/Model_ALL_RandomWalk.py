@@ -187,6 +187,68 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
     if return_pdf: return generated_path, x_pdf, y_pdf
     return generated_path
 
+
+def test_advanced_RW(tows: int=620):
+    '''A function to test advanced RW with the condition that LLS_B is LLS_A while both are sampled simultaneously.'''
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
+    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A")
+
+    total_A, total_B = [], []
+    for tow in range(tows):
+        # ensuring condition is met for start value:
+        start_A, start_B = 1, 0
+        while start_B < start_A:
+            start_A = LLS_A_dist.rvs(*LLS_A_params[:-2], loc=LLS_A_params[-2], scale=LLS_A_params[-1])
+            start_B = LLS_A_dist.rvs(*LLS_B_params[:-2], loc=LLS_B_params[-2], scale=LLS_B_params[-1])
+
+        # initialising the path generation
+        A_current, B_current = start_A, start_B
+        path_A, path_B = [A_current], [B_current]
+        for step in range(LLS_B_steps - 1):
+            A_next, B_next = 1, 0
+            while B_next < A_next:
+                A_proposal = propose_new_RWM_value(A_current, LLS_A_proposal_std)
+                B_proposal = propose_new_RWM_value(B_current, LLS_B_proposal_std)
+
+                # code to accept or reject the proposed new value
+                alpha_A = LLS_A_target_dist(A_proposal) / LLS_A_target_dist(A_current)      # alpha = acceptance probability
+                alpha_B = LLS_B_target_dist(B_proposal) / LLS_B_target_dist(B_current)      # alpha = acceptance probability
+                U = random.uniform(0, 1)
+
+                if alpha_A >= U:  # we accept the proposed value
+                    A_next = A_proposal
+                else:  # we reject the proposed value
+                    A_next = A_current
+                if alpha_B >= U:  # we accept the proposed value
+                    B_next = B_proposal
+                else:  # we reject the proposed value
+                    B_next = B_current
+
+            path_A.append(A_next)
+            path_B.append(B_next)
+
+        total_A += path_A
+        total_B += path_B
+
+    # plot-plot-plot #
+    x_pdf = np.linspace(-1.2, 1.2, 400)
+    A_pdf = LLS_A_target_dist(x_pdf)
+    B_pdf = LLS_B_target_dist(x_pdf)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(x_pdf, A_pdf, color='red', label='probability-distribution B')
+    plt.plot(x_pdf, B_pdf, color='blue', label='probability-distribution A')
+    plt.hist(total_A, density=True, bins=50, alpha=0.4, color='orange', label='generated path A')
+    plt.hist(total_B, density=True, bins=50, alpha=0.4, color='lightblue', label='generated path B')
+    plt.xlim(-0.6, 0.2)
+    #plt.ylim(0, 1)
+    plt.xlabel("width error (mm)", fontsize=12)
+    plt.ylabel("Probability Density", fontsize=12)
+    plt.legend(fontsize=12)
+    plt.tight_layout()
+    plt.show()
+
+
 def get_proposal_distribution(sensor, plot: bool=False):
     data_pairs = get_data_pairs(sensor)
     data, weights = [], []
@@ -991,13 +1053,14 @@ def main():
     # generate_RW_multitow(num_tows=10)
     #plot_RW_tows(2, plot_individual_histograms=True)
     # analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
-    analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv", error_areas=True) # Only plots data
+    #analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv", error_areas=True) # Only plots data
     # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31) #Seems to converge at 120 sims
     #plot_LLS_hist()
 
     # generate_RW_multitow_layout_lengths(num_tows=30, plot=True, histogram_bins = 300)
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
+    test_advanced_RW()
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
