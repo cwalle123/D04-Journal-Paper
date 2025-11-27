@@ -119,6 +119,19 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     #y_pdf_LLS_A = LLS_A_target_dist(x_pdf)
     #y_pdf_LLS_B = LLS_B_target_dist(x_pdf)
 
+    def annotate_mean_std(ax, data):
+        mean = np.mean(data)
+        std = np.std(data)
+
+        # red circle at the mean
+        ax.plot(mean, 0, 'ro', markersize=6, zorder=10)
+
+        # ±1σ line
+        ax.hlines(0, mean - std, mean + std, colors='red', linewidth=2, zorder=9)
+
+        # small vertical stripes
+        ax.vlines([mean - std, mean + std], ymin=-0.1, ymax=0.1, colors='red', linewidth=1.5, zorder=9)
+
     # --------PLotting----------
     plt.rc('font', family='Times New Roman')
     im0 = image.imread('Figures/robotinacc.jpg')
@@ -133,6 +146,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[0].hist(LT_exp, color='blue', bins=100, density=True, alpha=0.6, label="Experimental Data")
     axs[0].hist(LT_walk_data, color='green', bins=100, density=True, alpha=0.6, label="Random Walk Data")
     axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Probability Density Function")
+    annotate_mean_std(axs[0], LT_exp)
     axs[0].set_xlabel("Error, robot position", size=12)
     axs[0].set_ylabel("Density", size=12)
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -144,6 +158,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[1].hist(CAM_exp, color='blue', bins=250, density=True, alpha=0.6)
     axs[1].hist(CAM_walk_data, color='green', bins=250, density=True, alpha=0.6)
     axs[1].plot(x_pdf, y_pdf_CAM, color='yellow')
+    annotate_mean_std(axs[1], CAM_exp)
     axs[1].set_xlabel("Error, tape lateral movement", size=12)
     axs[1].set_ylabel("Density", size=12)
     axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -153,6 +168,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[2].hist(LLSA_exp, color='blue', bins=100, density=True, alpha=0.6)
     axs[2].hist(LLSA_walk_data, color='green', bins=100, density=True, alpha=0.6)
     axs[2].plot(x_pdf, y_pdf_LLS_A, color='yellow')
+    annotate_mean_std(axs[2], LLSA_exp)
     axs[2].set_xlabel("Error, tape width before compaction", size=12)
     axs[2].set_ylabel("Density", size=12)
     axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -162,6 +178,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[3].hist(LLSB_exp, color='blue', bins=100, density=True, alpha=0.6)
     axs[3].hist(LLSB_walk_data, color='green', bins=100, density=True, alpha=0.6)
     axs[3].plot(x_pdf, y_pdf_LLS_B, color='yellow')
+    annotate_mean_std(axs[3], LLSB_exp)
     axs[3].set_xlabel("Error, tape width after compaction", size=12)
     axs[3].set_ylabel("Density", size=12)
     axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -178,7 +195,13 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
             label.set_fontsize(10)
 
     # fig.subplots_adjust(bottom=0.2)
-    lgd = fig.legend(fontsize=12, loc='lower center', fancybox=True, shadow=False, ncol=3)
+
+    # Get custom order for legend entries
+    handles, labels = axs[0].get_legend_handles_labels()
+    desired_order = [0, 2, 1]   # <--- change index order here
+    handles = [handles[i] for i in desired_order]
+    labels = [labels[i] for i in desired_order]
+    fig.legend(handles, labels, fontsize=12, loc='lower center', fancybox=True, shadow=False, ncol=1)
     plt.tight_layout(rect=[0, 0.03, 1, 1])
 
     if save_PDF == True:
@@ -1020,7 +1043,7 @@ def main():
     #Gap_Histogram(30)
     #KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04")
-    plot_RW_vs_exp_histograms(RW_tows=500, save_PDF=True)
+    plot_RW_vs_exp_histograms(RW_tows=500, save_PDF=False)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
