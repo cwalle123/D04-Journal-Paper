@@ -306,8 +306,8 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
 
     plt.figure(figsize=(10,6))
     # Real tow
-    plt.plot(x_real_y_centerline, y_real_y_centerline, "--", color="blue", label="Real centerline")
-    plt.plot(x_real_left, y_real_left, "-", color="blue", label="Real edges")
+    plt.plot(x_real_y_centerline, y_real_y_centerline, "--", color="blue")
+    plt.plot(x_real_left, y_real_left, "-", color="blue", label="Experimental")
     plt.plot(x_real_right, y_real_right, "-", color="blue")
 
     # Simulated tow
@@ -316,13 +316,13 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     #plt.plot(x_D04_right, y_D04_right, "-", color="orange")
 
     # Random Walk tow
-    plt.plot(x_RW_centerline, y_RW_centerline, "--", color="green", label="RW centerline")
-    plt.plot(x_RW_left, y_RW_left, "-", color="green", label="RW edges")
+    plt.plot(x_RW_centerline, y_RW_centerline, "--", color="green")
+    plt.plot(x_RW_left, y_RW_left, "-", color="green", label="MCMC simulation")
     plt.plot(x_RW_right, y_RW_right, "-", color="green")
 
     # Random sampling tow
-    plt.plot(x_RS_centerline, y_RS_centerline, "--", color="orange", label="RS centerline")
-    plt.plot(x_RS_left, y_RS_left, "-", color="orange", label="RS edges")
+    plt.plot(x_RS_centerline, y_RS_centerline, "--", color="orange")
+    plt.plot(x_RS_left, y_RS_left, "-", color="orange", label="MC simulation")
     plt.plot(x_RS_right, y_RS_right, "-", color="orange")
 
     mpl.rcParams['font.family'] = 'serif'
@@ -330,9 +330,15 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     mpl.rcParams['mathtext.fontset'] = 'stix'
     mpl.rcParams['xtick.labelsize'] = 10
     mpl.rcParams['ytick.labelsize'] = 10
-    plt.xlabel("X (mm)", fontsize=12, fontname='Times New Roman')
-    plt.ylabel("Y (mm)", fontsize=12, fontname='Times New Roman')
-    plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=3)
+    plt.xlabel("Tow Length (mm)", fontsize=12, fontname='Times New Roman')
+    plt.ylabel("Position (mm)", fontsize=12, fontname='Times New Roman')
+    plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=1, 
+                frameon=True,              
+                edgecolor="black",         
+                fancybox=False,            
+                framealpha=1.0         
+)
+    
     ax = plt.gca()
     for spine in ax.spines.values():
         spine.set_linewidth(1)
@@ -345,7 +351,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
         label.set_fontsize(10)
     plt.tight_layout()
     if save_PDF == True:
-        plt.savefig("Tow comparison of 3 methods", format="pdf", bbox_inches="tight")
+        plt.savefig("Tow comparison of 3 methods.pdf", format="pdf", bbox_inches="tight")
     plt.show()
 
     #plt.legend()

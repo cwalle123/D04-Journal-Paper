@@ -122,6 +122,12 @@ def run_simulation(GO=False, fill=False, centerline=True, gridlines=True):
     )
 
     fig, ax = plt.subplots(figsize=(10, 6))
+    '''MANUEL ADDED THIS: Just axis formatting'''
+    matplotlib.rcParams['font.family'] = 'serif'
+    matplotlib.rcParams['font.serif'] = ['Times New Roman']
+    matplotlib.rcParams['mathtext.fontset'] = 'stix'
+    matplotlib.rcParams['xtick.labelsize'] = 10
+    matplotlib.rcParams['ytick.labelsize'] = 10
     colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]
 
     x_vals = RW_all_tows_data[0]["x_mm"]
@@ -165,10 +171,31 @@ def run_simulation(GO=False, fill=False, centerline=True, gridlines=True):
     # --- Axes and grid ---
     ax.set_xlabel("Tow Length (mm)", fontname="Times New Roman", fontsize=15)
     ax.set_ylabel("Position (mm)", fontname="Times New Roman", fontsize=15)
-    if gridlines:
-        ax.grid(True, linestyle="--", alpha=0.8)
+
+    '''MANUEL ADDED THE FOLLWING 5 LINES
+     They add the dashed on top and right edges of figures.
+     Also remove the number 30 from the y-axis for consistency.'''
+    ax.grid(False)  # This removes the horizontal dashed lines
+
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
+        spine.set_edgecolor('black')
+
+    ax.tick_params(top=True, bottom=True, left=True, right=True,
+                   labeltop=False, labelright=False,
+                   direction='in', length=8, width=1.2)
+    yticks = ax.get_yticks()
+    cleaned_yticks = [y for y in yticks if (y >= -5) and (y != 30)]
+    ax.set_yticks(cleaned_yticks)
+
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontname('Times New Roman')
+        label.set_fontsize(10)
+
+    '''if gridlines:
+        ax.grid(True, linestyle="--", alpha=0.8)   #! Manuel CHANGED THIS FROM TRUE TO FALSE TO REMOVE GRID
     else:
-        ax.grid(False)
+        ax.grid(False)'''
 
     plt.tight_layout()
     simulation_result = (fig, gap_percent, overlap_percent)
@@ -423,8 +450,10 @@ def draw_simulation_screen():
                 return MENU
             elif save_rect.collidepoint(event.pos) and simulation_result is not None:
                 os.makedirs("Figures", exist_ok=True)
-                filename = os.path.join("Figures", f"figure_{figure_counter}.png")
-                fig.savefig(filename)
+                '''MANUEL CHAGED THE NEXT 3 LINES. to make it save to pdf and not png'''
+                filename = os.path.join("Figures", f"figure_{figure_counter}.pdf")  
+                fig.set_size_inches(10, 6)  # same size as in run_simulation
+                fig.savefig(filename, format="pdf", bbox_inches="tight", dpi=300)
                 print(f"Saved figure as {filename}")
                 figure_counter += 1
                 save_confirmation = True

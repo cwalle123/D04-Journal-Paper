@@ -1051,7 +1051,7 @@ def main():
     #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
 
     # generate_RW_multitow(num_tows=10)
-    #plot_RW_tows(2, plot_individual_histograms=True)
+    plot_RW_tows(2, plot_individual_histograms=True)
     # analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
     #analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv", error_areas=True) # Only plots data
     # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31) #Seems to converge at 120 sims
@@ -1060,7 +1060,8 @@ def main():
     # generate_RW_multitow_layout_lengths(num_tows=30, plot=True, histogram_bins = 300)
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
-    test_advanced_RW()
+    #test_advanced_RW()
+
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
