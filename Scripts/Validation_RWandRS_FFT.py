@@ -229,6 +229,7 @@ def run_fft_compare(
         plt.ylabel("Amplitude (mm)")
         plt.grid(False)
         plt.legend(frameon=False)
+        plt.xlim(0, 300)
         plt.tight_layout()
 
     def plot_loglog(f_exp, A_exp, f_rw, A_rw, f_rs, A_rs, title_suffix=""):
