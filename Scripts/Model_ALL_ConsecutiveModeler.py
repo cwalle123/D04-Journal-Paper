@@ -893,7 +893,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
         plt.ylabel("Density", fontsize=12, fontname='Times New Roman')
         plt.legend(fontsize=12, loc='upper right', frameon=False, ncols=1)
-        x_min, x_max = -1.2, 1.2   # desired tick range
+        x_min, x_max = -1.2, 1.2   
 
         ax = plt.gca()
         ax.set_xlim(x_min - 0.1, x_max + 0.1)              
@@ -909,7 +909,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
             label.set_fontname('Times New Roman')
             label.set_fontsize(10)
         ax.axvline(0, color='black', linestyle='-.', linewidth=1)
-        ax.text(-0.05, ax.get_ylim()[1] * 0.95, "Ideal Gap", ha='right', va='top',
+        ax.text(-0.02, ax.get_ylim()[1] * 0.95, "Ideal Gap", ha='right', va='top',
                 fontsize=12, fontname='Times New Roman')
         #plt.tight_layout()
         #plt.show()
@@ -953,7 +953,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
             label.set_fontname('Times New Roman')
             label.set_fontsize(10)
         ax.axvline(0, color='black', linestyle='-.', linewidth=1)
-        ax.text(-0.05, ax.get_ylim()[1] * 0.95, "Ideal Gap", ha='right', va='top',
+        ax.text(-0.02, ax.get_ylim()[1] * 0.95, "Ideal Gap", ha='right', va='top',
                 fontsize=12, fontname='Times New Roman')
         plt.subplots_adjust(hspace=0.3) 
         plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf",bbox_inches='tight')
