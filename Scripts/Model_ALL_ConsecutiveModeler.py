@@ -730,10 +730,10 @@ def KDE_curves(tows_simulated: int):
     #sns.kdeplot(RS_gap_data, label="Random Sampling", color="orange", linewidth=2)
 
     # Plot vertical lines for means and ideal gap
-    plt.axvline(real_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+    #plt.axvline(real_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
     #plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
-    plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
-    plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
+    #plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
+    #plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
     plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
 
     # Labels and layout
@@ -1041,9 +1041,9 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
 def main():
     #data = run_model()
     #Gap_Histogram(30)
-    #KDE_curves(29)
+    KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04")
-    plot_RW_vs_exp_histograms(RW_tows=500, save_PDF=False)
+    #plot_RW_vs_exp_histograms(RW_tows=50, save_PDF=False)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
