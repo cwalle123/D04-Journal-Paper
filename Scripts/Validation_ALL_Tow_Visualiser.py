@@ -849,7 +849,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     alternate_start=[None, "params"],
     method="Sidd",
     print_statement=False,
-    xlim=(0, 140),
+    xlim=(0, 100),
     ylim=(0, 108),
     ylim_break=(1065, 1090),
     stack_graphs=False):
@@ -895,28 +895,32 @@ def compare_real_vs_RS_RW_gap_length_distributions(
 
     # --- Traverse vs RW ---
     ax0 = fig.add_subplot(spec[0])
-    ax0.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
-    ax0.hist(gap_RW, bins=shared_bins, color="green", alpha=0.5, edgecolor="black", label="RW Simulated")
+    ax0.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Experimental")
+    ax0.hist(gap_RW, bins=shared_bins, color="green", alpha=0.5, edgecolor="black", label="MCMC simulation")
     ax0.set_xlim(*xlim)
     ax0.set_ylim(0, 140)
     ax0.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman")
     ax0.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman")
     ax0.tick_params(axis='both', labelsize=tick_size)
-    ax0.legend(prop={"family": "Times New Roman", "size": font_size - 5})
+    ax0.tick_params(top=True, bottom=True, left=True, right=True,
+                    direction='in', which='both')
+    ax0.legend(prop={"family": "Times New Roman", "size": font_size - 5}, frameon=False, ncols=1)
 
     # --- Traverse vs RS (broken y-axis) ---
     bax1 = brokenaxes(
         ylims=[ylim, ylim_break],
         hspace=.1,
         subplot_spec=spec[1])
-    bax1.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Traverse Tows")
-    bax1.hist(gap_RS, bins=shared_bins, color="orange", alpha=0.5, edgecolor="black", label="RS Simulated")
+    bax1.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Experimental")
+    bax1.hist(gap_RS, bins=shared_bins, color="orange", alpha=0.5, edgecolor="black", label="MC simulation")
     bax1.set_xlim(*xlim)
     bax1.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman", labelpad=25)
     bax1.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman", labelpad=40)
     for ax in bax1.axs:
         ax.tick_params(axis='both', labelsize=tick_size)
-    bax1.legend(prop={"family": "Times New Roman", "size": font_size - 5})
+        ax.tick_params(top=True, bottom=True, left=True, right=True,
+                        direction='in', which='both')
+    bax1.legend(prop={"family": "Times New Roman", "size": font_size - 5}, frameon=False, ncols=1)
 
     for ax in bax1.axs:
         for spine in ['top', 'bottom', 'left', 'right']:
@@ -954,10 +958,10 @@ def main():
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
     #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
-    compare_real_vs_RW_gaps_overlaps()
+    #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     # compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    #compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True)
+    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True)
 
 if __name__ == "__main__":
     main()
