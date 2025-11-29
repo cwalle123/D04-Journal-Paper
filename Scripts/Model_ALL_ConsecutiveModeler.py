@@ -844,8 +844,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="red", label="RW")
         sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
         sns.kdeplot(RW_gap_data, label="RW", color="red", linewidth=2)
-        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
+        #plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        #plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.ylabel("Probability Density", fontsize=font_medium)
@@ -856,8 +856,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="RS")
         sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
         sns.kdeplot(RS_gap_data, label="RS", color="green", linewidth=2)
-        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
+        #plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        #plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.legend(fontsize=font_extra_small)
@@ -868,14 +868,20 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
 
     if plottype == "single no D04":
         plt.figure(figsize=(12, 8))
+
+        # Shift data so that ideal gap is at x = 0
+        bins = np.linspace(-1.3, 1.3, 101)
+        exp_shift = np.array(experimental_gap_data) - ideal_gap_center
+        rw_shift  = np.array(RW_gap_data) - ideal_gap_center
+        rs_shift  = np.array(RS_gap_data) - ideal_gap_center
         
         plt.subplot(211)
-        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.6, color="blue", label="Experimental")
-        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.6, color="green", label="RW")
+        plt.hist(exp_shift, bins=bins, density=True, alpha=0.6, color="blue", label="Experimental")
+        plt.hist(rw_shift, bins=bins, density=True, alpha=0.6, color="green", label="MCMC simulation")
         #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
         #sns.kdeplot(RW_gap_data, label="RW", color="green", linewidth=2)
-        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
+        #plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        #plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
 
         mpl.rcParams['font.family'] = 'serif'
@@ -883,21 +889,28 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         mpl.rcParams['mathtext.fontset'] = 'stix'
         mpl.rcParams['xtick.labelsize'] = 10
         mpl.rcParams['ytick.labelsize'] = 10
-        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
-        plt.ylabel("Probability Density", fontsize=12, fontname='Times New Roman')
-        plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=6)
+        plt.ylabel("Density", fontsize=12, fontname='Times New Roman')
+        plt.legend(fontsize=12, loc='upper right', frameon=False, ncols=1)
+        x_min, x_max = -1.2, 1.2   # desired tick range
+
         ax = plt.gca()
+        ax.set_xlim(x_min - 0.1, x_max + 0.1)              
+        ax.set_xticks(np.linspace(x_min, x_max, 9))
         for spine in ax.spines.values():
             spine.set_linewidth(1)
             spine.set_edgecolor('black')
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=8, width=1.2)
+        ax.tick_params(top=True, bottom=True, left=True, right=True,
+                    direction='in', length=8, width=1.2)
         for label in ax.get_xticklabels() + ax.get_yticklabels():
             label.set_fontname('Times New Roman')
             label.set_fontsize(10)
+        ax.axvline(0, color='black', linestyle='-.', linewidth=1)
+        ax.text(-0.05, ax.get_ylim()[1] * 0.95, "Ideal Gap", ha='right', va='top',
+                fontsize=12, fontname='Times New Roman')
         #plt.tight_layout()
         #plt.show()
 
@@ -907,12 +920,12 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         #plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35))
         
         plt.subplot(212)
-        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.6, color="blue", label="Experimental")
-        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.6, color="orange", label="RS")
+        plt.hist(exp_shift, bins=bins, density=True, alpha=0.6, color="blue", label="Experimental")
+        plt.hist(rs_shift, bins=bins, density=True, alpha=0.6, color="orange", label="MC simulation")
         #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
         #sns.kdeplot(RS_gap_data, label="RS", color="orange", linewidth=2)
-        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
+        #plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        #plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
 
         mpl.rcParams['font.family'] = 'serif'
@@ -920,22 +933,30 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
         mpl.rcParams['mathtext.fontset'] = 'stix'
         mpl.rcParams['xtick.labelsize'] = 10
         mpl.rcParams['ytick.labelsize'] = 10
-        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
-        plt.ylabel("Probability Density", fontsize=12, fontname='Times New Roman')
-        plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=6)
+        plt.ylabel("Density", fontsize=12, fontname='Times New Roman')
+        plt.legend(fontsize=12, loc='upper right', frameon=False, ncols=1)
+        x_min, x_max = -1.2, 1.2
+
         ax = plt.gca()
+        ax.set_xlim(x_min - 0.1, x_max + 0.1)
+        ax.set_xticks(np.linspace(x_min, x_max, 9))
         for spine in ax.spines.values():
             spine.set_linewidth(1)
             spine.set_edgecolor('black')
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=8, width=1.2)
+        ax.tick_params(top=True, bottom=True, left=True, right=True,
+                    direction='in', length=8, width=1.2)
         for label in ax.get_xticklabels() + ax.get_yticklabels():
             label.set_fontname('Times New Roman')
             label.set_fontsize(10)
-        plt.tight_layout()
+        ax.axvline(0, color='black', linestyle='-.', linewidth=1)
+        ax.text(-0.05, ax.get_ylim()[1] * 0.95, "Ideal Gap", ha='right', va='top',
+                fontsize=12, fontname='Times New Roman')
+        plt.subplots_adjust(hspace=0.3) 
+        plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf",bbox_inches='tight')
         plt.show()
 
         #plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
@@ -1041,8 +1062,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str):
 def main():
     #data = run_model()
     #Gap_Histogram(30)
-    KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04")
+    #KDE_curves(29)
+    model_distribution_figures(29, plottype="single no D04")
     #plot_RW_vs_exp_histograms(RW_tows=50, save_PDF=False)
 
 if __name__ == "__main__":
