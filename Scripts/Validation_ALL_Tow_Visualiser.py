@@ -850,7 +850,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     method="Sidd",
     print_statement=False,
     xlim=(0, 100),
-    ylim=(0, 108),
+    ylim=(0, 120),
     ylim_break=(1065, 1090),
     stack_graphs=False):
     
@@ -890,48 +890,107 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         fig = plt.figure(figsize=(14, 4))
         spec = fig.add_gridspec(1, 2)
 
-    font_size = 23
-    tick_size = font_size - 10
+    label_fontsize = 12     
+    legend_fontsize = 10     
+    tick_size = 10
 
     # --- Traverse vs RW ---
     ax0 = fig.add_subplot(spec[0])
     ax0.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Experimental")
     ax0.hist(gap_RW, bins=shared_bins, color="green", alpha=0.5, edgecolor="black", label="MCMC simulation")
     ax0.set_xlim(*xlim)
-    ax0.set_ylim(0, 140)
-    ax0.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman")
-    ax0.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman")
+    ax0.set_ylim(0, 150)
+    yticks = ax0.get_yticks()
+    ax0.set_yticks([t for t in yticks if (t != 0) and (t < 150)])
+    ax0.set_xlabel("Gap Length (mm)", fontsize=label_fontsize, fontname="Times New Roman")
+    ax0.set_ylabel("Frequency", fontsize=label_fontsize, fontname="Times New Roman")
+    ax0.xaxis.set_ticks_position('both')
+    ax0.yaxis.set_ticks_position('both')
     ax0.tick_params(axis='both', labelsize=tick_size)
     ax0.tick_params(top=True, bottom=True, left=True, right=True,
-                    direction='in', which='both')
-    ax0.legend(prop={"family": "Times New Roman", "size": font_size - 5}, frameon=False, ncols=1)
+                    direction='in', length=8, width=1.2)
+    ax0.legend(prop={"family": "Times New Roman", "size": legend_fontsize}, frameon=False, ncols=1)
+
 
     # --- Traverse vs RS (broken y-axis) ---
+        # --- Traverse vs RS (broken y-axis) ---
     bax1 = brokenaxes(
-        ylims=[ylim, ylim_break],
-        hspace=.1,
-        subplot_spec=spec[1])
-    bax1.hist(gap_traverse, bins=shared_bins, color="blue", alpha=0.5, edgecolor="black", label="Experimental")
-    bax1.hist(gap_RS, bins=shared_bins, color="orange", alpha=0.5, edgecolor="black", label="MC simulation")
+        ylims=[ylim, ylim_break],   # parte de baixo 0–120, parte de cima 1065–1090
+        hspace=0.05,
+        subplot_spec=spec[1],
+    )
+
+    # 1) MC (amarelo) desenhado primeiro, por baixo
+    bax1.hist(
+        gap_RS,
+        bins=shared_bins,
+        color="gold",          # amarelo
+        alpha=0.6,
+        edgecolor="black",
+        label="MC simulation",
+    )
+
+    # 2) Experimental (azul) por cima -> overlap fica azul mais escuro
+    bax1.hist(
+        gap_traverse,
+        bins=shared_bins,
+        color="blue",
+        alpha=0.7,
+        edgecolor="black",
+        label="Experimental",
+    )
+
     bax1.set_xlim(*xlim)
-    bax1.set_xlabel("Gap Length (mm)", fontsize=font_size, fontname="Times New Roman", labelpad=25)
-    bax1.set_ylabel("Count", fontsize=font_size, fontname="Times New Roman", labelpad=40)
-    for ax in bax1.axs:
-        ax.tick_params(axis='both', labelsize=tick_size)
-        ax.tick_params(top=True, bottom=True, left=True, right=True,
-                        direction='in', which='both')
-    bax1.legend(prop={"family": "Times New Roman", "size": font_size - 5}, frameon=False, ncols=1)
+    bax1.set_xlabel(
+        "Gap Length (mm)",
+        fontsize=label_fontsize,
+        fontname="Times New Roman",
+        labelpad=25,
+    )
+    bax1.set_ylabel(
+        "Frequency",
+        fontsize=label_fontsize,
+        fontname="Times New Roman",
+        labelpad=40,
+    )
 
-    for ax in bax1.axs:
-        for spine in ['top', 'bottom', 'left', 'right']:
-            ax.spines[spine].set_visible(True)
-            ax.spines[spine].set_linewidth(1)
+    # Ticks e bordas: sem tracinhos verticais no meio
+    for i, ax in enumerate(bax1.axs):
+        ax.tick_params(axis="both", labelsize=tick_size)
 
-    bax1.axs[0].spines['bottom'].set_visible(False)
-    bax1.axs[1].spines['top'].set_visible(False)
+        if i == 0:
+            # painel de cima: ticks só em cima
+            ax.tick_params(
+                top=True,
+                bottom=False,
+                left=True,
+                right=True,
+                direction="in",
+                length=8,
+                width=1.2,
+            )
+        else:
+            # painel de baixo: ticks só em baixo
+            ax.tick_params(
+                top=False,
+                bottom=True,
+                left=True,
+                right=True,
+                direction="in",
+                length=8,
+                width=1.2,
+            )
+
+    # Mesma font size da legenda de cima
+    bax1.legend(
+        prop={"family": "Times New Roman", "size": legend_fontsize},
+        frameon=False,
+        ncols=1,
+    )
+
 
     plt.tight_layout()
-    fig.savefig("gap_length_comparison.svg", format="svg", dpi=300)
+    fig.savefig("Gap Length Comparison.pdf", format="pdf", dpi=300, bbox_inches="tight")
     plt.show()
 
     # --- Summaries ---
