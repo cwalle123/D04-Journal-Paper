@@ -57,11 +57,11 @@ from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk
 # ---------------------------------------------------------------------
 # Simulation configuration
 # ---------------------------------------------------------------------
-N_RUNS = 10                 # Number of simulations per scenario (for averaging)
+N_RUNS = 2                 # Number of simulations per scenario (for averaging)
 NUM_TOWS = 31               # Number of parallel tows across the lane
 NOMINAL_WIDTH_MM = 6.35     # Nominal tow width [mm]
 PROPOSAL_TYPE = "RWM"       # Proposal type for random walk sampling
-RANDOM_SEED = 42            # For reproducibility; set to None for random
+RANDOM_SEED = 63            # For reproducibility; set to None for random
 
 # >>>>>> Constant programmed shifts per scenario (mm)
 SCENARIO_SHIFT_MM = {
@@ -317,11 +317,61 @@ def plot_barchart(scenarios, summary, save_path):
     x = np.arange(len(labels))
     width = 0.30  # bar width
 
+    # --------- Pre-compute reference line positions ----------
+    gap_line = None
+    if gap_means:
+        i_max_g = int(np.argmax(gap_means))
+        y_g = float(gap_means[i_max_g])
+        # GAP bars: centers at (x - width/2) → span [x - width, x]
+        x_left_edge_tallest_gap = x[i_max_g] - width      # left edge of tallest GAP bar
+        x_right_edge_last_gap   = x[-1]                   # right edge of last GAP bar
+        gap_line = (y_g, x_left_edge_tallest_gap, x_right_edge_last_gap)
+
+    ovl_line = None
+    if ovl_means:
+        i_max_o = int(np.argmax(ovl_means))
+        y_o = float(ovl_means[i_max_o])
+        # OVERLAP bars: centers at (x + width/2) → span [x, x + width]
+        x_left_edge_tallest_ovl = x[i_max_o]              # left edge of tallest OVL bar
+        x_right_edge_last_ovl   = x[-1] + width           # right edge of last OVL bar
+        ovl_line = (y_o, x_left_edge_tallest_ovl, x_right_edge_last_ovl)
+    # --------------------------------------------------------
+
     fig, ax = plt.subplots()
 
-    # Bars (no outlines)
-    ax.bar(x - width/2, gap_means, width, label="Gap",     color=PASTEL_BLUE)
-    ax.bar(x + width/2, ovl_means, width, label="Overlap", color=PASTEL_RED)
+    # ------- Draw reference lines FIRST (behind the bars) -------
+    if gap_line is not None:
+        y_g, xg_min, xg_max = gap_line
+        if xg_max > xg_min:
+            ax.hlines(
+                y_g,
+                xmin=xg_min,
+                xmax=xg_max,
+                colors=LINE_BLUE,
+                linestyles='-',
+                linewidth=0.9,
+                zorder=1,      # behind bars
+            )
+
+    if ovl_line is not None:
+        y_o, xo_min, xo_max = ovl_line
+        if xo_max > xo_min:
+            ax.hlines(
+                y_o,
+                xmin=xo_min,
+                xmax=xo_max,
+                colors=LINE_RED,
+                linestyles='-',
+                linewidth=0.9,
+                zorder=1,      # behind bars
+            )
+    # ------------------------------------------------------------
+
+    # Bars (give them higher zorder so they’re in front of lines)
+    ax.bar(x - width/2, gap_means, width,
+           label="Gap", color=PASTEL_BLUE, zorder=2)
+    ax.bar(x + width/2, ovl_means, width,
+           label="Overlap", color=PASTEL_RED, zorder=2)
 
     # Axis labels / ticks
     ax.set_ylabel("Defect area %")
@@ -332,33 +382,12 @@ def plot_barchart(scenarios, summary, save_path):
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
     ax.minorticks_off()
 
-    # ------- Reference lines (cover top of tallest bar, then extend) -------
-    # For GAP bars: centers at (x - width/2), span [x - width, x]
-    if gap_means:
-        i_max_g = int(np.argmax(gap_means))
-        y_g = float(gap_means[i_max_g])
-        x_left_edge_tallest_gap  = (x[i_max_g] - width/2) - width/2   # = x[i]-width
-        x_right_edge_last_gap    = x[-1]                               # right edge of last GAP bar
-        if x_right_edge_last_gap > x_left_edge_tallest_gap:
-            ax.hlines(y_g, xmin=x_left_edge_tallest_gap, xmax=x_right_edge_last_gap,
-                      colors=LINE_BLUE, linestyles='-', linewidth=0.9, zorder=5)
-
-    # For OVERLAP bars: centers at (x + width/2), span [x, x + width]
-    if ovl_means:
-        i_max_o = int(np.argmax(ovl_means))
-        y_o = float(ovl_means[i_max_o])
-        x_left_edge_tallest_ovl  = (x[i_max_o] + width/2) - width/2   # = x[i]
-        x_right_edge_last_ovl    = x[-1] + width                      # right edge of last OVERLAP bar
-        if x_right_edge_last_ovl > x_left_edge_tallest_ovl:
-            ax.hlines(y_o, xmin=x_left_edge_tallest_ovl, xmax=x_right_edge_last_ovl,
-                      colors=LINE_RED, linestyles='-', linewidth=0.9, zorder=5)
-    # -----------------------------------------------------------------------
-
     ax.legend(loc="best")
     fig.tight_layout()
     fig.subplots_adjust(bottom=0.22)
     fig.savefig(save_path, bbox_inches="tight", dpi=300)
     print(f"[✓] Saved figure: {save_path}")
+
 
 
 
