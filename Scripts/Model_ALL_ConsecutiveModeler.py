@@ -119,18 +119,72 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     #y_pdf_LLS_A = LLS_A_target_dist(x_pdf)
     #y_pdf_LLS_B = LLS_B_target_dist(x_pdf)
 
-    def annotate_mean_std(ax, data):
-        mean = np.mean(data)
-        std = np.std(data)
+    def annotate_mean_std(ax, data, stripe_height=0.08, lw=1.5, show_debug=False):
+        """
+        Annotate `ax` with:
+        - Hollow red circle at mean (y=0 in data coordinates)
+        - Horizontal red line from mean-std to mean+std at y=0
+        - Two vertical red stripes at mean±std, centered at y=0
 
-        # red circle at the mean
-        ax.plot(mean, 0, 'ro', markersize=6, zorder=10)
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+        data : array-like
+        stripe_height : float
+            Total stripe height measured in AXES fraction (0..1). Default 0.08.
+        lw : float
+            Line/edge width for stripes and marker edge width.
+        show_debug : bool
+            If True prints internal coords for debugging.
+        """
+        import numpy as np
+        import matplotlib.transforms as transforms
 
-        # ±1σ line
-        ax.hlines(0, mean - std, mean + std, colors='red', linewidth=2, zorder=9)
+        mean = float(np.mean(data))
+        std = float(np.std(data))
 
-        # small vertical stripes
-        ax.vlines([mean - std, mean + std], ymin=-0.1, ymax=0.1, colors='red', linewidth=1.5, zorder=9)
+        # Lower spines so annotations are on top
+        for spine in ax.spines.values():
+            spine.set_zorder(0)
+        ax.set_axisbelow(False)
+
+        # Ensure y=0 is in the visible range
+        ymin, ymax = ax.get_ylim()
+        if 0 < ymin:
+            ymin = 0
+        if 0 > ymax:
+            ymax = 0
+        ax.set_ylim(ymin, ymax)
+
+        # 1) Hollow circle at (mean, 0)
+        ax.plot(mean, 0,
+                marker='o', markersize=7,
+                markerfacecolor='none', markeredgecolor='red',
+                markeredgewidth=lw, zorder=1000, clip_on=False)
+
+        # 2) Horizontal ±1σ line at y=0
+        ax.hlines(0, mean - std, mean + std,
+                colors='red', linewidth=2, zorder=900, clip_on=False)
+
+        # 3) Compute y=0 in axes fraction
+        disp_x0, disp_y0 = ax.transData.transform((mean, 0))
+        _, y0_axes = ax.transAxes.inverted().transform((disp_x0, disp_y0))
+
+        if show_debug:
+            print(f"mean={mean:.4g}, std={std:.4g}, y0_axes={y0_axes:.4g}")
+
+        # 4) Compute stripe top/bottom in axes fraction around y0_axes
+        half = stripe_height / 2.0
+        y_low = y0_axes - half
+        y_high = y0_axes + half
+
+        # 5) Draw vertical stripes with blended transform
+        trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+        for x in (mean - std, mean + std):
+            ax.plot([x, x], [y_low, y_high],
+                    transform=trans,
+                    color='red', linewidth=lw,
+                    zorder=950, clip_on=False)
 
     # --------PLotting----------
     plt.rc('font', family='Times New Roman')
@@ -201,8 +255,9 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     desired_order = [0, 2, 1]   # <--- change index order here
     handles = [handles[i] for i in desired_order]
     labels = [labels[i] for i in desired_order]
-    fig.legend(handles, labels, fontsize=12, loc='lower center', fancybox=True, shadow=False, ncol=1)
-    plt.tight_layout(rect=[0, 0.03, 1, 1])
+    #fig.legend(handles, labels, fontsize=12, loc='lower center', fancybox=True, shadow=False, ncol=1)
+    plt.tight_layout(rect=[0, 0.05, 1, 1])
+    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.03), ncol=1, fontsize=12, frameon=True)
 
     if save_PDF == True:
         plt.savefig("source wise validation.pdf", format="pdf", bbox_inches="tight")
@@ -1063,8 +1118,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04")
-    #plot_RW_vs_exp_histograms(RW_tows=50, save_PDF=False)
+    #model_distribution_figures(29, plottype="single no D04")
+    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
