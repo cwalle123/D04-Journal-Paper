@@ -73,7 +73,7 @@ SCENARIO_SHIFT_MM = {
 }
 
 # Output file locations
-FIG_PATH = os.path.join(REPO_ROOT, "rw_defect_barchart.png")
+FIG_PATH = os.path.join(REPO_ROOT, "rw_defect_barchart.pdf")
 CSV_PATH = os.path.join(REPO_ROOT, "rw_defect_summary.csv")
 
 # Y-axis formatting parameters (major step only; minors off)
@@ -381,11 +381,14 @@ def plot_barchart(scenarios, summary, save_path):
     ax.yaxis.set_major_locator(MultipleLocator(Y_MAJOR_STEP))
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
     ax.minorticks_off()
+    ax.tick_params(axis='y',which='both',direction='in',
+                   length=8,width=1.2,left=True,right=True,)
 
-    ax.legend(loc="best")
+
+    ax.legend(loc="best", frameon=False)
     fig.tight_layout()
     fig.subplots_adjust(bottom=0.22)
-    fig.savefig(save_path, bbox_inches="tight", dpi=300)
+    fig.savefig(save_path, bbox_inches="tight", format="pdf")
     print(f"[✓] Saved figure: {save_path}")
 
 
