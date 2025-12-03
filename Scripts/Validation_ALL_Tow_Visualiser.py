@@ -853,15 +853,14 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     xlim=(0, 100),
     ylim=(0, 120),
     ylim_break=(1065, 1090),
-    stack_graphs=False,
-):
+    stack_graphs=False,): 
+    
 
-    # --- Real data ---
+    # Experimental data
     gap_traverse, _, *_ = traverse_tow_gaps_and_overlaps_lengths(
-        plot=False, histogram_bins=histogram_bins, force_steps=force_steps
-    )
+        plot=False, histogram_bins=histogram_bins, force_steps=force_steps)
 
-    # --- RW simulated ---
+    # MCMC simulationn
     _, gap_RW, _, _ = generate_RW_multitow_layout_lengths(
         num_tows=num_tows_sim,
         proposal_type=proposal_type,
@@ -869,56 +868,41 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         override=override,
         histogram_bins=histogram_bins,
         starting_mods=starting_mods,
-        alternate_start=alternate_start,
-    )
+        alternate_start=alternate_start,)
 
-    # --- RS simulated ---
+    # MC simulation 
     _, gap_RS, _, _ = generate_RS_multitow_layout_lengths(
         num_tows=num_tows_sim,
         method=method,
         plot=False,
         histogram_bins=histogram_bins,
-        print_statement=print_statement,
-    )
+        print_statement=print_statement,)
 
-    # --- Shared bins ---
     all_data = np.concatenate([gap_traverse, gap_RW, gap_RS])
     shared_bins = np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
-
-    # --- Figure layout ---
-    if stack_graphs:
-        fig = plt.figure(figsize=(12, 8))
-        spec = fig.add_gridspec(3, 1, height_ratios=[1, 0.4, 1])
-        top_idx, bottom_idx = 0, 2     
-    else:
-        fig = plt.figure(figsize=(14, 4))
-        spec = fig.add_gridspec(1, 2, wspace=0.25)
-        top_idx, bottom_idx = 0, 1
 
     label_fontsize = 12
     legend_fontsize = 10
     tick_size = 10
 
-    # ------------------------------
-    # TOP: Traverse vs RW (normal y)
-    # ------------------------------
-    ax0 = fig.add_subplot(spec[top_idx])
+    # Figure 1: Traverse vs RW 
+ 
+    fig1, ax0 = plt.subplots(figsize=(7, 4))
+
     ax0.hist(
         gap_traverse,
         bins=shared_bins,
         color="blue",
-        alpha=0.5,
+        alpha=0.6,
         edgecolor="black",
-        label="Experimental",
-    )
+        label="Experimental", )
     ax0.hist(
         gap_RW,
         bins=shared_bins,
         color="green",
-        alpha=0.5,
+        alpha=0.6,
         edgecolor="black",
-        label="MCMC simulation",
-    )
+        label="MCMC simulation",)
 
     ax0.set_xlim(*xlim)
     ax0.set_ylim(0, 150)
@@ -939,38 +923,41 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         right=True,
         direction="in",
         length=8,
-        width=1.2,
-    )
+        width=1.2,)
 
     ax0.legend(
         prop={"family": "Times New Roman", "size": legend_fontsize},
         frameon=False,
-        ncols=1,
-    )
+        ncols=1,)
 
-    # ---------------------------------
-    # BOTTOM: Traverse vs RS (broken y)
-    # ---------------------------------
+    fig1.tight_layout()
+    fig1.savefig("Gap_Length_Comparison_RW.pdf", format="pdf", dpi=300, bbox_inches="tight")
+
+
+
+# Figure 2: Traverse vs RS (broken y-axis) 
+
     bax1 = brokenaxes(
-        ylims=[ylim, ylim_break],   # bottom part, top part
+        ylims=[ylim, ylim_break],
         hspace=0.05,
-        subplot_spec=spec[bottom_idx],
     )
+    fig2 = bax1.fig
+    fig2.set_size_inches(7, 4)
 
-    # Histograms – almost identical calls as ax0
     bax1.hist(
         gap_RS,
         bins=shared_bins,
-        color="gold",
+        color="orange",
         alpha=0.6,
         edgecolor="black",
         label="MC simulation",
     )
+
     bax1.hist(
         gap_traverse,
         bins=shared_bins,
         color="blue",
-        alpha=0.7,
+        alpha=0.6,
         edgecolor="black",
         label="Experimental",
     )
@@ -980,52 +967,37 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         "Gap Length (mm)",
         fontsize=label_fontsize,
         fontname="Times New Roman",
-        labelpad=25,
     )
     bax1.set_ylabel(
         "Frequency",
         fontsize=label_fontsize,
         fontname="Times New Roman",
-        labelpad=40,
     )
 
-    # Ticks styling on each internal axis
-    for i, ax in enumerate(bax1.axs):
-        ax.tick_params(axis="both", labelsize=tick_size)
-
-        if i == 0:
-            # top panel
-            ax.tick_params(
-                top=True,
-                bottom=False,
-                left=True,
-                right=True,
-                direction="in",
-                length=8,
-                width=1.2,
-            )
-        else:
-            # bottom panel
-            ax.tick_params(
-                top=False,
-                bottom=True,
-                left=True,
-                right=True,
-                direction="in",
-                length=8,
-                width=1.2,
-            )
-
+    for ax in bax1.axs:
+        ax.tick_params(
+            axis="both",
+            labelsize=tick_size,
+            direction="in",
+            top=True,
+            right=True,
+        )
 
     handles, labels = bax1.axs[0].get_legend_handles_labels()
     bax1.legend(
         handles[::-1],
         labels[::-1],
-        prop={"family": "Times New Roman", "size": legend_fontsize}, 
-                frameon=False,ncols=1,    )
+        prop={"family": "Times New Roman", "size": legend_fontsize},
+        frameon=False,
+    )
 
-    fig.subplots_adjust(bottom=0.12, top=0.95)
-    fig.savefig("Gap Length Comparison.pdf", format="pdf", dpi=300, bbox_inches="tight")
+    fig2.tight_layout()
+    fig2.savefig(
+        "Gap_Length_Comparison_RS_broken.pdf",
+        format="pdf",
+        dpi=300,
+        bbox_inches="tight",
+    )
     plt.show()
 
     # --- Summaries ---
@@ -1039,6 +1011,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     summarize("Traverse Gaps", gap_traverse)
     summarize("RW Simulated Gaps", gap_RW)
     summarize("RS Simulated Gaps", gap_RS)
+
 
 ##############################################################################################################
 """Run this file"""
