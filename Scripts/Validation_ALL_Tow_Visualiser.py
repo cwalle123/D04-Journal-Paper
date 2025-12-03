@@ -850,17 +850,13 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     alternate_start=[None, "params"],
     method="Sidd",
     print_statement=False,
-    xlim=(0, 100),
-    ylim=(0, 120),
-    ylim_break=(1065, 1090),
-    stack_graphs=False,): 
-    
+    xlim=(0, 100), 
+    stack_graphs=False):
 
-    # Experimental data
     gap_traverse, _, *_ = traverse_tow_gaps_and_overlaps_lengths(
-        plot=False, histogram_bins=histogram_bins, force_steps=force_steps)
+        plot=False, histogram_bins=histogram_bins, force_steps=force_steps
+    )
 
-    # MCMC simulationn
     _, gap_RW, _, _ = generate_RW_multitow_layout_lengths(
         num_tows=num_tows_sim,
         proposal_type=proposal_type,
@@ -868,15 +864,16 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         override=override,
         histogram_bins=histogram_bins,
         starting_mods=starting_mods,
-        alternate_start=alternate_start,)
+        alternate_start=alternate_start,
+    )
 
-    # MC simulation 
     _, gap_RS, _, _ = generate_RS_multitow_layout_lengths(
         num_tows=num_tows_sim,
         method=method,
         plot=False,
         histogram_bins=histogram_bins,
-        print_statement=print_statement,)
+        print_statement=print_statement,
+    )
 
     all_data = np.concatenate([gap_traverse, gap_RW, gap_RS])
     shared_bins = np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
@@ -885,66 +882,54 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     legend_fontsize = 10
     tick_size = 10
 
-    # Figure 1: Traverse vs RW 
- 
-    fig1, ax0 = plt.subplots(figsize=(7, 4))
+    fig, (ax_top, ax_bottom) = plt.subplots(
+        2, 1,
+        sharex=True,
+        figsize=(7, 7),
+        gridspec_kw={"hspace": 0.1},
+    )
 
-    ax0.hist(
+    ax_top.hist(
         gap_traverse,
         bins=shared_bins,
         color="blue",
         alpha=0.6,
         edgecolor="black",
-        label="Experimental", )
-    ax0.hist(
+        label="Experimental",
+    )
+    ax_top.hist(
         gap_RW,
         bins=shared_bins,
         color="green",
         alpha=0.6,
         edgecolor="black",
-        label="MCMC simulation",)
+        label="MCMC simulation",
+    )
 
-    ax0.set_xlim(*xlim)
-    ax0.set_ylim(0, 150)
+    ax_top.set_xlim(*xlim)
+    ax_top.set_ylim(0, 150)
+    yticks_top = ax_top.get_yticks()
+    ax_top.set_yticks([t for t in yticks_top if (t != 0) and (t < 150)])
 
-    yticks = ax0.get_yticks()
-    ax0.set_yticks([t for t in yticks if (t != 0) and (t < 150)])
-
-    ax0.set_xlabel("Gap Length (mm)", fontsize=label_fontsize, fontname="Times New Roman")
-    ax0.set_ylabel("Frequency", fontsize=label_fontsize, fontname="Times New Roman")
-
-    ax0.xaxis.set_ticks_position("both")
-    ax0.yaxis.set_ticks_position("both")
-    ax0.tick_params(axis="both", labelsize=tick_size)
-    ax0.tick_params(
-        top=True,
-        bottom=True,
-        left=True,
-        right=True,
+    ax_top.set_ylabel("Frequency", fontsize=label_fontsize, fontname="Times New Roman")
+    ax_top.tick_params(
+        axis="both",
+        labelsize=tick_size,
         direction="in",
+        top=True,
+        right=True,
         length=8,
-        width=1.2,)
-
-    ax0.legend(
+        width=1.2,
+    )
+    ax_top.xaxis.set_ticks_position("both")
+    ax_top.yaxis.set_ticks_position("both")
+    ax_top.legend(
         prop={"family": "Times New Roman", "size": legend_fontsize},
         frameon=False,
-        ncols=1,)
-
-    fig1.tight_layout()
-    fig1.savefig("Gap_Length_Comparison_RW.pdf", format="pdf", dpi=300, bbox_inches="tight")
-
-
-
-# Figure 2: Traverse vs RS (broken y-axis) 
-
-    bax1 = brokenaxes(
-        ylims=[ylim, ylim_break],
-        hspace=0.05,
+        ncols=1,
     )
-    fig2 = bax1.fig
-    fig2.set_size_inches(7, 4)
 
-    bax1.hist(
+    ax_bottom.hist(
         gap_RS,
         bins=shared_bins,
         color="orange",
@@ -952,8 +937,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         edgecolor="black",
         label="MC simulation",
     )
-
-    bax1.hist(
+    ax_bottom.hist(
         gap_traverse,
         bins=shared_bins,
         color="blue",
@@ -962,43 +946,40 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         label="Experimental",
     )
 
-    bax1.set_xlim(*xlim)
-    bax1.set_xlabel(
+    ax_bottom.set_xlim(*xlim)
+    ax_bottom.set_ylim(0, 1080)
+
+    ax_bottom.set_xlabel(
         "Gap Length (mm)",
         fontsize=label_fontsize,
         fontname="Times New Roman",
     )
-    bax1.set_ylabel(
+    ax_bottom.set_ylabel(
         "Frequency",
         fontsize=label_fontsize,
         fontname="Times New Roman",
     )
-
-    for ax in bax1.axs:
-        ax.tick_params(
-            axis="both",
-            labelsize=tick_size,
-            direction="in",
-            top=True,
-            right=True,
-        )
-
-    handles, labels = bax1.axs[0].get_legend_handles_labels()
-    bax1.legend(
-        handles[::-1],
-        labels[::-1],
+    ax_bottom.tick_params(
+        axis="both",
+        labelsize=tick_size,
+        direction="in",
+        top=True,
+        right=True,
+        length=8,
+        width=1.2,
+    )
+    ax_bottom.xaxis.set_ticks_position("both")
+    ax_bottom.yaxis.set_ticks_position("both")
+    ax_bottom.legend(
         prop={"family": "Times New Roman", "size": legend_fontsize},
         frameon=False,
+        ncols=1
     )
 
-    fig2.tight_layout()
-    fig2.savefig(
-        "Gap_Length_Comparison_RS_broken.pdf",
-        format="pdf",
-        dpi=300,
-        bbox_inches="tight",
-    )
+    fig.tight_layout()
+    fig.savefig("Gap_Length_Comparison_combined.pdf",format="pdf",dpi=300,bbox_inches="tight")
     plt.show()
+
 
     # --- Summaries ---
     def summarize(name, data):
