@@ -61,7 +61,7 @@ N_RUNS = 2                 # Number of simulations per scenario (for averaging)
 NUM_TOWS = 31               # Number of parallel tows across the lane
 NOMINAL_WIDTH_MM = 6.35     # Nominal tow width [mm]
 PROPOSAL_TYPE = "RWM"       # Proposal type for random walk sampling
-RANDOM_SEED = 63            # For reproducibility; set to None for random
+RANDOM_SEED = 59            # For reproducibility; set to None for random
 
 # >>>>>> Constant programmed shifts per scenario (mm)
 SCENARIO_SHIFT_MM = {
