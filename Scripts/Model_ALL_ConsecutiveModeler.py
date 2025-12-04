@@ -198,8 +198,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     # LT plot
     axs[0].imshow(im0, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[0].transAxes)
     axs[0].hist(LT_exp, color='blue', bins=100, density=True, alpha=0.6, label="Experimental data")
-    axs[0].hist(LT_walk_data, color='green', bins=100, density=True, alpha=0.6, label="Random Walk data")
-    axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Probability density function")
+    axs[0].hist(LT_walk_data, color='green', bins=100, density=True, alpha=0.6, label="RWM simulation data")
+    axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Distribution fits")
     annotate_mean_std(axs[0], LT_exp)
     axs[0].set_xlabel("Error, robot position", size=12)
     axs[0].set_ylabel("Density", size=12)
@@ -260,7 +260,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.03), ncol=1, fontsize=12, frameon=True)
 
     if save_PDF == True:
-        plt.savefig("source wise validation.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig("source wise validation_310 tows.pdf", format="pdf", bbox_inches="tight")
 
     plt.show()
 

@@ -12,6 +12,7 @@ import random
 from scipy.stats import norm, pareto
 import sys, os
 from brokenaxes import brokenaxes
+from matplotlib.transforms import BlendedGenericTransform
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 #Internal imports
@@ -850,10 +851,14 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     alternate_start=[None, "params"],
     method="Sidd",
     print_statement=False,
-    xlim=(0, 100), 
+    xlim=(0, 100),
     stack_graphs=False,
-    save_PDF=False):
+    save_PDF=False
+):
 
+    # ============================================================
+    # Load data
+    # ============================================================
     gap_traverse, _, *_ = traverse_tow_gaps_and_overlaps_lengths(
         plot=False, histogram_bins=histogram_bins, force_steps=force_steps
     )
@@ -876,114 +881,159 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         print_statement=print_statement,
     )
 
+    # Shared bins
     all_data = np.concatenate([gap_traverse, gap_RW, gap_RS])
     shared_bins = np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
 
+    # Fonts
     label_fontsize = 12
     legend_fontsize = 10
     tick_size = 10
 
-    fig, (ax_top, ax_bottom) = plt.subplots(
-        2, 1,
-        sharex=True,
-        figsize=(7, 7),
-        gridspec_kw={"hspace": 0.1},
+    # ============================================================
+    # Figure with 4-row GridSpec
+    # ============================================================
+    fig = plt.figure(figsize=(7, 7))
+    gs = fig.add_gridspec(
+        4, 1,
+        height_ratios=[1.20, 0.2, 0.18, 1.25],   # middle axis thin
+        hspace=0.1
     )
 
+    ax_top = fig.add_subplot(gs[0])
+    ax_bottom_top = fig.add_subplot(gs[2], sharex=ax_top)
+    ax_bottom_bottom = fig.add_subplot(gs[3], sharex=ax_top)
+
+    # ============================================================
+    # TOP SUBPLOT (unchanged)
+    # ============================================================
     ax_top.hist(
-        gap_traverse,
-        bins=shared_bins,
-        color="blue",
-        alpha=0.6,
-        edgecolor="black",
-        label="Experimental",
+        gap_traverse, bins=shared_bins,
+        color="blue", alpha=0.6, edgecolor="black", label="Experimental"
     )
     ax_top.hist(
-        gap_RW,
-        bins=shared_bins,
-        color="green",
-        alpha=0.6,
-        edgecolor="black",
-        label="MCMC simulation",
+        gap_RW, bins=shared_bins,
+        color="green", alpha=0.6, edgecolor="black", label="MCMC simulation"
     )
 
     ax_top.set_xlim(*xlim)
-    ax_top.set_ylim(0, 150)
-    yticks_top = ax_top.get_yticks()
-    ax_top.set_yticks([t for t in yticks_top if (t != 0) and (t < 150)])
+    ax_top.set_ylim(0, 160)
 
     ax_top.set_ylabel("Frequency", fontsize=label_fontsize, fontname="Times New Roman")
     ax_top.tick_params(
-        axis="both",
-        labelsize=tick_size,
-        direction="in",
-        top=True,
-        right=True,
-        length=8,
-        width=1.2,
+        axis="both", labelsize=tick_size, direction="in",
+        top=True, right=True, length=8, width=1.2
     )
     ax_top.xaxis.set_ticks_position("both")
     ax_top.yaxis.set_ticks_position("both")
     ax_top.legend(
         prop={"family": "Times New Roman", "size": legend_fontsize},
         frameon=False,
-        ncols=1,
     )
 
-    ax_bottom.hist(
-        gap_RS,
-        bins=shared_bins,
-        color="orange",
-        alpha=0.6,
-        edgecolor="black",
-        label="MC simulation",
+    plt.setp(ax_top.get_xticklabels(), visible=True)
+
+    # ============================================================
+    # BOTTOM SUBPLOT — BROKEN AXIS
+    # ============================================================
+
+    peak_min = 900
+    peak_max = 1100
+
+    # Plot the small upper axis showing only the peak region
+    ax_bottom_top.hist(
+        gap_traverse, bins=shared_bins,
+        color="blue", alpha=0.6, edgecolor="black"
     )
-    ax_bottom.hist(
-        gap_traverse,
-        bins=shared_bins,
-        color="blue",
-        alpha=0.6,
-        edgecolor="black",
-        label="Experimental",
+    ax_bottom_top.hist(
+        gap_RS, bins=shared_bins,
+        color="orange", alpha=0.6, edgecolor="black"
+    )
+    ax_bottom_top.set_ylim(peak_min, peak_max)
+
+    # Plot lower axis normally
+    ax_bottom_bottom.hist(
+        gap_traverse, bins=shared_bins,
+        color="blue", alpha=0.6, edgecolor="black",
+        label="Experimental"
+    )
+    ax_bottom_bottom.hist(
+        gap_RS, bins=shared_bins,
+        color="orange", alpha=0.6, edgecolor="black",
+        label="MC simulation"
+    )
+    ax_bottom_bottom.set_ylim(0, 225)
+
+    ax_bottom_bottom.set_xlim(*xlim)
+
+    # Remove adjoining spines
+    ax_bottom_top.spines.bottom.set_visible(False)
+    ax_bottom_bottom.spines.top.set_visible(False)
+
+    # Middle axis: remove all x ticks (your request)
+    ax_bottom_top.tick_params(
+        axis="x", bottom=False, labelbottom=False
+    )
+    ax_bottom_top.tick_params(
+        axis="y", labelsize=tick_size, direction="in",
+        right=True, top=True, length=8, width=1.2
     )
 
-    ax_bottom.set_xlim(*xlim)
-    ax_bottom.set_ylim(0, 1080)
+    # Bottom axis ticks normal
+    ax_bottom_bottom.tick_params(
+        axis="both", labelsize=tick_size, direction="in",
+        right=True, length=8, width=1.2
+    )
 
-    ax_bottom.set_xlabel(
+    # ============================================================
+    # ZIG-ZAG BREAK (your request)
+    # ============================================================
+    def plot_zigzag(ax, position="top", size=0.012, repeats=5):
+        """
+        Draw a full-width zigzag break on the top or bottom of an axis.
+        """
+        x = np.linspace(0, 1, repeats * 2)
+        z = (size * np.tile([1, -1], repeats))
+        if position == "top":
+            ax.plot(x, 1 + z, transform=ax.transAxes, color="black", clip_on=False)
+        else:
+            ax.plot(x, 0 + 6 * z, transform=ax.transAxes, color="black", clip_on=False)
+
+    # Zigzag at bottom of upper piece
+    plot_zigzag(ax_bottom_top, position="bottom")
+
+    # Zigzag at top of lower piece
+    plot_zigzag(ax_bottom_bottom, position="top")
+
+    # ============================================================
+    # Bottom labels & legend
+    # ============================================================
+    ax_bottom_bottom.set_xlabel(
         "Gap Length (mm)",
         fontsize=label_fontsize,
-        fontname="Times New Roman",
+        fontname="Times New Roman"
     )
-    ax_bottom.set_ylabel(
+    ax_bottom_bottom.set_ylabel(
         "Frequency",
         fontsize=label_fontsize,
-        fontname="Times New Roman",
+        fontname="Times New Roman"
     )
-    ax_bottom.tick_params(
-        axis="both",
-        labelsize=tick_size,
-        direction="in",
-        top=True,
-        right=True,
-        length=8,
-        width=1.2,
-    )
-    ax_bottom.xaxis.set_ticks_position("both")
-    ax_bottom.yaxis.set_ticks_position("both")
-    ax_bottom.legend(
+    ax_bottom_bottom.legend(
         prop={"family": "Times New Roman", "size": legend_fontsize},
         frameon=False,
-        ncols=1
     )
 
     fig.tight_layout()
-    if save_PDF == True:
-        fig.savefig("Gap_Length_Comparison_combined.pdf",format="pdf",dpi=300,bbox_inches="tight")
+
+    if save_PDF:
+        fig.savefig("RWandRSdefectlength2.pdf",
+                    format="pdf", dpi=300, bbox_inches="tight")
+
     plt.show()
 
-
-    # --- Summaries ---
+    # ============================================================
+    # Summary statistics
+    # ============================================================
     def summarize(name, data):
         if len(data):
             print(f"{name}: N={len(data)}, Mean={np.mean(data):.2f} mm, Std={np.std(data):.2f} mm")
@@ -1011,7 +1061,7 @@ def main():
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     # compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
+    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=True)
 
 if __name__ == "__main__":
     main()
