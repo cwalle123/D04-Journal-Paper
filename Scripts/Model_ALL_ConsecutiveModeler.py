@@ -197,9 +197,9 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
 
     # LT plot
     axs[0].imshow(im0, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[0].transAxes)
-    axs[0].hist(LT_exp, color='blue', bins=100, density=True, alpha=0.6, label="Experimental Data")
-    axs[0].hist(LT_walk_data, color='green', bins=100, density=True, alpha=0.6, label="Random Walk Data")
-    axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Probability Density Function")
+    axs[0].hist(LT_exp, color='blue', bins=100, density=True, alpha=0.6, label="Experimental data")
+    axs[0].hist(LT_walk_data, color='green', bins=100, density=True, alpha=0.6, label="Random Walk data")
+    axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Probability density function")
     annotate_mean_std(axs[0], LT_exp)
     axs[0].set_xlabel("Error, robot position", size=12)
     axs[0].set_ylabel("Density", size=12)

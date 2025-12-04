@@ -851,7 +851,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     method="Sidd",
     print_statement=False,
     xlim=(0, 100), 
-    stack_graphs=False):
+    stack_graphs=False,
+    save_PDF=False):
 
     gap_traverse, _, *_ = traverse_tow_gaps_and_overlaps_lengths(
         plot=False, histogram_bins=histogram_bins, force_steps=force_steps
@@ -977,7 +978,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     )
 
     fig.tight_layout()
-    fig.savefig("Gap_Length_Comparison_combined.pdf",format="pdf",dpi=300,bbox_inches="tight")
+    if save_PDF == True:
+        fig.savefig("Gap_Length_Comparison_combined.pdf",format="pdf",dpi=300,bbox_inches="tight")
     plt.show()
 
 
@@ -1009,7 +1011,7 @@ def main():
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     # compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True)
+    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
 
 if __name__ == "__main__":
     main()
