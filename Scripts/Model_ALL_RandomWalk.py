@@ -538,7 +538,8 @@ def analyze_tow_spacing_effect(
     existing_data: pd.DataFrame | str | None = None,
     error_bars: bool = True,    # show error bars
     minmax: bool = True,        # use min/max instead of std for error bars
-    error_areas: bool = False): # Fill error regions 
+    error_areas: bool = False,  # Fill error regions
+    save_PDF: bool = False):
 
     """
     Analyzes the effect of tow spacing on gap and overlap percentage.
@@ -556,6 +557,7 @@ def analyze_tow_spacing_effect(
 
     # -------- CASE 2: Run fresh simulations --------
     else:
+        print(f'No existing data found, generating new data. This takes a lot of time.')
         if spacing_values_mm is None:
             spacing_values_mm = np.linspace(5.0, 7.5, 9)
 
@@ -706,7 +708,7 @@ def analyze_tow_spacing_effect(
     plt.ylabel("Defect area (%)", fontname="Times New Roman", fontsize=15)
     plt.xticks(fontname="Times New Roman", fontsize=15)
     plt.yticks(fontname="Times New Roman", fontsize=15)
-    plt.legend(prop={"family": "Times New Roman", "size": 15})
+    plt.legend(prop={"family": "Times New Roman", "size": 15}, frameon=False)
     plt.tight_layout()
 
     ax.tick_params(top=True, bottom=True, left=True, right=True,
@@ -722,8 +724,12 @@ def analyze_tow_spacing_effect(
         spine.set_linewidth(1)
         spine.set_color("black")
 
-    if existing_data is None:
-        plt.savefig(f"Tow_spacing_effect_{proposal_type}_with_{num_simulations}_simulations_of_a_{num_tows_per_simulation}_tow_laminate.svg", format="svg", dpi=300)
+    #if existing_data is None:
+    #    plt.savefig(f"Tow_spacing_effect_{proposal_type}_with_{num_simulations}_simulations_of_a_{num_tows_per_simulation}_tow_laminate.svg", format="svg", dpi=300)
+
+    # Save PDF
+    if save_PDF == True:
+        plt.savefig("defect occurrence from varying values of programmed shift areas.pdf", format="pdf", bbox_inches="tight")
 
     plt.show()
 
@@ -1051,7 +1057,7 @@ def main():
     #generate_random_walk("CAM", n_steps=30000, burn_in_period=0, proposal_type="RWM", plot_covergence_params=True, plot_histogram=True, plot_path=True)
 
     # generate_RW_multitow(num_tows=10)
-    plot_RW_tows(2, plot_individual_histograms=True)
+    #plot_RW_tows(2, plot_individual_histograms=True)
     # analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
     #analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv", error_areas=True) # Only plots data
     # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31) #Seems to converge at 120 sims
@@ -1061,6 +1067,8 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv', 
+                               error_areas=True, error_bars=False, save_PDF=True)
 
 
 if __name__ == "__main__":
