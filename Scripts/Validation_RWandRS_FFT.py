@@ -179,7 +179,8 @@ def run_fft_compare(
     rs_seed=1234,
     rs_method="Sidd",
     show_plots=True,
-    show_loglog=False
+    show_loglog=False,
+    save_PDF=False
 ):
     """Build FFT comparisons for TOP, BOTTOM, and CENTERLINE (Experiment vs RW vs RS)."""
     # Common 0..1000 mm grid, Δx = 1 mm  → 1001 points
@@ -283,6 +284,10 @@ def run_fft_compare(
     print(f"    BOTTOM edge:   {mse_bot_rs:.6f}")
     print(f"    CENTERLINE:    {mse_ctr_rs:.6f}")
 
+    # Save PDF
+    if save_PDF == True:
+        plt.savefig("FFT_RS_RW_2.pdf", format="pdf", bbox_inches="tight")
+
     if show_plots or show_loglog:
         plt.show()
 
@@ -312,7 +317,8 @@ def main():
         rs_seed=args.rs_seed,
         rs_method=args.rs_method,
         show_plots=True,
-        show_loglog=args.loglog
+        show_loglog=args.loglog,
+        save_PDF=True
     )
 
 if __name__ == "__main__":

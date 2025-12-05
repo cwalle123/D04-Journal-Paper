@@ -1,5 +1,5 @@
 Scenario,Gap % (avg),Overlap % (avg),Programmed shift (constant) [mm],Programmed shift std (mm)
-All four variations,2.535677,1.301254,6.350000,0.000000
-No tape lateral movement,1.374057,0.181492,6.350000,0.000000
-No robot inaccuracy,2.263829,0.975228,6.350000,0.000000
-No width variation or compaction variation,2.441489,1.287341,6.432100,0.000000
+All four variations,2.555015,1.353520,6.350000,0.000000
+No tape lateral movement,1.364309,0.172701,6.350000,0.000000
+No robot inaccuracy,2.346545,1.134972,6.350000,0.000000
+No width variation or compaction variation,2.401165,1.144204,6.432100,0.000000
