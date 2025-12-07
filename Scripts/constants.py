@@ -42,11 +42,13 @@ frame_width_traverse = 12.5 #mm
 font_TNR = "Times New Roman"
 font_label = 12         #points
 font_axis_ticks = 10    #points
+font_legend = 12        #points
+
 figure_width = 12       #inch
 min_figure_height = 3   #Figure height should be multiples of this value
 tick_length = 8         #points
 tick_width = 1.2        #points
-box_thickness = 1
+graph_box_thickness = 1 #points
 
 color_exp = "blue"  # AKA Experiment
 color_RW = "green"  # AKA MCMC

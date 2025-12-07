@@ -15,7 +15,7 @@ from dataclasses import dataclass
 import seaborn as sns
 
 # Internal imports
-from constants import tow_width_specified, font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, box_thickness
+from constants import tow_width_specified, font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, graph_box_thickness, font_legend
 from Handling_ALL_Functions import get_synced_data
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
@@ -240,7 +240,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
         ax.yaxis.set_ticks_position('both')
         ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=tick_length, width=tick_width)
         for spine in ax.spines.values():
-            spine.set_linewidth(box_thickness)
+            spine.set_linewidth(graph_box_thickness)
             spine.set_edgecolor('black')
         for label in ax.get_xticklabels() + ax.get_yticklabels():
             label.set_fontname(font_TNR)
@@ -252,7 +252,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     handles = [handles[i] for i in desired_order]
     labels = [labels[i] for i in desired_order]
     plt.tight_layout(rect=[0, 0.05, 1, 1])
-    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.03), ncol=1, fontsize=font_label, frameon=True)
+    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.03), ncol=1, fontsize=font_legend, frameon=True)
 
     if save_PDF == True:
         plt.savefig("source wise validation_310 tows.pdf", format="pdf", bbox_inches="tight")
@@ -1113,8 +1113,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04")
-    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    #model_distribution_figures(29, plottype="single no D04")
+    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=False)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
