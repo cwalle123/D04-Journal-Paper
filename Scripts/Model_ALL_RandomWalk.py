@@ -656,7 +656,7 @@ def analyze_tow_spacing_effect(
         print(f"\n✅ Results (with std/min/max + intersections) saved to:\n   {csv_path}")
 
     # -------- Plot --------
-    plt.figure(figsize=(9.25, 2.90))
+    plt.figure(figsize=(12, 3))
     ax = plt.gca()
 
     # Lines
@@ -1068,7 +1068,7 @@ def main():
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
     analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv', 
-                               error_areas=True, error_bars=False, save_PDF=True)
+                               error_areas=True, error_bars=False, save_PDF=False)
 
 
 if __name__ == "__main__":

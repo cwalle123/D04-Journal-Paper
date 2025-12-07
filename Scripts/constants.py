@@ -39,11 +39,14 @@ frame_width_traverse = 12.5 #mm
 ##############################################################################################################
 """Figure Formatting"""
 
-font_extra_small = 8
-font_small = 12
-font_medium = 14
-font_large = 16
-font_extra_large = 24
+font_label = 12
+font_axis_ticks = 10
+figure_width = 12
+min_figure_height = 3 # Figure height should be multiples of this value
+
+color_exp = "blue"
+color_RW = "green"  # AKA MCMC
+color_RS = "orange" # AKA MC
 
 ##############################################################################################################
 """Model Parameters"""
