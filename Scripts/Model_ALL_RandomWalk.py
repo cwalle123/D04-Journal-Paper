@@ -19,7 +19,7 @@ from scipy.stats import pareto
 
 # Internal imports
 from Handling_ALL_Functions import get_synced_data, get_data
-from constants import tow_width_specified
+from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 

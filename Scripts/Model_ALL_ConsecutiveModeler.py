@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as image
+import matplotlib.transforms as transforms
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import matplotlib as mpl
 import random
@@ -14,7 +15,7 @@ from dataclasses import dataclass
 import seaborn as sns
 
 # Internal imports
-from constants import tow_width_specified, font_extra_small, font_small, font_medium, font_large, font_extra_large
+from constants import tow_width_specified, font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, box_thickness
 from Handling_ALL_Functions import get_synced_data
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
@@ -137,8 +138,6 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
         show_debug : bool
             If True prints internal coords for debugging.
         """
-        import numpy as np
-        import matplotlib.transforms as transforms
 
         mean = float(np.mean(data))
         std = float(np.std(data))
@@ -187,77 +186,73 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
                     zorder=950, clip_on=False)
 
     # --------PLotting----------
-    plt.rc('font', family='Times New Roman')
+    plt.rc('font', family=font_TNR)
     im0 = image.imread('Figures/robotinacc.jpg')
     im1 = image.imread('Figures/tapelatmvmt.jpg')
     im2 = image.imread('Figures/tape width.jpg')
     im3 = image.imread('Figures/tapecompaction.jpg')
 
-    fig, axs = plt.subplots(4, 1, figsize=(10, 12))
+    fig, axs = plt.subplots(4, 1, figsize=(figure_width, 4*min_figure_height))
 
     # LT plot
     axs[0].imshow(im0, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[0].transAxes)
-    axs[0].hist(LT_exp, color='blue', bins=100, density=True, alpha=0.6, label="Experimental data")
-    axs[0].hist(LT_walk_data, color='green', bins=100, density=True, alpha=0.6, label="RWM simulation data")
+    axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=0.6, label="Experimental data")
+    axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=0.6, label="RWM simulation data")
     axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Distribution fits")
     annotate_mean_std(axs[0], LT_exp)
-    axs[0].set_xlabel("Error, robot position", size=12)
-    axs[0].set_ylabel("Density", size=12)
+    axs[0].set_xlabel("Error, robot position", size=font_label)
+    axs[0].set_ylabel("Density", size=font_label)
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
     ax = plt.gca()
-    #axs[0].set_yticks(np.linspace(-1.2, -0.6, 3))
 
     # CAM plot
     axs[1].imshow(im1, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[1].transAxes)
-    axs[1].hist(CAM_exp, color='blue', bins=250, density=True, alpha=0.6)
-    axs[1].hist(CAM_walk_data, color='green', bins=250, density=True, alpha=0.6)
+    axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=0.6)
+    axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=0.6)
     axs[1].plot(x_pdf, y_pdf_CAM, color='yellow')
     annotate_mean_std(axs[1], CAM_exp)
-    axs[1].set_xlabel("Error, tape lateral movement", size=12)
-    axs[1].set_ylabel("Density", size=12)
+    axs[1].set_xlabel("Error, tape lateral movement", size=font_label)
+    axs[1].set_ylabel("Density", size=font_label)
     axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
 
     # LLS_A 
     axs[2].imshow(im2, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[2].transAxes)
-    axs[2].hist(LLSA_exp, color='blue', bins=100, density=True, alpha=0.6)
-    axs[2].hist(LLSA_walk_data, color='green', bins=100, density=True, alpha=0.6)
+    axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=0.6)
+    axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=0.6)
     axs[2].plot(x_pdf, y_pdf_LLS_A, color='yellow')
     annotate_mean_std(axs[2], LLSA_exp)
-    axs[2].set_xlabel("Error, tape width before compaction", size=12)
-    axs[2].set_ylabel("Density", size=12)
+    axs[2].set_xlabel("Error, tape width before compaction", size=font_label)
+    axs[2].set_ylabel("Density", size=font_label)
     axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
 
     # LLS_B plot
     axs[3].imshow(im3, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[3].transAxes)
-    axs[3].hist(LLSB_exp, color='blue', bins=100, density=True, alpha=0.6)
-    axs[3].hist(LLSB_walk_data, color='green', bins=100, density=True, alpha=0.6)
+    axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=0.6)
+    axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=0.6)
     axs[3].plot(x_pdf, y_pdf_LLS_B, color='yellow')
     annotate_mean_std(axs[3], LLSB_exp)
-    axs[3].set_xlabel("Error, tape width after compaction", size=12)
-    axs[3].set_ylabel("Density", size=12)
+    axs[3].set_xlabel("Error, tape width after compaction", size=font_label)
+    axs[3].set_ylabel("Density", size=font_label)
     axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
 
     for i, ax in enumerate(axs):
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=8, width=1.2)
+        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=tick_length, width=tick_width)
         for spine in ax.spines.values():
-            spine.set_linewidth(1)
+            spine.set_linewidth(box_thickness)
             spine.set_edgecolor('black')
         for label in ax.get_xticklabels() + ax.get_yticklabels():
-            label.set_fontname('Times New Roman')
-            label.set_fontsize(10)
-
-    # fig.subplots_adjust(bottom=0.2)
+            label.set_fontname(font_TNR)
+            label.set_fontsize(font_axis_ticks)
 
     # Get custom order for legend entries
     handles, labels = axs[0].get_legend_handles_labels()
     desired_order = [0, 2, 1]   # <--- change index order here
     handles = [handles[i] for i in desired_order]
     labels = [labels[i] for i in desired_order]
-    #fig.legend(handles, labels, fontsize=12, loc='lower center', fancybox=True, shadow=False, ncol=1)
     plt.tight_layout(rect=[0, 0.05, 1, 1])
-    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.03), ncol=1, fontsize=12, frameon=True)
+    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.03), ncol=1, fontsize=font_label, frameon=True)
 
     if save_PDF == True:
         plt.savefig("source wise validation_310 tows.pdf", format="pdf", bbox_inches="tight")
@@ -1118,8 +1113,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04")
-    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    model_distribution_figures(29, plottype="single no D04")
+    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

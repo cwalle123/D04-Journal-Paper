@@ -50,6 +50,7 @@ sys.path.insert(0, SCRIPTS_DIR)
 
 # Internal imports
 from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk
+from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR
 
 ##############################################################################################################
 """"Functions and constants"""

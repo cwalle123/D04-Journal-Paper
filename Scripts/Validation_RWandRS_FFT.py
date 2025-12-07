@@ -41,6 +41,7 @@ if PROJECT_ROOT not in sys.path:
 from Model_ALL_RandomWalk import generate_RW_multitow
 from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_RandomSampling import generate_RS_multitow
+from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR
 
 ##############################################################################################################
 """Styling & helpers"""

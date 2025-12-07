@@ -39,12 +39,16 @@ frame_width_traverse = 12.5 #mm
 ##############################################################################################################
 """Figure Formatting"""
 
-font_label = 12
-font_axis_ticks = 10
-figure_width = 12
-min_figure_height = 3 # Figure height should be multiples of this value
+font_TNR = "Times New Roman"
+font_label = 12         #points
+font_axis_ticks = 10    #points
+figure_width = 12       #inch
+min_figure_height = 3   #Figure height should be multiples of this value
+tick_length = 8         #points
+tick_width = 1.2        #points
+box_thickness = 1
 
-color_exp = "blue"
+color_exp = "blue"  # AKA Experiment
 color_RW = "green"  # AKA MCMC
 color_RS = "orange" # AKA MC
 

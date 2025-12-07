@@ -23,7 +23,7 @@ from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate
 from D04_Model.Model_ALL_Simulation import generate_multitow_layout, generate_multitow_layout_lengths
 from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow, generate_RW_multitow_layout_lengths
 from Model_ALL_RandomSampling import generate_RS_multitow, generate_RS_multitow_layout_lengths
-from constants import number_of_steps, Consecutive_Error_Bins, y_offset_traverse, y_increment_traverse, y_increment_programmed, font_extra_small, font_small, font_medium, font_large, font_extra_large
+from constants import number_of_steps, Consecutive_Error_Bins, y_increment_traverse, y_increment_programmed, font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR
 
 ##############################################################################################################
 """Functions"""
