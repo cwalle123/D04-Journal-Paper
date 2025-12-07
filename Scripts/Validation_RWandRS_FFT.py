@@ -224,9 +224,9 @@ def run_fft_compare(
     # --- Plotters ---
     def plot_linear(f_exp, A_exp, f_rw, A_rw, f_rs, A_rs, title_suffix=""):
         plt.figure()
-        plt.plot(f_exp, A_exp, label="Experimental Data", color=COLORS["exp"], linewidth=LINEWIDTH, linestyle="-")
-        plt.plot(f_rw,  A_rw,  label="Random Walk", color=COLORS["rw"],  linewidth=LINEWIDTH, linestyle="-")
-        plt.plot(f_rs,  A_rs,  label="Random Sampling", color=COLORS["rs"], linewidth=LINEWIDTH, linestyle="-")
+        plt.plot(f_exp, A_exp, label="Experimental", color=color_exp, linewidth=LINEWIDTH, linestyle="-")
+        plt.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=LINEWIDTH, linestyle="-")
+        plt.plot(f_rs,  A_rs,  label="MC simulation", color=color_RS, linewidth=LINEWIDTH, linestyle="-")
         plt.xlabel("Spatial frequency (cycles/m)")
         plt.ylabel("Amplitude (mm)")
         plt.grid(False)
@@ -239,9 +239,9 @@ def run_fft_compare(
         m_rw  = f_rw  > 0
         m_rs  = f_rs  > 0
         plt.figure()
-        plt.loglog(f_exp[m_exp], A_exp[m_exp], label="Experimental Data",      color=COLORS["exp"], linewidth=LINEWIDTH, linestyle="-")
-        plt.loglog(f_rw[m_rw],   A_rw[m_rw],   label="Random Walk",      color=COLORS["rw"],  linewidth=LINEWIDTH, linestyle="--")
-        plt.loglog(f_rs[m_rs],   A_rs[m_rs],   label="Random Sampling", color=COLORS["rs"],  linewidth=LINEWIDTH, linestyle="-.")
+        plt.loglog(f_exp[m_exp], A_exp[m_exp], label="Experimental",      color=color_exp, linewidth=LINEWIDTH, linestyle="-")
+        plt.loglog(f_rw[m_rw],   A_rw[m_rw],   label="MCMC simulation",      color=color_RW,  linewidth=LINEWIDTH, linestyle="--")
+        plt.loglog(f_rs[m_rs],   A_rs[m_rs],   label="MC simulation", color=color_RS,  linewidth=LINEWIDTH, linestyle="-.")
         plt.xlabel("Spatial frequency (cycles/m)")
         plt.ylabel("Amplitude (mm)")
         plt.grid(False, which="both")
@@ -319,7 +319,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=True
+        save_PDF=False
     )
 
 if __name__ == "__main__":
