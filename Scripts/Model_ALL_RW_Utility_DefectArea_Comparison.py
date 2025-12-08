@@ -383,7 +383,7 @@ def plot_barchart(scenarios, summary, save_path):
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
     ax.minorticks_off()
     ax.tick_params(axis='y',which='both',direction='in',
-                   length=,width=1.2,left=True,right=True,)
+                   length=8,width=1.2,left=True,right=True,)
 
 
     ax.legend(loc="best", frameon=False)
