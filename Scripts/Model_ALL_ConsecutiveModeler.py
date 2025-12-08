@@ -195,10 +195,10 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     im2 = image.imread('Figures/tape width.jpg')
     im3 = image.imread('Figures/tapecompaction.jpg')
 
-    fig, axs = plt.subplots(4, 1, figsize=(figure_width, 5*min_figure_height))
+    fig, axs = plt.subplots(4, 1, figsize=(figure_width, 4*min_figure_height), sharex=True)
 
     # LT plot
-    axs[0].imshow(im0, aspect='auto', extent=(0.903, 0.987, 0.65, 0.95), transform=axs[0].transAxes)
+    axs[0].imshow(im0, aspect='auto', extent=(0.873, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
     axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=0.6, label="Experimental data")
     axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=0.6, label="RWM simulation data")
     axs[0].plot(x_pdf_LT, y_pdf_LT, color='yellow', label="Distribution fits")
@@ -206,10 +206,11 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[0].set_xlabel("Error, robot position", size=font_label)
     axs[0].set_ylabel("Density", size=font_label)
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
-    ax = plt.gca()
+    axs[0].xaxis.set_tick_params(labelbottom=True)
+    #ax = plt.gca()
 
     # CAM plot
-    axs[1].imshow(im1, aspect='auto', extent=(0.903, 0.987, 0.65, 0.95), transform=axs[1].transAxes)
+    axs[1].imshow(im1, aspect='auto', extent=(0.873, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
     axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=0.6)
     axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=0.6)
     axs[1].plot(x_pdf_CAM, y_pdf_CAM, color='yellow')
@@ -217,9 +218,10 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[1].set_xlabel("Error, tape lateral movement", size=font_label)
     axs[1].set_ylabel("Density", size=font_label)
     axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
+    axs[1].xaxis.set_tick_params(labelbottom=True)
 
     # LLS_A 
-    axs[2].imshow(im2, aspect='auto', extent=(0.903, 0.987, 0.65, 0.95), transform=axs[2].transAxes)
+    axs[2].imshow(im2, aspect='auto', extent=(0.873, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
     axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=0.6)
     axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=0.6)
     axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color='yellow')
@@ -227,9 +229,10 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[2].set_xlabel("Error, tape width before compaction", size=font_label)
     axs[2].set_ylabel("Density", size=font_label)
     axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
+    axs[2].xaxis.set_tick_params(labelbottom=True)
 
     # LLS_B plot
-    axs[3].imshow(im3, aspect='auto', extent=(0.903, 0.987, 0.65, 0.95), transform=axs[3].transAxes)
+    axs[3].imshow(im3, aspect='auto', extent=(0.873, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
     axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=0.6)
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=0.6)
     axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color='yellow')
@@ -237,6 +240,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[3].set_xlabel("Error, tape width after compaction", size=font_label)
     axs[3].set_ylabel("Density", size=font_label)
     axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
+    axs[3].xaxis.set_tick_params(labelbottom=True)
 
     for i, ax in enumerate(axs):
         ax.xaxis.set_ticks_position('both')
@@ -255,7 +259,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     handles = [handles[i] for i in desired_order]
     labels = [labels[i] for i in desired_order]
     plt.tight_layout(rect=[0, 0.05, 1, 1])
-    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.06), ncol=1, fontsize=font_legend, frameon=True)
+    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.09), ncol=1, fontsize=font_legend, frameon=True)
 
     if save_PDF == True:
         plt.savefig("source wise validation_310 tows.pdf", format="pdf", bbox_inches="tight")
@@ -1119,7 +1123,7 @@ def main():
     #Gap_Histogram(30)
     #KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    plot_RW_vs_exp_histograms(RW_tows=3, save_PDF=True)
+    plot_RW_vs_exp_histograms(RW_tows=3, save_PDF=False)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
