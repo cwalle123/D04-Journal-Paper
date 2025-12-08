@@ -40,9 +40,9 @@ frame_width_traverse = 12.5 #mm
 """Figure Formatting"""
 
 font_TNR = "Times New Roman"
-font_label = 12         #points
+font_label = 15         #points
 font_axis_ticks = 10    #points
-font_legend = 12        #points
+font_legend = 15        #points
 
 figure_width = 12       #inch
 min_figure_height = 3   #Figure height should be multiples of this value

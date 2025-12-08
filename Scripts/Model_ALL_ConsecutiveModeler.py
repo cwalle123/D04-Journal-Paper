@@ -69,7 +69,10 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
         dist_labels.append(distribution_label_names.get(dist.name, dist.name))
 
     #These actually have to be the distributions of the experimental data
-    x_pdf = np.linspace(-1.2, 1.2, 300)
+    x_pdf_LT = np.linspace(-1.2, -0.6, 75)
+    x_pdf_CAM = np.linspace(-0.6, 0.9, 188)
+    x_pdf_LLS_A = np.linspace(-0.6, 0, 75)
+    x_pdf_LLS_B = np.linspace(-0.3, 0.3, 75)
 
     #LT
     best_LT = best_fit_distribution(LT_exp, bins=100)
@@ -79,7 +82,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     shapes_LT = params_LT[:-2]    
     loc_LT = params_LT[-2]
     scale_LT = params_LT[-1]
-    y_pdf_LT = best_LT_dist.pdf(x_pdf, *shapes_LT, loc=loc_LT, scale=scale_LT)
+    y_pdf_LT = best_LT_dist.pdf(x_pdf_LT, *shapes_LT, loc=loc_LT, scale=scale_LT)
 
     #CAM
     shrink_scale_factor_CAM = 0.9 # This factor is used to artifically stretch the skewnorm distribution to visually better fit the histogram
@@ -91,7 +94,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     loc_CAM = params_CAM[-2]
     scale_CAM = params_CAM[-1]
     print(f'Scale_CAM: {scale_CAM}')
-    y_pdf_CAM = best_CAM_dist.pdf(x_pdf, *shapes_CAM, loc=loc_CAM, scale=scale_CAM)
+    y_pdf_CAM = best_CAM_dist.pdf(x_pdf_CAM, *shapes_CAM, loc=loc_CAM, scale=scale_CAM)
 
     #LSS A
     best_LLSA = best_fit_distribution(LLSA_exp, bins=100)
@@ -101,7 +104,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     shapes_LLSA = params_LLSA[:-2]    
     loc_LLSA = params_LLSA[-2]
     scale_LLSA = params_LLSA[-1]
-    y_pdf_LLS_A = best_LLSA_dist.pdf(x_pdf, *shapes_LLSA, loc=loc_LLSA, scale=scale_LLSA)
+    y_pdf_LLS_A = best_LLSA_dist.pdf(x_pdf_LLS_A, *shapes_LLSA, loc=loc_LLSA, scale=scale_LLSA)
 
     #LLS B
     best_LLSB = best_fit_distribution(LLSB_exp, bins=100)
@@ -111,7 +114,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     shapes_LLSB = params_LLSB[:-2]    
     loc_LLSB = params_LLSB[-2]
     scale_LLSB = params_LLSB[-1]
-    y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
+    y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf_LLS_B, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
 
     # setting up the target distribution plots for later
     #x_pdf = np.linspace(-1.2, 1.2, 300)
@@ -195,10 +198,10 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     fig, axs = plt.subplots(4, 1, figsize=(figure_width, 4*min_figure_height))
 
     # LT plot
-    axs[0].imshow(im0, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[0].transAxes)
+    axs[0].imshow(im0, aspect='auto', extent=(0.919, 0.987, 0.65, 0.95), transform=axs[0].transAxes)
     axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=0.6, label="Experimental data")
     axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=0.6, label="RWM simulation data")
-    axs[0].plot(x_pdf, y_pdf_LT, color='yellow', label="Distribution fits")
+    axs[0].plot(x_pdf_LT, y_pdf_LT, color='yellow', label="Distribution fits")
     annotate_mean_std(axs[0], LT_exp)
     axs[0].set_xlabel("Error, robot position", size=font_label)
     axs[0].set_ylabel("Density", size=font_label)
@@ -206,30 +209,30 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     ax = plt.gca()
 
     # CAM plot
-    axs[1].imshow(im1, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[1].transAxes)
+    axs[1].imshow(im1, aspect='auto', extent=(0.919, 0.987, 0.65, 0.95), transform=axs[1].transAxes)
     axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=0.6)
     axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=0.6)
-    axs[1].plot(x_pdf, y_pdf_CAM, color='yellow')
+    axs[1].plot(x_pdf_CAM, y_pdf_CAM, color='yellow')
     annotate_mean_std(axs[1], CAM_exp)
     axs[1].set_xlabel("Error, tape lateral movement", size=font_label)
     axs[1].set_ylabel("Density", size=font_label)
     axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
 
     # LLS_A 
-    axs[2].imshow(im2, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[2].transAxes)
+    axs[2].imshow(im2, aspect='auto', extent=(0.919, 0.987, 0.65, 0.95), transform=axs[2].transAxes)
     axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=0.6)
     axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=0.6)
-    axs[2].plot(x_pdf, y_pdf_LLS_A, color='yellow')
+    axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color='yellow')
     annotate_mean_std(axs[2], LLSA_exp)
     axs[2].set_xlabel("Error, tape width before compaction", size=font_label)
     axs[2].set_ylabel("Density", size=font_label)
     axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
 
     # LLS_B plot
-    axs[3].imshow(im3, aspect='auto', extent=(0.909, 0.987, 0.65, 0.95), transform=axs[3].transAxes)
+    axs[3].imshow(im3, aspect='auto', extent=(0.919, 0.987, 0.65, 0.95), transform=axs[3].transAxes)
     axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=0.6)
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=0.6)
-    axs[3].plot(x_pdf, y_pdf_LLS_B, color='yellow')
+    axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color='yellow')
     annotate_mean_std(axs[3], LLSB_exp)
     axs[3].set_xlabel("Error, tape width after compaction", size=font_label)
     axs[3].set_ylabel("Density", size=font_label)
@@ -1115,8 +1118,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=False)
+    #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
+    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
