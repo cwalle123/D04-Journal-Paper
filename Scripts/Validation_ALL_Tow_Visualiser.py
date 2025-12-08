@@ -306,7 +306,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     x_RS_centerline  = RS_df["x_mm"].to_numpy()
     y_RS_centerline  = RS_df["centerline"].to_numpy()
 
-    plt.figure(figsize=(figure_width,2*min_figure_height))
+    plt.figure(figsize=(figure_width,3*min_figure_height))
     # Real tow
     plt.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp)
     plt.plot(x_real_left, y_real_left, "-", color=color_exp, label="Experimental")
@@ -334,12 +334,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     mpl.rcParams['ytick.labelsize'] = font_axis_ticks
     plt.xlabel("Tow Length (mm)", fontsize=font_label, fontname=font_TNR)
     plt.ylabel("Position (mm)", fontsize=font_label, fontname=font_TNR)
-    plt.legend(fontsize=font_legend, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=1, 
-                frameon=True,              
-                edgecolor="black",         
-                fancybox=False,            
-                framealpha=1.0         
-)
+    plt.legend(fontsize=font_legend, loc='lower center', bbox_to_anchor=(0.5, -0.8), ncols=1, frameon=True,)
     
     ax = plt.gca()
     for spine in ax.spines.values():
@@ -886,10 +881,10 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     # Figure with 4-row GridSpec
     # ============================================================
-    fig = plt.figure(figsize=(figure_width, 2*min_figure_height))
+    fig = plt.figure(figsize=(figure_width, 4*min_figure_height))
     gs = fig.add_gridspec(
         4, 1,
-        height_ratios=[1.20, 0.2, 0.18, 1.25],   # middle axis thin
+        height_ratios=[1.20, 0.1, 0.18, 1.25],   # middle axis thin
         hspace=0.1
     )
 

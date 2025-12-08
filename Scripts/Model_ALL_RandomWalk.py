@@ -708,7 +708,7 @@ def analyze_tow_spacing_effect(
     plt.ylabel("Defect area (%)", fontname=font_TNR, fontsize=font_label)
     plt.xticks(fontname=font_TNR, fontsize=font_axis_ticks)
     plt.yticks(fontname=font_TNR, fontsize=font_axis_ticks)
-    plt.legend(prop={"family": font_TNR, "size": font_legend}, frameon=False)
+    plt.legend(prop={"family": font_TNR, "size": font_legend}, frameon=False, loc='upper right')
     plt.tight_layout()
 
     ax.tick_params(top=True, bottom=True, left=True, right=True,
@@ -1068,7 +1068,7 @@ def main():
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
     analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv', 
-                               error_areas=True, error_bars=False, save_PDF=False)
+                               error_areas=True, error_bars=False, save_PDF=True)
 
 
 if __name__ == "__main__":

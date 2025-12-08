@@ -311,7 +311,7 @@ def run_experiment(n_runs=100, num_tows=6):
 # ---------------------------------------------------------------------
 # Plotting function (adds thin reference lines at tallest Gap & Overlap bars)
 # ---------------------------------------------------------------------
-def plot_barchart(scenarios, summary, save_path):
+def plot_barchart(scenarios, summary, save_path, save_PDF=False):
     labels = [s[0] for s in scenarios]
     gap_means = [summary[l][0] for l in labels]
     ovl_means = [summary[l][1] for l in labels]
@@ -338,7 +338,7 @@ def plot_barchart(scenarios, summary, save_path):
         ovl_line = (y_o, x_left_edge_tallest_ovl, x_right_edge_last_ovl)
     # --------------------------------------------------------
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(figure_width, 2*min_figure_height))
 
     # ------- Draw reference lines FIRST (behind the bars) -------
     if gap_line is not None:
@@ -389,8 +389,13 @@ def plot_barchart(scenarios, summary, save_path):
     ax.legend(loc="best", frameon=False)
     fig.tight_layout()
     fig.subplots_adjust(bottom=0.22)
-    fig.savefig(save_path, bbox_inches="tight", format="pdf")
-    print(f"[✓] Saved figure: {save_path}")
+    
+    if save_PDF == True:
+        fig.savefig("rw_defect_barchart.pdf", bbox_inches="tight", format="pdf")
+
+    plt.show()
+
+    #print(f"[✓] Saved figure: {save_path}")
 
 
 
@@ -424,8 +429,8 @@ def main():
 
     # Run experiment and generate figure
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
-    plot_barchart(scenarios, summary, FIG_PATH)
-    save_csv(scenarios, summary, CSV_PATH)
+    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=True)
+    #save_csv(scenarios, summary, CSV_PATH)
 
 if __name__ == "__main__":
     main()

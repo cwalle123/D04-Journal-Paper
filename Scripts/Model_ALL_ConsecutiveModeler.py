@@ -259,7 +259,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     handles = [handles[i] for i in desired_order]
     labels = [labels[i] for i in desired_order]
     plt.tight_layout(rect=[0, 0.05, 1, 1])
-    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.09), ncol=1, fontsize=font_legend, frameon=True)
+    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.06), ncol=1, fontsize=font_legend, frameon=True)
 
     if save_PDF == True:
         plt.savefig("source wise validation_310 tows.pdf", format="pdf", bbox_inches="tight")
@@ -1122,8 +1122,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    plot_RW_vs_exp_histograms(RW_tows=3, save_PDF=False)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

@@ -41,7 +41,7 @@ if PROJECT_ROOT not in sys.path:
 from Model_ALL_RandomWalk import generate_RW_multitow
 from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_RandomSampling import generate_RS_multitow
-from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR
+from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR, graph_box_thickness, tick_length, tick_width
 
 ##############################################################################################################
 """Styling & helpers"""
@@ -223,7 +223,7 @@ def run_fft_compare(
 
     # --- Plotters ---
     def plot_linear(f_exp, A_exp, f_rw, A_rw, f_rs, A_rs, title_suffix=""):
-        plt.figure()
+        plt.figure(figsize=(figure_width, 2*min_figure_height))
         plt.plot(f_exp, A_exp, label="Experimental", color=color_exp, linewidth=LINEWIDTH, linestyle="-")
         plt.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=LINEWIDTH, linestyle="-")
         plt.plot(f_rs,  A_rs,  label="MC simulation", color=color_RS, linewidth=LINEWIDTH, linestyle="-")
@@ -232,6 +232,16 @@ def run_fft_compare(
         plt.grid(False)
         plt.legend(frameon=False)
         plt.xlim(0, 300)
+        ax = plt.gca()
+        for spine in ax.spines.values():
+            spine.set_linewidth(graph_box_thickness)
+            spine.set_edgecolor('black')
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=tick_length, width=tick_width)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontname(font_TNR)
+            label.set_fontsize(font_label)
         plt.tight_layout()
 
     def plot_loglog(f_exp, A_exp, f_rw, A_rw, f_rs, A_rs, title_suffix=""):
@@ -250,14 +260,14 @@ def run_fft_compare(
 
     if show_plots:
         # Linear amplitude spectra
-        plot_linear(f_top_exp, A_top_exp, f_top_rw, A_top_rw, f_top_rs, A_top_rs, "Top")
-        plot_linear(f_bot_exp, A_bot_exp, f_bot_rw, A_bot_rw, f_bot_rs, A_bot_rs, "Bottom")
+        #plot_linear(f_top_exp, A_top_exp, f_top_rw, A_top_rw, f_top_rs, A_top_rs, "Top")
+        #plot_linear(f_bot_exp, A_bot_exp, f_bot_rw, A_bot_rw, f_bot_rs, A_bot_rs, "Bottom")
         plot_linear(f_ctr_exp, A_ctr_exp, f_ctr_rw, A_ctr_rw, f_ctr_rs, A_ctr_rs, "Centerline")
 
     if show_loglog:
         # Log–log spectra
-        plot_loglog(f_top_exp, A_top_exp, f_top_rw, A_top_rw, f_top_rs, A_top_rs, "Top")
-        plot_loglog(f_bot_exp, A_bot_exp, f_bot_rw, A_bot_rw, f_bot_rs, A_bot_rs, "Bottom")
+        #plot_loglog(f_top_exp, A_top_exp, f_top_rw, A_top_rw, f_top_rs, A_top_rs, "Top")
+        #plot_loglog(f_bot_exp, A_bot_exp, f_bot_rw, A_bot_rw, f_bot_rs, A_bot_rs, "Bottom")
         plot_loglog(f_ctr_exp, A_ctr_exp, f_ctr_rw, A_ctr_rw, f_ctr_rs, A_ctr_rs, "Centerline")
 
     # --- Compute Mean Squared Errors vs Experiment ---
@@ -319,7 +329,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=False
+        save_PDF=True
     )
 
 if __name__ == "__main__":
