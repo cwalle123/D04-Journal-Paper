@@ -879,14 +879,14 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     shared_bins = np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
 
     # Fonts
-    label_fontsize = 12
-    legend_fontsize = 10
-    tick_size = 10
+    #label_fontsize = 12
+    #legend_fontsize = 10
+    #tick_size = 10
 
     # ============================================================
     # Figure with 4-row GridSpec
     # ============================================================
-    fig = plt.figure(figsize=(7, 7))
+    fig = plt.figure(figsize=(figure_width, 2*min_figure_height))
     gs = fig.add_gridspec(
         4, 1,
         height_ratios=[1.20, 0.2, 0.18, 1.25],   # middle axis thin
@@ -902,25 +902,25 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     ax_top.hist(
         gap_traverse, bins=shared_bins,
-        color="blue", alpha=0.6, edgecolor="black", label="Experimental"
+        color=color_exp, alpha=0.6, edgecolor="black", label="Experimental"
     )
     ax_top.hist(
         gap_RW, bins=shared_bins,
-        color="green", alpha=0.6, edgecolor="black", label="MCMC simulation"
+        color=color_RW, alpha=0.6, edgecolor="black", label="MCMC simulation"
     )
 
     ax_top.set_xlim(*xlim)
     ax_top.set_ylim(0, 160)
 
-    ax_top.set_ylabel("Frequency", fontsize=label_fontsize, fontname="Times New Roman")
+    ax_top.set_ylabel("Frequency", fontsize=font_label, fontname=font_TNR)
     ax_top.tick_params(
-        axis="both", labelsize=tick_size, direction="in",
-        top=True, right=True, length=8, width=1.2
+        axis="both", labelsize=font_axis_ticks, direction="in",
+        top=True, right=True, length=tick_length, width=tick_width
     )
     ax_top.xaxis.set_ticks_position("both")
     ax_top.yaxis.set_ticks_position("both")
     ax_top.legend(
-        prop={"family": "Times New Roman", "size": legend_fontsize},
+        prop={"family": font_TNR, "size": font_legend},
         frameon=False,
     )
 
@@ -936,23 +936,23 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # Plot the small upper axis showing only the peak region
     ax_bottom_top.hist(
         gap_traverse, bins=shared_bins,
-        color="blue", alpha=0.6, edgecolor="black"
+        color=color_exp, alpha=0.6, edgecolor="black"
     )
     ax_bottom_top.hist(
         gap_RS, bins=shared_bins,
-        color="orange", alpha=0.6, edgecolor="black"
+        color=color_RS, alpha=0.6, edgecolor="black"
     )
     ax_bottom_top.set_ylim(peak_min, peak_max)
 
     # Plot lower axis normally
     ax_bottom_bottom.hist(
         gap_traverse, bins=shared_bins,
-        color="blue", alpha=0.6, edgecolor="black",
+        color=color_exp, alpha=0.6, edgecolor="black",
         label="Experimental"
     )
     ax_bottom_bottom.hist(
         gap_RS, bins=shared_bins,
-        color="orange", alpha=0.6, edgecolor="black",
+        color=color_RS, alpha=0.6, edgecolor="black",
         label="MC simulation"
     )
     ax_bottom_bottom.set_ylim(0, 225)
@@ -968,14 +968,14 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         axis="x", bottom=False, labelbottom=False
     )
     ax_bottom_top.tick_params(
-        axis="y", labelsize=tick_size, direction="in",
-        right=True, top=True, length=8, width=1.2
+        axis="y", labelsize=font_axis_ticks, direction="in",
+        right=True, top=True, length=tick_length, width=tick_width
     )
 
     # Bottom axis ticks normal
     ax_bottom_bottom.tick_params(
-        axis="both", labelsize=tick_size, direction="in",
-        right=True, length=8, width=1.2
+        axis="both", labelsize=font_axis_ticks, direction="in",
+        right=True, length=tick_length, width=tick_width
     )
 
     # ============================================================
@@ -1003,16 +1003,16 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     ax_bottom_bottom.set_xlabel(
         "Gap Length (mm)",
-        fontsize=label_fontsize,
-        fontname="Times New Roman"
+        fontsize=font_label,
+        fontname=font_TNR
     )
     ax_bottom_bottom.set_ylabel(
         "Frequency",
-        fontsize=label_fontsize,
-        fontname="Times New Roman"
+        fontsize=font_label,
+        fontname=font_TNR
     )
     ax_bottom_bottom.legend(
-        prop={"family": "Times New Roman", "size": legend_fontsize},
+        prop={"family": font_TNR, "size": font_legend},
         frameon=False,
     )
 

@@ -19,7 +19,7 @@ from scipy.stats import pareto
 
 # Internal imports
 from Handling_ALL_Functions import get_synced_data, get_data
-from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR
+from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR, font_legend, graph_box_thickness, tick_length, tick_width
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 
@@ -656,7 +656,7 @@ def analyze_tow_spacing_effect(
         print(f"\n✅ Results (with std/min/max + intersections) saved to:\n   {csv_path}")
 
     # -------- Plot --------
-    plt.figure(figsize=(12, 3))
+    plt.figure(figsize=(figure_width, min_figure_height))
     ax = plt.gca()
 
     # Lines
@@ -704,15 +704,15 @@ def analyze_tow_spacing_effect(
                         fmt='none', color='red', capsize=3, linewidth=1)
 
     # Formatting
-    plt.xlabel("Programmed shift (mm)", fontname="Times New Roman", fontsize=15)
-    plt.ylabel("Defect area (%)", fontname="Times New Roman", fontsize=15)
-    plt.xticks(fontname="Times New Roman", fontsize=15)
-    plt.yticks(fontname="Times New Roman", fontsize=15)
-    plt.legend(prop={"family": "Times New Roman", "size": 15}, frameon=False)
+    plt.xlabel("Programmed shift (mm)", fontname=font_TNR, fontsize=font_label)
+    plt.ylabel("Defect area (%)", fontname=font_TNR, fontsize=font_label)
+    plt.xticks(fontname=font_TNR, fontsize=font_axis_ticks)
+    plt.yticks(fontname=font_TNR, fontsize=font_axis_ticks)
+    plt.legend(prop={"family": font_TNR, "size": font_legend}, frameon=False)
     plt.tight_layout()
 
     ax.tick_params(top=True, bottom=True, left=True, right=True,
-                   direction='in', length=6, width=1)
+                   direction='in', length=tick_length, width=tick_width)
 
     # Axis limits (original)
     ax.set_xlim(5, 7.5)
@@ -721,7 +721,7 @@ def analyze_tow_spacing_effect(
     # Box border
     for spine in ax.spines.values():
         spine.set_visible(True)
-        spine.set_linewidth(1)
+        spine.set_linewidth(graph_box_thickness)
         spine.set_color("black")
 
     #if existing_data is None:
