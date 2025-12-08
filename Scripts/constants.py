@@ -44,7 +44,7 @@ font_label = 15         #points
 font_axis_ticks = 10    #points
 font_legend = 15        #points
 
-figure_width = 12       #inch
+figure_width = 20       #inch
 min_figure_height = 3   #Figure height should be multiples of this value
 tick_length = 8         #points
 tick_width = 1.2        #points
