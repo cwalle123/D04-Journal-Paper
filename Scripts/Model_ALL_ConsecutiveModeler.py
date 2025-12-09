@@ -893,8 +893,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        plt.ylabel("Probability Density", fontsize=font_medium)
-        plt.legend(fontsize=font_extra_small)
+        plt.ylabel("Probability Density", fontsize=font_label)
+        plt.legend(fontsize=font_legend)
         
         plt.subplot(312)
         plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
@@ -905,8 +905,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         #plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        plt.ylabel("Probability Density", fontsize=font_medium)
-        plt.legend(fontsize=font_extra_small)
+        plt.ylabel("Probability Density", fontsize=font_label)
+        plt.legend(fontsize=font_legend)
         
         plt.subplot(313)
         plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
@@ -917,10 +917,10 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         #plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        plt.legend(fontsize=font_extra_small)
-        plt.xlabel("Gap (mm)", fontsize=font_medium)
+        plt.legend(fontsize=font_legend)
+        plt.xlabel("Gap (mm)", fontsize=font_label)
         
-        plt.ylabel("Probability Density", fontsize=font_medium)
+        plt.ylabel("Probability Density", fontsize=font_label)
         plt.show()
 
     if plottype == "single no D04":

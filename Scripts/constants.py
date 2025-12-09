@@ -41,11 +41,11 @@ frame_width_traverse = 12.5 #mm
 
 font_TNR = "Times New Roman"
 font_label = 10         #points
-font_axis_ticks = 8    #points
+font_axis_ticks = 8     #points
 font_legend = 10        #points
 
-figure_width = 345 / 72.27                      #points/points per inch = inch
-min_figure_height = 0.313 * figure_width        #Figure heights should be multiples of this value, then Latex will take care of the scaling
+figure_width = 345 / 72.27                      #points/points per inch = inch, amount of points taken from \the\linewidth in Overleaf
+min_figure_height = 0.313 * figure_width        #Aspect ratio (heigt:width) of shortest figure (figure 8) * figure width. Figure heights should be multiples of this value, then Latex will take care of the scaling
 tick_length = 5                                 #points
 tick_width = 1.2                                #points
 graph_box_thickness = 1                         #points
