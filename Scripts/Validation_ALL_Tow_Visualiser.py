@@ -896,12 +896,12 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # TOP SUBPLOT (unchanged)
     # ============================================================
     ax_top.hist(
-        gap_traverse, bins=shared_bins,
-        color=color_exp, alpha=0.6, edgecolor="black", label="Experimental"
+        gap_RW, bins=shared_bins,
+        color=color_RW, alpha=0.6, label="MCMC simulation"
     )
     ax_top.hist(
-        gap_RW, bins=shared_bins,
-        color=color_RW, alpha=0.6, edgecolor="black", label="MCMC simulation"
+        gap_traverse, bins=shared_bins,
+        color=color_exp, alpha=0.6, label="Experimental"
     )
 
     ax_top.set_xlim(*xlim)
@@ -914,6 +914,9 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     )
     ax_top.xaxis.set_ticks_position("both")
     ax_top.yaxis.set_ticks_position("both")
+    for spine in ax_top.spines.values():
+            spine.set_linewidth(graph_box_thickness)
+            spine.set_edgecolor('black')
     ax_top.legend(
         prop={"family": font_TNR, "size": font_legend},
         frameon=False,
@@ -930,29 +933,37 @@ def compare_real_vs_RS_RW_gap_length_distributions(
 
     # Plot the small upper axis showing only the peak region
     ax_bottom_top.hist(
-        gap_traverse, bins=shared_bins,
-        color=color_exp, alpha=0.6, edgecolor="black"
+        gap_RS, bins=shared_bins,
+        color=color_RS, alpha=0.6
     )
     ax_bottom_top.hist(
-        gap_RS, bins=shared_bins,
-        color=color_RS, alpha=0.6, edgecolor="black"
+        gap_traverse, bins=shared_bins,
+        color=color_exp, alpha=0.6
     )
+    
     ax_bottom_top.set_ylim(peak_min, peak_max)
+    for spine in ax_bottom_top.spines.values():
+            spine.set_linewidth(graph_box_thickness)
+            spine.set_edgecolor('black')
 
     # Plot lower axis normally
     ax_bottom_bottom.hist(
-        gap_traverse, bins=shared_bins,
-        color=color_exp, alpha=0.6, edgecolor="black",
-        label="Experimental"
-    )
-    ax_bottom_bottom.hist(
         gap_RS, bins=shared_bins,
-        color=color_RS, alpha=0.6, edgecolor="black",
+        color=color_RS, alpha=0.6,
         label="MC simulation"
     )
+    ax_bottom_bottom.hist(
+        gap_traverse, bins=shared_bins,
+        color=color_exp, alpha=0.6,
+        label="Experimental"
+    )
+    
     ax_bottom_bottom.set_ylim(0, 225)
 
     ax_bottom_bottom.set_xlim(*xlim)
+    for spine in ax_bottom_bottom.spines.values():
+            spine.set_linewidth(graph_box_thickness)
+            spine.set_edgecolor('black')
 
     # Remove adjoining spines
     ax_bottom_top.spines.bottom.set_visible(False)
@@ -963,8 +974,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         axis="x", bottom=False, labelbottom=False
     )
     ax_bottom_top.tick_params(
-        axis="y", labelsize=font_axis_ticks, direction="in",
-        right=True, top=True, length=tick_length, width=tick_width
+        axis="both", labelsize=font_axis_ticks, direction="in",
+        right=True, top=True, left=True, bottom=False, length=tick_length, width=tick_width
     )
 
     # Bottom axis ticks normal
