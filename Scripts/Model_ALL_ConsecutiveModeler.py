@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as image
 import matplotlib.transforms as transforms
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib.ticker import FormatStrFormatter
 import matplotlib as mpl
 import random
 from dataclasses import dataclass
@@ -27,7 +27,7 @@ from Model_ALL_RandomSampling import generate_RS_multitow
 """Functions"""
 
 def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
-    """This function creates the plot of Random Walk vs Exponential Data for each individual sensor.
+    """This function creates the plot of Random Walk vs Experimental Data for each individual sensor.
     This is equivalent to plot 2 in the paper atm."""
 
     # getting the experimental data per sensor
@@ -69,6 +69,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
         dist_labels.append(distribution_label_names.get(dist.name, dist.name))
 
     #These actually have to be the distributions of the experimental data
+    #Different linspaces for axis visibility
     x_pdf_LT = np.linspace(-1.2, -0.6, 75)
     x_pdf_CAM = np.linspace(-0.6, 0.9, 188)
     x_pdf_LLS_A = np.linspace(-0.6, 0, 75)
@@ -115,13 +116,6 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     loc_LLSB = params_LLSB[-2]
     scale_LLSB = params_LLSB[-1]
     y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf_LLS_B, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
-
-    # setting up the target distribution plots for later
-    #x_pdf = np.linspace(-1.2, 1.2, 300)
-    #y_pdf_LT = LT_target_dist(x_pdf)
-    #y_pdf_CAM = CAM_target_dist(x_pdf)
-    #y_pdf_LLS_A = LLS_A_target_dist(x_pdf)
-    #y_pdf_LLS_B = LLS_B_target_dist(x_pdf)
 
     def annotate_mean_std(ax, data, stripe_height=0.08, lw=1.5, show_debug=False):
         """
@@ -207,7 +201,6 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[0].set_ylabel("Density", size=font_label)
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
     axs[0].xaxis.set_tick_params(labelbottom=True)
-    #ax = plt.gca()
 
     # CAM plot
     axs[1].imshow(im1, aspect='auto', extent=(0.873, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
@@ -245,24 +238,27 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     for i, ax in enumerate(axs):
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=tick_length, width=tick_width)
+        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
+                       length=tick_length, width=tick_width)                            # tick dimensions
+        ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))                        # Format ticks with one decimal place (pad zeros)
+        ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         for spine in ax.spines.values():
-            spine.set_linewidth(graph_box_thickness)
+            spine.set_linewidth(graph_box_thickness)                                    # black box around figure
             spine.set_edgecolor('black')
-        for label in ax.get_xticklabels() + ax.get_yticklabels():
+        for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
             label.set_fontname(font_TNR)
             label.set_fontsize(font_axis_ticks)
 
     # Get custom order for legend entries
     handles, labels = axs[0].get_legend_handles_labels()
-    desired_order = [0, 2, 1]   # <--- change index order here
+    desired_order = [0, 2, 1]
     handles = [handles[i] for i in desired_order]
     labels = [labels[i] for i in desired_order]
     plt.tight_layout(rect=[0, 0.05, 1, 1])
     fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.06), ncol=1, fontsize=font_legend, frameon=True)
 
     if save_PDF == True:
-        plt.savefig("source wise validation_310 tows.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig("source wise validation_310 tows.pdf", format="pdf", bbox_inches="tight", dpi=600)
 
     plt.show()
 
@@ -1122,8 +1118,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    #model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
