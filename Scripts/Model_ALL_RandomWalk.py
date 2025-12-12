@@ -187,7 +187,6 @@ def generate_random_walk(sensor: str, n_steps: int, proposal_std:  float, target
     if return_pdf: return generated_path, x_pdf, y_pdf
     return generated_path
 
-
 def test_advanced_RW(tows: int=620):
     '''A function to test advanced RW with the condition that LLS_B is LLS_A while both are sampled simultaneously.'''
     LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
@@ -247,7 +246,6 @@ def test_advanced_RW(tows: int=620):
     plt.legend(fontsize=12)
     plt.tight_layout()
     plt.show()
-
 
 def get_proposal_distribution(sensor, plot: bool=False):
     data_pairs = get_data_pairs(sensor)

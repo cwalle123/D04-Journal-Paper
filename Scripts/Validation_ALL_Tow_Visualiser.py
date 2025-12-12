@@ -841,15 +841,13 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     print_statement=False,
     xlim=(0, 100),
     stack_graphs=False,
-    save_PDF=False
-):
+    save_PDF=False):
 
     # ============================================================
     # Load data
     # ============================================================
     gap_traverse, _, *_ = traverse_tow_gaps_and_overlaps_lengths(
-        plot=False, histogram_bins=histogram_bins, force_steps=force_steps
-    )
+        plot=False, histogram_bins=histogram_bins, force_steps=force_steps)
 
     _, gap_RW, _, _ = generate_RW_multitow_layout_lengths(
         num_tows=num_tows_sim,
@@ -858,180 +856,156 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         override=override,
         histogram_bins=histogram_bins,
         starting_mods=starting_mods,
-        alternate_start=alternate_start,
-    )
+        alternate_start=alternate_start)
 
     _, gap_RS, _, _ = generate_RS_multitow_layout_lengths(
         num_tows=num_tows_sim,
         method=method,
         plot=False,
         histogram_bins=histogram_bins,
-        print_statement=print_statement,
-    )
+        print_statement=print_statement)
 
-    # Shared bins
+    # Shared bins for all histograms
     all_data = np.concatenate([gap_traverse, gap_RW, gap_RS])
     shared_bins = np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
 
-    # Fonts
-    #label_fontsize = 12
-    #legend_fontsize = 10
-    #tick_size = 10
 
     # ============================================================
-    # Figure with 4-row GridSpec
+    # Figure layout: TOP + (BOTTOM broken axis)
     # ============================================================
-    fig = plt.figure(figsize=(figure_width, 4*min_figure_height))
+    fig = plt.figure(figsize=(figure_width, 4 * min_figure_height))
+
+    # Main grid: top panel, and a lower area that will hold 2 touching panels
     gs = fig.add_gridspec(
-        4, 1,
-        height_ratios=[1.20, 0.1, 0.18, 1.25],   # middle axis thin
-        hspace=0.1
+        2, 1,
+        height_ratios=[1.2, 1.7],   # top unaffected, bottom large block
+        hspace=0.25                 # spacing only between top and bottom
     )
 
+    # --- Top panel
     ax_top = fig.add_subplot(gs[0])
-    ax_bottom_top = fig.add_subplot(gs[2], sharex=ax_top)
-    ax_bottom_bottom = fig.add_subplot(gs[3], sharex=ax_top)
+
+    # --- Bottom panel split into 2 touching axes
+    bottom_gs = gs[1].subgridspec(
+        2, 1,
+        height_ratios=[0.2, 1],
+        hspace=0.05                    # THIS makes them TOUCH
+    )
+
+    ax_bottom_top = fig.add_subplot(bottom_gs[0], sharex=ax_top)
+    ax_bottom_bottom = fig.add_subplot(bottom_gs[1], sharex=ax_top)
+
 
     # ============================================================
-    # TOP SUBPLOT (unchanged)
+    # TOP SUBPLOT
     # ============================================================
-    ax_top.hist(
-        gap_RW, bins=shared_bins,
-        color=color_RW, alpha=0.6, label="MCMC simulation"
-    )
-    ax_top.hist(
-        gap_traverse, bins=shared_bins,
-        color=color_exp, alpha=0.6, label="Experimental"
-    )
+    ax_top.hist(gap_RW, bins=shared_bins, color=color_RW, alpha=0.6, label="MCMC simulation", edgecolor="black", linewidth=0.6)
+    ax_top.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=0.6, label="Experimental", edgecolor="black", linewidth=0.6)
 
     ax_top.set_xlim(*xlim)
     ax_top.set_ylim(0, 160)
 
     ax_top.set_ylabel("Frequency", fontsize=font_label, fontname=font_TNR)
-    ax_top.tick_params(
-        axis="both", labelsize=font_axis_ticks, direction="in",
-        top=True, right=True, length=tick_length, width=tick_width
-    )
+    ax_top.tick_params(axis="both", labelsize=font_axis_ticks, direction="in",
+                       top=True, right=True, length=tick_length, width=tick_width)
     ax_top.xaxis.set_ticks_position("both")
     ax_top.yaxis.set_ticks_position("both")
-    for spine in ax_top.spines.values():
-            spine.set_linewidth(graph_box_thickness)
-            spine.set_edgecolor('black')
-    ax_top.legend(
-        prop={"family": font_TNR, "size": font_legend},
-        frameon=False,
-    )
 
-    plt.setp(ax_top.get_xticklabels(), visible=True)
+    for spine in ax_top.spines.values():
+        spine.set_linewidth(graph_box_thickness)
+        spine.set_edgecolor("black")
+
+    ax_top.legend(prop={"family": font_TNR, "size": font_legend}, frameon=False)
+
 
     # ============================================================
-    # BOTTOM SUBPLOT — BROKEN AXIS
+    # BOTTOM SUBPLOTS — BROKEN AXIS
     # ============================================================
 
     peak_min = 900
     peak_max = 1100
 
-    # Plot the small upper axis showing only the peak region
-    ax_bottom_top.hist(
-        gap_RS, bins=shared_bins,
-        color=color_RS, alpha=0.6
-    )
-    ax_bottom_top.hist(
-        gap_traverse, bins=shared_bins,
-        color=color_exp, alpha=0.6
-    )
-    
+    # Upper small range
+    ax_bottom_top.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=0.6, edgecolor="black", linewidth=0.6)
+    ax_bottom_top.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=0.6, edgecolor="black", linewidth=0.6)
     ax_bottom_top.set_ylim(peak_min, peak_max)
+
     for spine in ax_bottom_top.spines.values():
-            spine.set_linewidth(graph_box_thickness)
-            spine.set_edgecolor('black')
+        spine.set_linewidth(graph_box_thickness)
+        spine.set_edgecolor("black")
 
-    # Plot lower axis normally
-    ax_bottom_bottom.hist(
-        gap_RS, bins=shared_bins,
-        color=color_RS, alpha=0.6,
-        label="MC simulation"
-    )
-    ax_bottom_bottom.hist(
-        gap_traverse, bins=shared_bins,
-        color=color_exp, alpha=0.6,
-        label="Experimental"
-    )
-    
+    # Lower full range
+    ax_bottom_bottom.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=0.6, label="MC simulation", edgecolor="black", linewidth=0.6)
+    ax_bottom_bottom.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=0.6, label="Experimental", edgecolor="black", linewidth=0.6)
+
     ax_bottom_bottom.set_ylim(0, 225)
-
     ax_bottom_bottom.set_xlim(*xlim)
-    for spine in ax_bottom_bottom.spines.values():
-            spine.set_linewidth(graph_box_thickness)
-            spine.set_edgecolor('black')
 
-    # Remove adjoining spines
+    for spine in ax_bottom_bottom.spines.values():
+        spine.set_linewidth(graph_box_thickness)
+        spine.set_edgecolor("black")
+
+    # Remove touching spines
     ax_bottom_top.spines.bottom.set_visible(False)
     ax_bottom_bottom.spines.top.set_visible(False)
 
-    # Middle axis: remove all x ticks (your request)
-    ax_bottom_top.tick_params(
-        axis="x", bottom=False, labelbottom=False
-    )
-    ax_bottom_top.tick_params(
-        axis="both", labelsize=font_axis_ticks, direction="in",
-        right=True, top=True, left=True, bottom=False, length=tick_length, width=tick_width
-    )
+    # Tick formatting
+    ax_bottom_top.tick_params(axis="x", bottom=False, labelbottom=False)
+    ax_bottom_top.tick_params(axis="both", labelsize=font_axis_ticks, direction="in",
+                              right=True, top=True, left=True, length=tick_length, width=tick_width)
 
-    # Bottom axis ticks normal
-    ax_bottom_bottom.tick_params(
-        axis="both", labelsize=font_axis_ticks, direction="in",
-        right=True, length=tick_length, width=tick_width
-    )
+    ax_bottom_bottom.tick_params(axis="both", labelsize=font_axis_ticks, direction="in",
+                                 right=True, length=tick_length, width=tick_width)
 
     # ============================================================
-    # ZIG-ZAG BREAK (your request)
+    # AXIS BREAK MARKERS (standard diagonal slashes)
     # ============================================================
-    def plot_zigzag(ax, position="top", size=0.012, repeats=5):
+    def break_marker(ax, position="bottom", slope=1.0, size=0.02):
         """
-        Draw a full-width zigzag break on the top or bottom of an axis.
+        Draw parallel diagonal break markers.
+        
+        Parameters
+        ----------
+        position : "top" or "bottom"
+        slope    : dy/dx  (controls angle of slashes)
+        size     : overall length scale of slashes
         """
-        x = np.linspace(0, 1, repeats * 2)
-        z = (size * np.tile([1, -1], repeats))
-        if position == "top":
-            ax.plot(x, 1 + z, transform=ax.transAxes, color="black", clip_on=False)
-        else:
-            ax.plot(x, 0 + 6 * z, transform=ax.transAxes, color="black", clip_on=False)
+        # dx determines horizontal length; dy determines slope
+        dx = size
+        dy = size * slope
 
-    # Zigzag at bottom of upper piece
-    plot_zigzag(ax_bottom_top, position="bottom")
+        kwargs = dict(transform=ax.transAxes, color="black", lw=1.4, clip_on=False)
 
-    # Zigzag at top of lower piece
-    plot_zigzag(ax_bottom_bottom, position="top")
+        y0 = 0 if position == "bottom" else 1
+
+        # Left marker: two parallel lines
+        ax.plot([0.00 - dx, 0.00 + dx], [y0 - dy, y0 + dy], **kwargs)
+        ax.plot([0.00 - dx, 0.00 + dx], [y0 - dy, y0 + dy], **kwargs)
+
+        # Right marker: identical two lines, shifted right
+        ax.plot([1 - dx, 1 + dx], [y0 - dy, y0 + dy], **kwargs)
+        ax.plot([1 - dx, 1 + dx], [y0 - dy, y0 + dy], **kwargs)
+
+    break_marker(ax_bottom_top, "bottom", slope=5)
+    break_marker(ax_bottom_bottom, "top")
 
     # ============================================================
-    # Bottom labels & legend
+    # Bottom labels
     # ============================================================
-    ax_bottom_bottom.set_xlabel(
-        "Gap Length (mm)",
-        fontsize=font_label,
-        fontname=font_TNR
-    )
-    ax_bottom_bottom.set_ylabel(
-        "Frequency",
-        fontsize=font_label,
-        fontname=font_TNR
-    )
-    ax_bottom_bottom.legend(
-        prop={"family": font_TNR, "size": font_legend},
-        frameon=False,
-    )
+    ax_bottom_bottom.set_xlabel("Gap Length (mm)", fontsize=font_label, fontname=font_TNR)
+    ax_bottom_bottom.set_ylabel("Frequency", fontsize=font_label, fontname=font_TNR)
+    ax_bottom_bottom.legend(prop={"family": font_TNR, "size": font_legend}, frameon=False)
 
     fig.tight_layout()
 
     if save_PDF:
-        fig.savefig("RWandRSdefectlength2.pdf",
-                    format="pdf", dpi=300, bbox_inches="tight")
+        fig.savefig("RWandRSdefectlength2.pdf", format="pdf", dpi=300, bbox_inches="tight")
 
     plt.show()
 
+
     # ============================================================
-    # Summary statistics
+    # Summary Statistics
     # ============================================================
     def summarize(name, data):
         if len(data):
@@ -1044,8 +1018,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     summarize("RW Simulated Gaps", gap_RW)
     summarize("RS Simulated Gaps", gap_RS)
 
-
-##############################################################################################################
+#############################################################################################################
 """Run this file"""
 
 def main():
