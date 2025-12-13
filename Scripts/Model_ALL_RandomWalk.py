@@ -247,6 +247,36 @@ def test_advanced_RW(tows: int=620):
     plt.tight_layout()
     plt.show()
 
+def test_LLS_A_B_condition(n_tows: int=1000):
+    '''A function to test how often the condition that LLSB > LLSA is met with regular RW'''
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
+    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A")
+
+    tows_false, tows_true = 0,0
+    total_steps_false, total_steps_true = 0,0
+    for tow in range(n_tows):
+        steps_false, steps_true = 0,0
+        A_list = generate_random_walk("LLS_A", LLS_B_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params)
+        B_list = generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params)
+
+        for i in range(LLS_B_steps):
+            if A_list[i] <= B_list[i]: steps_true += 1
+            else: steps_false += 1
+        if steps_false > 0: tows_false += 1
+        else: tows_true += 1
+        total_steps_false += steps_false
+        total_steps_true += steps_true
+
+    false_tow_percentage = tows_false / n_tows * 100
+    false_steps_percentage = total_steps_false / (n_tows*LLS_B_steps) * 100
+
+    print("TOWS FALSE: ", tows_false, ", percentage: ", false_tow_percentage)
+    print("TOWS TRUE: ", tows_true)
+    print("STEPS FALSE: ", total_steps_false, ", percentage: ", false_steps_percentage)
+    print("STEPS TRUE: ", total_steps_true)
+
+
+
 def get_proposal_distribution(sensor, plot: bool=False):
     data_pairs = get_data_pairs(sensor)
     data, weights = [], []
@@ -1065,8 +1095,9 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv', 
-                               error_areas=True, error_bars=False, save_PDF=True)
+    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+    #                           error_areas=True, error_bars=False, save_PDF=True)
+    test_LLS_A_B_condition()
 
 
 if __name__ == "__main__":
