@@ -878,7 +878,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # Main grid: top panel, and a lower area that will hold 2 touching panels
     gs = fig.add_gridspec(
         2, 1,
-        height_ratios=[1.2, 1.7],   # top unaffected, bottom large block
+        height_ratios=[1.7, 1.7],   # top unaffected, bottom large block
         hspace=0.25                 # spacing only between top and bottom
     )
 
@@ -889,7 +889,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     bottom_gs = gs[1].subgridspec(
         2, 1,
         height_ratios=[0.2, 1],
-        hspace=0.05                    # THIS makes them TOUCH
+        hspace=0.1                    # THIS makes them TOUCH
     )
 
     ax_bottom_top = fig.add_subplot(bottom_gs[0], sharex=ax_top)
@@ -938,7 +938,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     ax_bottom_bottom.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=0.6, label="MC simulation", edgecolor="black", linewidth=0.6)
     ax_bottom_bottom.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=0.6, label="Experimental", edgecolor="black", linewidth=0.6)
 
-    ax_bottom_bottom.set_ylim(0, 225)
+    ax_bottom_bottom.set_ylim(0, 140)
     ax_bottom_bottom.set_xlim(*xlim)
 
     for spine in ax_bottom_bottom.spines.values():
