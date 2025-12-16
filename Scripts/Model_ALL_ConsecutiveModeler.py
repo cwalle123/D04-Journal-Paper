@@ -251,7 +251,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
 
     # Get custom order for legend entries
     handles, labels = axs[0].get_legend_handles_labels()
-    desired_order = [0, 2, 1]
+    desired_order = [0, 1, 2]
     handles = [handles[i] for i in desired_order]
     labels = [labels[i] for i in desired_order]
     plt.tight_layout(rect=[0, 0.05, 1, 1])
@@ -1118,8 +1118,10 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
+    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    import matplotlib
+    print(matplotlib.get_backend())
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

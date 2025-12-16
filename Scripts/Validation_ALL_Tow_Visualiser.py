@@ -1033,7 +1033,7 @@ def main():
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     # compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=True)
+    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
 
 if __name__ == "__main__":
     main()

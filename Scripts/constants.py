@@ -44,15 +44,22 @@ font_label = 10         #points
 font_axis_ticks = 8     #points
 font_legend = 10        #points
 
-figure_width = 345 / 72.27                      #points/points per inch = inch, amount of points taken from \the\linewidth in Overleaf
-min_figure_height = 0.313 * figure_width        #Aspect ratio (heigt:width) of shortest figure (figure 8) * figure width. Figure heights should be multiples of this value, then Latex will take care of the scaling
-tick_length = 5                                 #points
-tick_width = 1                                  #points
-graph_box_thickness = 1                         #points
+figure_width = 345 / 72.27                      #points/points per inch = inch, amount of points taken from \the\textwidth in Overleaf
+min_figure_height = 0.382 * figure_width        #Aspect ratio (heigt:width) of shortest figure (figure 8) * figure width. Figure heights should be multiples of this value, then Latex will take care of the scaling
+graph_line_thickness = 0.25                     #points
+legend_line_thickness = 1                       #points
+tick_width = 0.25                               #points
+tick_length = 2                                 #points
+graph_box_thickness = 0.25                      #points
+legend_box_thickness = graph_box_thickness      #points, has to be the same as graph box thickness
 
-color_exp = "blue"  # AKA Experiment
-color_RW = "green"  # AKA MCMC
-color_RS = "orange" # AKA MC
+color_exp = "blue"              # AKA Experiment
+color_RW = "green"              # AKA MCMC
+color_RS = "orange"             # AKA MC
+color_annotations = "orange"    # axis annotations figure 2
+color_PDF_fits = "yellow"       # PDF color figure 2
+color_borders = "black"         # graph boxes, legends etc.
+transparency = 0.6              # transparency of shaded areas
 
 ##############################################################################################################
 """Model Parameters"""
@@ -68,3 +75,9 @@ NOMINAL_CAM = 0  # nominal value for CAM
 
 # steps=868, bins=80
 # steps=825, bins=90
+
+def main():
+    print(figure_width)
+
+if __name__ == "__main__":
+    main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
