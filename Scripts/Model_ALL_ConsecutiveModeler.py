@@ -230,7 +230,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[3].imshow(im3, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
     axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=0.6, histtype="stepfilled",)
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=0.6, histtype="stepfilled",)
-    #axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits)
+    axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits)
     annotate_mean_std(axs[3], LLSB_exp)
     axs[3].set_xlabel("Error, tape width after compaction", size=font_label)
     axs[3].set_ylabel("Density", size=font_label)
