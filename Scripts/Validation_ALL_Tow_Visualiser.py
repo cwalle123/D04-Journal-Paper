@@ -23,7 +23,10 @@ from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate
 from D04_Model.Model_ALL_Simulation import generate_multitow_layout, generate_multitow_layout_lengths
 from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow, generate_RW_multitow_layout_lengths
 from Model_ALL_RandomSampling import generate_RS_multitow, generate_RS_multitow_layout_lengths
-from constants import number_of_steps, Consecutive_Error_Bins, y_increment_traverse, y_increment_programmed, font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, graph_box_thickness, font_legend
+from constants import (number_of_steps, Consecutive_Error_Bins, y_increment_traverse, y_increment_programmed, 
+                       font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, 
+                       font_TNR, tick_length, tick_width, graph_box_thickness, font_legend, color_borders, legend_box_thickness
+                       )
 
 ##############################################################################################################
 """Functions"""
@@ -306,11 +309,13 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     x_RS_centerline  = RS_df["x_mm"].to_numpy()
     y_RS_centerline  = RS_df["centerline"].to_numpy()
 
-    plt.figure(figsize=(figure_width,3*min_figure_height))
+    fig, ax = plt.subplots(1, 1, figsize=(figure_width,2*min_figure_height))
+    fig.subplots_adjust(hspace=0)
+
     # Real tow
-    plt.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp)
-    plt.plot(x_real_left, y_real_left, "-", color=color_exp, label="Experimental")
-    plt.plot(x_real_right, y_real_right, "-", color=color_exp)
+    ax.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp)
+    ax.plot(x_real_left, y_real_left, "-", color=color_exp, label="Experimental")
+    ax.plot(x_real_right, y_real_right, "-", color=color_exp)
 
     # Simulated tow
     #plt.plot(x_D04_centerline, y_D04_centerline, "--", color="orange", label="D04 centerline")
@@ -318,37 +323,44 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     #plt.plot(x_D04_right, y_D04_right, "-", color="orange")
 
     # Random Walk tow
-    plt.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW)
-    plt.plot(x_RW_left, y_RW_left, "-", color=color_RW, label="MCMC simulation")
-    plt.plot(x_RW_right, y_RW_right, "-", color=color_RW)
+    ax.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW)
+    ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, label="MCMC simulation")
+    ax.plot(x_RW_right, y_RW_right, "-", color=color_RW)
 
     # Random sampling tow
-    plt.plot(x_RS_centerline, y_RS_centerline, "--", color=color_RS)
-    plt.plot(x_RS_left, y_RS_left, "-", color=color_RS, label="MC simulation")
-    plt.plot(x_RS_right, y_RS_right, "-", color=color_RS)
+    ax.plot(x_RS_centerline, y_RS_centerline, "--", color=color_RS)
+    ax.plot(x_RS_left, y_RS_left, "-", color=color_RS, label="MC simulation")
+    ax.plot(x_RS_right, y_RS_right, "-", color=color_RS)
 
     mpl.rcParams['font.family'] = 'serif'
     mpl.rcParams['font.serif'] = [font_TNR]
     mpl.rcParams['mathtext.fontset'] = 'stix'
     mpl.rcParams['xtick.labelsize'] = font_axis_ticks
     mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-    plt.xlabel("Tow Length (mm)", fontsize=font_label, fontname=font_TNR)
-    plt.ylabel("Position (mm)", fontsize=font_label, fontname=font_TNR)
-    plt.legend(fontsize=font_legend, loc='lower center', bbox_to_anchor=(0.5, -0.8), ncols=1, frameon=True,)
+    ax.set_xlabel("Tow Length (mm)", fontsize=font_label, fontname=font_TNR)
+    ax.set_ylabel("Position (mm)", fontsize=font_label, fontname=font_TNR)
     
-    ax = plt.gca()
     for spine in ax.spines.values():
         spine.set_linewidth(graph_box_thickness)
-        spine.set_edgecolor('black')
+        spine.set_edgecolor(color_borders)
     ax.xaxis.set_ticks_position('both')
     ax.yaxis.set_ticks_position('both')
     ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=tick_length, width=tick_width)
     for label in ax.get_xticklabels() + ax.get_yticklabels():
         label.set_fontname(font_TNR)
         label.set_fontsize(font_label)
-    plt.tight_layout()
+
+    fig.subplots_adjust(bottom=0.3)
+    legend_ax = fig.add_axes([0, 0.1, 1, 0.1], frameon=False) 
+    legend_ax.axis('off')
+    legend = legend_ax.legend(handles=ax.get_legend_handles_labels()[0], labels=ax.get_legend_handles_labels()[1], fontsize=font_legend, loc='upper center', ncols=1, fancybox=False)
+    frame = legend.get_frame()
+    frame.set_edgecolor(color_borders)
+    frame.set_linewidth(legend_box_thickness)
+    frame.set_facecolor('white')
+    
     if save_PDF == True:
-        plt.savefig("Tow comparison of 3 methods.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig("Tow comparison of 3 methods.pdf", format="pdf", bbox_inches=None)
     plt.show()
 
 # Functions to compare tow values and model parameters
@@ -1029,11 +1041,11 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
+    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     # compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
+    #compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
 
 if __name__ == "__main__":
     main()

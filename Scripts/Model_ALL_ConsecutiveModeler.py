@@ -17,7 +17,8 @@ import seaborn as sns
 # Internal imports
 from constants import (tow_width_specified, font_label, font_axis_ticks, figure_width, min_figure_height, 
                         color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, graph_box_thickness, font_legend,
-                        legend_box_thickness, color_borders, color_annotations, color_PDF_fits)
+                        legend_box_thickness, color_borders, color_annotations, color_PDF_fits, transparency,
+                        legend_space, annotation_thickness, annotation_stripe_height)
 from Handling_ALL_Functions import get_synced_data
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
@@ -119,7 +120,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     scale_LLSB = params_LLSB[-1]
     y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf_LLS_B, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
 
-    def annotate_mean_std(ax, data, stripe_height=0.04, lw=tick_width, show_debug=False):
+    def annotate_mean_std(ax, data, stripe_height=annotation_stripe_height, lw=annotation_thickness, show_debug=False):
         """
         Annotate `ax` with:
         - Hollow red circle at mean (y=0 in data coordinates)
@@ -187,7 +188,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     # --------PLotting----------
     plt.rc('font', family=font_TNR)
     fig, axs = plt.subplots(4, 1, figsize=(figure_width, 4*min_figure_height), sharex=True)
-    fig.subplots_adjust(hspace=0.4)
+    fig.subplots_adjust(hspace=0.4) # create space for x-axis labels
     im0 = image.imread('Figures/robotinacc.jpg')
     im1 = image.imread('Figures/tapelatmvmt.jpg')
     im2 = image.imread('Figures/tape width.jpg')
@@ -195,8 +196,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
 
     # LT plot
     axs[0].imshow(im0, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
-    axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=0.6, histtype="stepfilled", label="Experimental data")
-    axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=0.6, histtype="stepfilled", label="RWM simulation data")
+    axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
+    axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
     #axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, label="Distribution fits")
     annotate_mean_std(axs[0], LT_exp)
     axs[0].set_xlabel("Error, robot position", size=font_label)
@@ -206,8 +207,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
 
     # CAM plot
     axs[1].imshow(im1, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
-    axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=0.6, histtype="stepfilled",)
-    axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=0.6, histtype="stepfilled",)
+    axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
+    axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
     #axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits)
     annotate_mean_std(axs[1], CAM_exp)
     axs[1].set_xlabel("Error, tape lateral movement", size=font_label)
@@ -217,8 +218,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
 
     # LLS_A 
     axs[2].imshow(im2, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
-    axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=0.6, histtype="stepfilled",)
-    axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=0.6, histtype="stepfilled",)
+    axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+    axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     #axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits)
     annotate_mean_std(axs[2], LLSA_exp)
     axs[2].set_xlabel("Error, tape width before compaction", size=font_label)
@@ -228,9 +229,9 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
 
     # LLS_B plot
     axs[3].imshow(im3, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
-    axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=0.6, histtype="stepfilled",)
-    axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=0.6, histtype="stepfilled",)
-    axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits)
+    axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+    axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+    #axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits)
     annotate_mean_std(axs[3], LLSB_exp)
     axs[3].set_xlabel("Error, tape width after compaction", size=font_label)
     axs[3].set_ylabel("Density", size=font_label)
@@ -246,23 +247,21 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
         ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         for spine in ax.spines.values():
             spine.set_linewidth(graph_box_thickness)                                    # black box around figure
-            spine.set_edgecolor('black')
+            spine.set_edgecolor(color_borders)
         for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
             label.set_fontname(font_TNR)
             label.set_fontsize(font_axis_ticks)
 
     handles, labels = axs[0].get_legend_handles_labels()
-    fig.subplots_adjust(bottom=0.18)                                # create space for legend without altering figure size
+    fig.subplots_adjust(bottom=legend_space)                                # create space for legend without altering figure size
     legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
     frame = legend.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
     frame.set_facecolor('white')
-    #frame.set_alpha(1.0)
-
 
     if save_PDF == True:
-        plt.savefig("source wise validation_310 tows new.pdf", format="pdf", bbox_inches=None, dpi=600)
+        plt.savefig("source wise validation_310 tows without legend.pdf", format="pdf", bbox_inches=None, dpi=600)
 
     plt.show()
 
@@ -1123,7 +1122,7 @@ def main():
     #Gap_Histogram(30)
     #KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True)
+    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

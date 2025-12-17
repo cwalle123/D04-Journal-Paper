@@ -48,18 +48,22 @@ figure_width = 345 / 72.27                      #points/points per inch = inch, 
 min_figure_height = 0.382 * figure_width        #Aspect ratio (heigt:width) of shortest figure (figure 8) * figure width. Figure heights should be multiples of this value, then Latex will take care of the scaling
 graph_line_thickness = 0.25                     #points
 legend_line_thickness = 1                       #points
+annotation_thickness = 0.75                     #points
+annotation_stripe_height = 0.04                 #points
 tick_width = 0.5                                #points
 tick_length = 3                                 #points
 graph_box_thickness = 0.5                       #points
 legend_box_thickness = graph_box_thickness      #points, has to be the same as graph box thickness
 
-color_exp = (0.3098, 0.6353, 0.8196)                              # AKA Experiment
-color_RW = "green"                              # AKA MCMC
-color_RS = "orange"                             # AKA MC
-color_annotations = (0.8196, 0.2745, 0)                    # axis annotations figure 2
-color_PDF_fits = (1, 0.6667, 0, 0.8)       # PDF color figure 2 orange
-color_borders = "black"                         # graph boxes, legends etc.
-transparency = 0.6                              # transparency of shaded areas
+color_exp = (0, 0.4470, 0.7410)                 # AKA Experiment, blue
+color_RW = (0.22, 0.51, 0.35)                   # AKA MCMC, green
+color_RS = (0.8, 0.7, 0.2)                      # AKA MC, orange
+color_annotations = (0.8500, 0.3250, 0.0980)    # axis annotations figure 2, redish
+color_PDF_fits = (0.9290, 0.6940, 0.1250)       # PDF color figure 2, orange
+color_borders = (0, 0, 0)                       # graph boxes, legends etc.
+transparency = 0.8                              # transparency of shaded areas
+
+legend_space = 0.18
 
 ##############################################################################################################
 """Model Parameters"""
