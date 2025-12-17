@@ -48,9 +48,9 @@ figure_width = 345 / 72.27                      #points/points per inch = inch, 
 min_figure_height = 0.382 * figure_width        #Aspect ratio (heigt:width) of shortest figure (figure 8) * figure width. Figure heights should be multiples of this value, then Latex will take care of the scaling
 graph_line_thickness = 0.25                     #points
 legend_line_thickness = 1                       #points
-tick_width = 0.25                               #points
-tick_length = 2                                 #points
-graph_box_thickness = 0.25                      #points
+tick_width = 0.5                                #points
+tick_length = 3                                 #points
+graph_box_thickness = 0.5                       #points
 legend_box_thickness = graph_box_thickness      #points, has to be the same as graph box thickness
 
 color_exp = "blue"              # AKA Experiment

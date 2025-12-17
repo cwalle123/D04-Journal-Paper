@@ -117,7 +117,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     scale_LLSB = params_LLSB[-1]
     y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf_LLS_B, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
 
-    def annotate_mean_std(ax, data, stripe_height=0.08, lw=1.5, show_debug=False):
+    def annotate_mean_std(ax, data, stripe_height=0.04, lw=tick_width, show_debug=False):
         """
         Annotate `ax` with:
         - Hollow red circle at mean (y=0 in data coordinates)
@@ -154,13 +154,13 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
 
         # 1) Hollow circle at (mean, 0)
         ax.plot(mean, 0,
-                marker='o', markersize=7,
-                markerfacecolor='none', markeredgecolor='red',
+                marker='o', markersize=3,
+                markerfacecolor='none', markeredgecolor='orange',
                 markeredgewidth=lw, zorder=1000, clip_on=False)
 
         # 2) Horizontal ±1σ line at y=0
         ax.hlines(0, mean - std, mean + std,
-                colors='red', linewidth=2, zorder=900, clip_on=False)
+                colors='orange', linewidth=lw, zorder=900, clip_on=False)
 
         # 3) Compute y=0 in axes fraction
         disp_x0, disp_y0 = ax.transData.transform((mean, 0))
@@ -179,23 +179,23 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
         for x in (mean - std, mean + std):
             ax.plot([x, x], [y_low, y_high],
                     transform=trans,
-                    color='red', linewidth=lw,
+                    color='orange', linewidth=lw,
                     zorder=950, clip_on=False)
 
     # --------PLotting----------
     plt.rc('font', family=font_TNR)
+    fig, axs = plt.subplots(4, 1, figsize=(figure_width, 4*min_figure_height), sharex=True)
+    fig.subplots_adjust(hspace=0.35)
     im0 = image.imread('Figures/robotinacc.jpg')
     im1 = image.imread('Figures/tapelatmvmt.jpg')
     im2 = image.imread('Figures/tape width.jpg')
     im3 = image.imread('Figures/tapecompaction.jpg')
 
-    fig, axs = plt.subplots(4, 1, figsize=(figure_width, 4*min_figure_height), sharex=True)
-
     # LT plot
     axs[0].imshow(im0, aspect='auto', extent=(0.873, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
     axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=0.6, label="Experimental data")
     axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=0.6, label="RWM simulation data")
-    axs[0].plot(x_pdf_LT, y_pdf_LT, color='yellow', label="Distribution fits")
+    #axs[0].plot(x_pdf_LT, y_pdf_LT, color='yellow', label="Distribution fits")
     annotate_mean_std(axs[0], LT_exp)
     axs[0].set_xlabel("Error, robot position", size=font_label)
     axs[0].set_ylabel("Density", size=font_label)
@@ -206,7 +206,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[1].imshow(im1, aspect='auto', extent=(0.873, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
     axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=0.6)
     axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=0.6)
-    axs[1].plot(x_pdf_CAM, y_pdf_CAM, color='yellow')
+    #axs[1].plot(x_pdf_CAM, y_pdf_CAM, color='yellow')
     annotate_mean_std(axs[1], CAM_exp)
     axs[1].set_xlabel("Error, tape lateral movement", size=font_label)
     axs[1].set_ylabel("Density", size=font_label)
@@ -217,7 +217,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[2].imshow(im2, aspect='auto', extent=(0.873, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
     axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=0.6)
     axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=0.6)
-    axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color='yellow')
+    #axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color='yellow')
     annotate_mean_std(axs[2], LLSA_exp)
     axs[2].set_xlabel("Error, tape width before compaction", size=font_label)
     axs[2].set_ylabel("Density", size=font_label)
@@ -228,7 +228,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[3].imshow(im3, aspect='auto', extent=(0.873, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
     axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=0.6)
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=0.6)
-    axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color='yellow')
+    #axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color='yellow')
     annotate_mean_std(axs[3], LLSB_exp)
     axs[3].set_xlabel("Error, tape width after compaction", size=font_label)
     axs[3].set_ylabel("Density", size=font_label)
@@ -249,16 +249,12 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
             label.set_fontname(font_TNR)
             label.set_fontsize(font_axis_ticks)
 
-    # Get custom order for legend entries
     handles, labels = axs[0].get_legend_handles_labels()
-    desired_order = [0, 1, 2]
-    handles = [handles[i] for i in desired_order]
-    labels = [labels[i] for i in desired_order]
-    plt.tight_layout(rect=[0, 0.05, 1, 1])
-    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.06), ncol=1, fontsize=font_legend, frameon=True)
+    fig.subplots_adjust(bottom=0.18)
+    fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, frameon=True)
 
     if save_PDF == True:
-        plt.savefig("source wise validation_310 tows.pdf", format="pdf", bbox_inches="tight", dpi=600)
+        plt.savefig("source wise validation_310 tows new.pdf", format="pdf", bbox_inches=None, dpi=600)
 
     plt.show()
 
@@ -1119,9 +1115,7 @@ def main():
     #Gap_Histogram(30)
     #KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
-    import matplotlib
-    print(matplotlib.get_backend())
+    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
