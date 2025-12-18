@@ -25,8 +25,8 @@ from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow, generate_RW
 from Model_ALL_RandomSampling import generate_RS_multitow, generate_RS_multitow_layout_lengths
 from constants import (number_of_steps, Consecutive_Error_Bins, y_increment_traverse, y_increment_programmed, 
                        font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, 
-                       font_TNR, tick_length, tick_width, graph_box_thickness, font_legend, color_borders, legend_box_thickness
-                       )
+                       font_TNR, tick_length, tick_width, graph_box_thickness, font_legend, color_borders, legend_box_thickness,
+                       graph_line_thickness, legend_line_thickness, legend_space)
 
 ##############################################################################################################
 """Functions"""
@@ -313,9 +313,9 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     fig.subplots_adjust(hspace=0)
 
     # Real tow
-    ax.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp)
-    ax.plot(x_real_left, y_real_left, "-", color=color_exp, label="Experimental")
-    ax.plot(x_real_right, y_real_right, "-", color=color_exp)
+    ax.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp, linewidth=graph_line_thickness)
+    ax.plot(x_real_left, y_real_left, "-", color=color_exp, linewidth=graph_line_thickness, label="Experimental")
+    ax.plot(x_real_right, y_real_right, "-", color=color_exp, linewidth=graph_line_thickness)
 
     # Simulated tow
     #plt.plot(x_D04_centerline, y_D04_centerline, "--", color="orange", label="D04 centerline")
@@ -323,37 +323,41 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     #plt.plot(x_D04_right, y_D04_right, "-", color="orange")
 
     # Random Walk tow
-    ax.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW)
-    ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, label="MCMC simulation")
-    ax.plot(x_RW_right, y_RW_right, "-", color=color_RW)
+    ax.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW, linewidth=graph_line_thickness)
+    ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
+    ax.plot(x_RW_right, y_RW_right, "-", color=color_RW, linewidth=graph_line_thickness)
 
     # Random sampling tow
-    ax.plot(x_RS_centerline, y_RS_centerline, "--", color=color_RS)
-    ax.plot(x_RS_left, y_RS_left, "-", color=color_RS, label="MC simulation")
-    ax.plot(x_RS_right, y_RS_right, "-", color=color_RS)
+    ax.plot(x_RS_centerline, y_RS_centerline, "--", color=color_RS, linewidth=graph_line_thickness)
+    ax.plot(x_RS_left, y_RS_left, "-", color=color_RS, linewidth=graph_line_thickness, label="MC simulation")
+    ax.plot(x_RS_right, y_RS_right, "-", color=color_RS, linewidth=graph_line_thickness)
+
+    ax.set_xlabel("Tow Length (mm)", fontsize=font_label, fontname=font_TNR)
+    ax.set_ylabel("Position (mm)", fontsize=font_label, fontname=font_TNR)
 
     mpl.rcParams['font.family'] = 'serif'
     mpl.rcParams['font.serif'] = [font_TNR]
     mpl.rcParams['mathtext.fontset'] = 'stix'
     mpl.rcParams['xtick.labelsize'] = font_axis_ticks
     mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-    ax.set_xlabel("Tow Length (mm)", fontsize=font_label, fontname=font_TNR)
-    ax.set_ylabel("Position (mm)", fontsize=font_label, fontname=font_TNR)
-    
-    for spine in ax.spines.values():
-        spine.set_linewidth(graph_box_thickness)
-        spine.set_edgecolor(color_borders)
+
     ax.xaxis.set_ticks_position('both')
     ax.yaxis.set_ticks_position('both')
-    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=tick_length, width=tick_width)
-    for label in ax.get_xticklabels() + ax.get_yticklabels():
+    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
+                   length=tick_length, width=tick_width)                            # tick dimensions
+    for spine in ax.spines.values():
+        spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+        spine.set_edgecolor(color_borders)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
         label.set_fontname(font_TNR)
-        label.set_fontsize(font_label)
+        label.set_fontsize(font_axis_ticks)
 
     fig.subplots_adjust(bottom=0.3)
     legend_ax = fig.add_axes([0, 0.1, 1, 0.1], frameon=False) 
     legend_ax.axis('off')
     legend = legend_ax.legend(handles=ax.get_legend_handles_labels()[0], labels=ax.get_legend_handles_labels()[1], fontsize=font_legend, loc='upper center', ncols=1, fancybox=False)
+    for legobj in legend.legend_handles:
+        legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)

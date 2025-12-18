@@ -18,7 +18,8 @@ import seaborn as sns
 from constants import (tow_width_specified, font_label, font_axis_ticks, figure_width, min_figure_height, 
                         color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, graph_box_thickness, font_legend,
                         legend_box_thickness, color_borders, color_annotations, color_PDF_fits, transparency,
-                        legend_space, annotation_thickness, annotation_stripe_height)
+                        legend_space, annotation_thickness, annotation_stripe_height, legend_line_thickness, graph_line_thickness,
+                        color_ideal_gap, transparency)
 from Handling_ALL_Functions import get_synced_data
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
@@ -200,7 +201,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
     #axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, label="Distribution fits")
     annotate_mean_std(axs[0], LT_exp)
-    axs[0].set_xlabel("Error, robot position", size=font_label)
+    axs[0].set_xlabel("Error, robot position", size=font_label,)
     axs[0].set_ylabel("Density", size=font_label)
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
     axs[0].xaxis.set_tick_params(labelbottom=True)
@@ -238,6 +239,12 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
     axs[3].xaxis.set_tick_params(labelbottom=True)
 
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+
     for i, ax in enumerate(axs):
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
@@ -255,6 +262,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     handles, labels = axs[0].get_legend_handles_labels()
     fig.subplots_adjust(bottom=legend_space)                                # create space for legend without altering figure size
     legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
+    for legobj in legend.legend_handles:
+        legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
@@ -923,7 +932,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         plt.show()
 
     if plottype == "single no D04":
-        plt.figure(figsize=(figure_width, 3*min_figure_height))
+        fig, axs = plt.subplots(2, 1, figsize=(figure_width, 3*min_figure_height))
+        fig.subplots_adjust(hspace=0.2) # create space for x-axis labels
 
         # Shift data so that ideal gap is at x = 0
         bins = np.linspace(-1.3, 1.3, 101)
@@ -931,90 +941,56 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         rw_shift  = np.array(RW_gap_data) - ideal_gap_center
         rs_shift  = np.array(RS_gap_data) - ideal_gap_center
         
-        plt.subplot(211)
-        plt.hist(exp_shift, bins=bins, density=True, alpha=0.6, color=color_exp, label="Experimental")
-        plt.hist(rw_shift, bins=bins, density=True, alpha=0.6, color=color_RW, label="MCMC simulation")
-        #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
-        #sns.kdeplot(RW_gap_data, label="RW", color="green", linewidth=2)
-        #plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        #plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
-        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
+        axs[0].hist(rw_shift, bins=bins, density=True, alpha=transparency, color=color_RW, label="MCMC simulation")
+        axs[0].axhline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
+        #axs[0].set_xlabel("Gap (mm)", fontsize=font_label)
+        axs[0].set_ylabel("Density", fontsize=font_label)
+        axs[0].set_xlim(-1.3, 1.3)
+        axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
+        axs[0].xaxis.set_tick_params(labelbottom=False)
+
+        axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
+        axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, color=color_RS, label="MC simulation")
+        axs[1].axhline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
+        axs[1].set_xlabel("Gap (mm)", fontsize=font_label)
+        axs[1].set_ylabel("Density", fontsize=font_label)
+        axs[1].set_xlim(-1.3, 1.3)
+        axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
 
         mpl.rcParams['font.family'] = 'serif'
         mpl.rcParams['font.serif'] = [font_TNR]
         mpl.rcParams['mathtext.fontset'] = 'stix'
         mpl.rcParams['xtick.labelsize'] = font_axis_ticks
         mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
-        plt.xlabel("Gap (mm)", fontsize=font_label, fontname=font_TNR)
-        plt.ylabel("Density", fontsize=font_label, fontname=font_TNR)
-        plt.legend(fontsize=font_legend, loc='upper right', frameon=False, ncols=1)
-        x_min, x_max = -1.2, 1.2   
-
-        ax = plt.gca()
-        ax.set_xlim(x_min - 0.1, x_max + 0.1)              
-        ax.set_xticks(np.linspace(x_min, x_max, 9))
-        for spine in ax.spines.values():
-            spine.set_linewidth(graph_box_thickness)
-            spine.set_edgecolor('black')
-        ax.xaxis.set_ticks_position('both')
-        ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True,
-                    direction='in', length=tick_length, width=tick_width)
-        for label in ax.get_xticklabels() + ax.get_yticklabels():
-            label.set_fontname(font_TNR)
-            label.set_fontsize(font_label)
-        ax.axvline(0, color='black', linestyle='-.', linewidth=1)
-        ax.text(-0.02, ax.get_ylim()[1] * 0.95, "Ideal Gap", ha='right', va='top',
-                fontsize=font_label, fontname=font_TNR)
-        #plt.tight_layout()
-        #plt.show()
-
-        #plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        #plt.ylabel("Probability Density", fontsize=font_medium)
-        #plt.grid(alpha=0.5, linestyle="-")
-        #plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35))
         
-        plt.subplot(212)
-        plt.hist(exp_shift, bins=bins, density=True, alpha=0.6, color=color_exp, label="Experimental")
-        plt.hist(rs_shift, bins=bins, density=True, alpha=0.6, color=color_RS, label="MC simulation")
-        #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
-        #sns.kdeplot(RS_gap_data, label="RS", color="orange", linewidth=2)
-        #plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
-        #plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
-        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
-
-        mpl.rcParams['font.family'] = 'serif'
-        mpl.rcParams['font.serif'] = [font_TNR]
-        mpl.rcParams['mathtext.fontset'] = 'stix'
-        mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-        mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
-        plt.xlabel("Gap (mm)", fontsize=font_label, fontname=font_TNR)
-        plt.ylabel("Density", fontsize=font_label, fontname=font_TNR)
         plt.legend(fontsize=font_legend, loc='upper right', frameon=False, ncols=1)
-        x_min, x_max = -1.2, 1.2
+    
+        for i, ax in enumerate(axs):
+            ax.xaxis.set_ticks_position('both')
+            ax.yaxis.set_ticks_position('both')
+            ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
+                        length=tick_length, width=tick_width)                               # tick dimensions
+            for spine in ax.spines.values():
+                spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+                spine.set_edgecolor(color_borders)
+            for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
+                label.set_fontname(font_TNR)
+                label.set_fontsize(font_axis_ticks)
 
-        ax = plt.gca()
-        ax.set_xlim(x_min - 0.1, x_max + 0.1)
-        ax.set_xticks(np.linspace(x_min, x_max, 9))
-        for spine in ax.spines.values():
-            spine.set_linewidth(graph_box_thickness)
-            spine.set_edgecolor('black')
-        ax.xaxis.set_ticks_position('both')
-        ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True,
-                    direction='in', length=tick_length, width=tick_width)
-        for label in ax.get_xticklabels() + ax.get_yticklabels():
-            label.set_fontname(font_TNR)
-            label.set_fontsize(font_label)
-        ax.axvline(0, color='black', linestyle='-.', linewidth=1)
-        ax.text(-0.02, ax.get_ylim()[1] * 0.95, "Ideal Gap", ha='right', va='top',
-                fontsize=font_label, fontname=font_TNR)
-        plt.subplots_adjust(hspace=0.3) 
+        handles, labels = axs[0].get_legend_handles_labels()
+        fig.subplots_adjust(bottom=legend_space)                                # create space for legend without altering figure size
+        legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
+        for legobj in legend.legend_handles:
+            legobj.set_linewidth(legend_line_thickness)
+        frame = legend.get_frame()
+        frame.set_edgecolor(color_borders)
+        frame.set_linewidth(legend_box_thickness)
+        frame.set_facecolor('white')
         
         if save_PDF == True:
             plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf",bbox_inches='tight')
+        
         plt.show()
 
         #plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
@@ -1121,8 +1097,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=False)
+    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

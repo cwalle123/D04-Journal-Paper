@@ -46,8 +46,8 @@ font_legend = 10        #points
 
 figure_width = 345 / 72.27                      #points/points per inch = inch, amount of points taken from \the\textwidth in Overleaf
 min_figure_height = 0.382 * figure_width        #Aspect ratio (heigt:width) of shortest figure (figure 8) * figure width. Figure heights should be multiples of this value, then Latex will take care of the scaling
-graph_line_thickness = 0.25                     #points
-legend_line_thickness = 1                       #points
+graph_line_thickness = 1                        #points
+legend_line_thickness = 2                       #points
 annotation_thickness = 0.75                     #points
 annotation_stripe_height = 0.04                 #points
 tick_width = 0.5                                #points
@@ -61,6 +61,7 @@ color_RS = (0.8, 0.7, 0.2)                      # AKA MC, orange
 color_annotations = (0.8500, 0.3250, 0.0980)    # axis annotations figure 2, redish
 color_PDF_fits = (0.9290, 0.6940, 0.1250)       # PDF color figure 2, orange
 color_borders = (0, 0, 0)                       # graph boxes, legends etc.
+color_ideal_gap = (0.5, 0.5, 0.5)               # for figure 7, gray
 transparency = 0.8                              # transparency of shaded areas
 
 legend_space = 0.18

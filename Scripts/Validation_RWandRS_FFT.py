@@ -28,6 +28,7 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 # ----------------- Ensure imports work -----------------
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -41,7 +42,10 @@ if PROJECT_ROOT not in sys.path:
 from Model_ALL_RandomWalk import generate_RW_multitow
 from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_RandomSampling import generate_RS_multitow
-from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR, graph_box_thickness, tick_length, tick_width
+from constants import (font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, 
+                       color_RW, font_TNR, graph_box_thickness, tick_length, tick_width, graph_line_thickness,
+                       color_annotations, color_borders, color_PDF_fits, legend_space, legend_line_thickness, legend_box_thickness,
+                       font_legend)
 
 ##############################################################################################################
 """Styling & helpers"""
@@ -223,26 +227,42 @@ def run_fft_compare(
 
     # --- Plotters ---
     def plot_linear(f_exp, A_exp, f_rw, A_rw, f_rs, A_rs, title_suffix=""):
-        plt.figure(figsize=(figure_width, 2*min_figure_height))
-        plt.plot(f_exp, A_exp, label="Experimental", color=color_exp, linewidth=LINEWIDTH, linestyle="-")
-        plt.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=LINEWIDTH, linestyle="-")
-        plt.plot(f_rs,  A_rs,  label="MC simulation", color=color_RS, linewidth=LINEWIDTH, linestyle="-")
-        plt.xlabel("Spatial frequency (cycles/m)")
-        plt.ylabel("Amplitude (mm)")
-        plt.grid(False)
-        plt.legend(frameon=False)
-        plt.xlim(0, 300)
-        ax = plt.gca()
-        for spine in ax.spines.values():
-            spine.set_linewidth(graph_box_thickness)
-            spine.set_edgecolor('black')
+        fig, ax = plt.subplots(1, 1, figsize=(figure_width, 2*min_figure_height))
+        fig.subplots_adjust(hspace=0)
+        ax.plot(f_exp, A_exp, label="Experimental", color=color_exp, linewidth=graph_line_thickness, linestyle="-")
+        ax.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=graph_line_thickness, linestyle="-")
+        ax.plot(f_rs,  A_rs,  label="MC simulation", color=color_RS, linewidth=graph_line_thickness, linestyle="-")
+        ax.set_xlabel("Spatial frequency (cycles/m)")
+        ax.set_ylabel("Amplitude (mm)")
+        ax.grid(False)
+        ax.set_xlim(0, 300)
+
+        mpl.rcParams['font.family'] = 'serif'
+        mpl.rcParams['font.serif'] = [font_TNR]
+        mpl.rcParams['mathtext.fontset'] = 'stix'
+        mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+        mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+        
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=tick_length, width=tick_width)
-        for label in ax.get_xticklabels() + ax.get_yticklabels():
+        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
+                    length=tick_length, width=tick_width)                            # tick dimensions
+        for spine in ax.spines.values():
+            spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+            spine.set_edgecolor(color_borders)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
             label.set_fontname(font_TNR)
-            label.set_fontsize(font_label)
-        plt.tight_layout()
+            label.set_fontsize(font_axis_ticks)
+        
+        handles, labels = ax.get_legend_handles_labels()
+        fig.subplots_adjust(bottom=0.36)                                # create space for legend without altering figure size
+        legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
+        for legobj in legend.legend_handles:
+            legobj.set_linewidth(legend_line_thickness)
+        frame = legend.get_frame()
+        frame.set_edgecolor(color_borders)
+        frame.set_linewidth(legend_box_thickness)
+        frame.set_facecolor('white')
 
     def plot_loglog(f_exp, A_exp, f_rw, A_rw, f_rs, A_rs, title_suffix=""):
         m_exp = f_exp > 0
@@ -297,7 +317,7 @@ def run_fft_compare(
 
     # Save PDF
     if save_PDF == True:
-        plt.savefig("FFT_RS_RW_2.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig("FFT_RS_RW_2.pdf", format="pdf", bbox_inches=None)
 
     if show_plots or show_loglog:
         plt.show()
