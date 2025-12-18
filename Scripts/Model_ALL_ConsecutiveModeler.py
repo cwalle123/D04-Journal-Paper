@@ -949,6 +949,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[0].set_xlim(-1.3, 1.3)
         axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
         axs[0].xaxis.set_tick_params(labelbottom=False)
+        leg0 = axs[0].legend(loc='upper right', ncol=1, fontsize=font_legend, fancybox=False)
+        #leg0.set_linewidth(legend_line_thickness)
 
         axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
         axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, color=color_RS, label="MC simulation")
@@ -957,14 +959,14 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[1].set_ylabel("Density", fontsize=font_label)
         axs[1].set_xlim(-1.3, 1.3)
         axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
+        leg1 = axs[1].legend(loc='upper right', ncol=1, fontsize=font_legend, fancybox=False)
+        #leg1.set_linewidth(legend_line_thickness)
 
         mpl.rcParams['font.family'] = 'serif'
         mpl.rcParams['font.serif'] = [font_TNR]
         mpl.rcParams['mathtext.fontset'] = 'stix'
         mpl.rcParams['xtick.labelsize'] = font_axis_ticks
         mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-        
-        plt.legend(fontsize=font_legend, loc='upper right', frameon=False, ncols=1)
     
         for i, ax in enumerate(axs):
             ax.xaxis.set_ticks_position('both')
@@ -977,16 +979,13 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
             for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
                 label.set_fontname(font_TNR)
                 label.set_fontsize(font_axis_ticks)
-
-        handles, labels = axs[0].get_legend_handles_labels()
-        fig.subplots_adjust(bottom=legend_space)                                # create space for legend without altering figure size
-        legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
-        for legobj in legend.legend_handles:
-            legobj.set_linewidth(legend_line_thickness)
-        frame = legend.get_frame()
-        frame.set_edgecolor(color_borders)
-        frame.set_linewidth(legend_box_thickness)
-        frame.set_facecolor('white')
+            legend = leg0 if i == 0 else leg1
+            for legobj in legend.legend_handles:
+                legobj.set_linewidth(legend_line_thickness)
+            frame = legend.get_frame()
+            frame.set_edgecolor(color_borders)
+            frame.set_linewidth(legend_box_thickness)
+            frame.set_facecolor('white')
         
         if save_PDF == True:
             plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf",bbox_inches='tight')
