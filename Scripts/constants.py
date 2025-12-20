@@ -50,6 +50,7 @@ graph_line_thickness = 1                        #points
 legend_line_thickness = 2                       #points
 annotation_thickness = 0.75                     #points
 annotation_stripe_height = 0.04                 #points
+break_marker_thickness = 1                      #points
 tick_width = 0.5                                #points
 tick_length = 3                                 #points
 graph_box_thickness = 0.5                       #points

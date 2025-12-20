@@ -12,7 +12,7 @@ import random
 from scipy.stats import norm, pareto
 import sys, os
 from brokenaxes import brokenaxes
-from matplotlib.transforms import BlendedGenericTransform
+from matplotlib.gridspec import GridSpecFromSubplotSpec
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 #Internal imports
@@ -26,7 +26,7 @@ from Model_ALL_RandomSampling import generate_RS_multitow, generate_RS_multitow_
 from constants import (number_of_steps, Consecutive_Error_Bins, y_increment_traverse, y_increment_programmed, 
                        font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, 
                        font_TNR, tick_length, tick_width, graph_box_thickness, font_legend, color_borders, legend_box_thickness,
-                       graph_line_thickness, legend_line_thickness, legend_space)
+                       graph_line_thickness, legend_line_thickness, legend_space, transparency, break_marker_thickness)
 
 ##############################################################################################################
 """Functions"""
@@ -889,12 +889,12 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     # Figure layout: TOP + (BOTTOM broken axis)
     # ============================================================
-    fig = plt.figure(figsize=(figure_width, 4 * min_figure_height))
+    fig = plt.figure(figsize=(figure_width, 4*min_figure_height))
 
     # Main grid: top panel, and a lower area that will hold 2 touching panels
     gs = fig.add_gridspec(
         2, 1,
-        height_ratios=[1.7, 1.7],   # top unaffected, bottom large block
+        height_ratios=[1.62, 1.91],   # top unaffected, bottom large block
         hspace=0.25                 # spacing only between top and bottom
     )
 
@@ -904,22 +904,28 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # --- Bottom panel split into 2 touching axes
     bottom_gs = gs[1].subgridspec(
         2, 1,
-        height_ratios=[0.2, 1],
+        height_ratios=[0.3, 1],
         hspace=0.1                    # THIS makes them TOUCH
     )
 
     ax_bottom_top = fig.add_subplot(bottom_gs[0], sharex=ax_top)
     ax_bottom_bottom = fig.add_subplot(bottom_gs[1], sharex=ax_top)
 
-
     # ============================================================
     # TOP SUBPLOT
     # ============================================================
-    ax_top.hist(gap_RW, bins=shared_bins, color=color_RW, alpha=0.6, label="MCMC simulation", edgecolor="black", linewidth=0.6)
-    ax_top.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=0.6, label="Experimental", edgecolor="black", linewidth=0.6)
+    ax_top.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
+    ax_top.hist(gap_RW, bins=shared_bins, color=color_RW, alpha=transparency, label="MCMC simulation")
+    ax_top.xaxis.set_tick_params(labelbottom=False)
 
     ax_top.set_xlim(*xlim)
     ax_top.set_ylim(0, 160)
+
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
 
     ax_top.set_ylabel("Frequency", fontsize=font_label, fontname=font_TNR)
     ax_top.tick_params(axis="both", labelsize=font_axis_ticks, direction="in",
@@ -929,10 +935,16 @@ def compare_real_vs_RS_RW_gap_length_distributions(
 
     for spine in ax_top.spines.values():
         spine.set_linewidth(graph_box_thickness)
-        spine.set_edgecolor("black")
+        spine.set_edgecolor(color_borders)
+    for label in ax_top.get_xticklabels() + ax_top.get_yticklabels():                       # tick labels
+        label.set_fontname(font_TNR)
+        label.set_fontsize(font_axis_ticks)
 
-    ax_top.legend(prop={"family": font_TNR, "size": font_legend}, frameon=False)
-
+    legend_top = ax_top.legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
+    frame = legend_top.get_frame()
+    frame.set_edgecolor(color_borders)
+    frame.set_linewidth(legend_box_thickness)
+    frame.set_facecolor('white')
 
     # ============================================================
     # BOTTOM SUBPLOTS — BROKEN AXIS
@@ -942,24 +954,42 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     peak_max = 1100
 
     # Upper small range
-    ax_bottom_top.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=0.6, edgecolor="black", linewidth=0.6)
-    ax_bottom_top.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=0.6, edgecolor="black", linewidth=0.6)
+    ax_bottom_top.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
+    ax_bottom_top.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
     ax_bottom_top.set_ylim(peak_min, peak_max)
+
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
 
     for spine in ax_bottom_top.spines.values():
         spine.set_linewidth(graph_box_thickness)
-        spine.set_edgecolor("black")
+        spine.set_edgecolor(color_borders)
+    for label in ax_bottom_top.get_xticklabels() + ax_bottom_top.get_yticklabels():                       # tick labels
+        label.set_fontname(font_TNR)
+        label.set_fontsize(font_axis_ticks)
 
     # Lower full range
-    ax_bottom_bottom.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=0.6, label="MC simulation", edgecolor="black", linewidth=0.6)
-    ax_bottom_bottom.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=0.6, label="Experimental", edgecolor="black", linewidth=0.6)
+    ax_bottom_bottom.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
+    ax_bottom_bottom.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
 
     ax_bottom_bottom.set_ylim(0, 140)
     ax_bottom_bottom.set_xlim(*xlim)
 
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+
     for spine in ax_bottom_bottom.spines.values():
         spine.set_linewidth(graph_box_thickness)
-        spine.set_edgecolor("black")
+        spine.set_edgecolor(color_borders)
+    for label in ax_bottom_bottom.get_xticklabels() + ax_bottom_bottom.get_yticklabels():                       # tick labels
+        label.set_fontname(font_TNR)
+        label.set_fontsize(font_axis_ticks)
 
     # Remove touching spines
     ax_bottom_top.spines.bottom.set_visible(False)
@@ -969,6 +999,11 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     ax_bottom_top.tick_params(axis="x", bottom=False, labelbottom=False)
     ax_bottom_top.tick_params(axis="both", labelsize=font_axis_ticks, direction="in",
                               right=True, top=True, left=True, length=tick_length, width=tick_width)
+    legend_bottom_top = ax_bottom_top.legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
+    frame = legend_bottom_top.get_frame()
+    frame.set_edgecolor(color_borders)
+    frame.set_linewidth(legend_box_thickness)
+    frame.set_facecolor('white')
 
     ax_bottom_bottom.tick_params(axis="both", labelsize=font_axis_ticks, direction="in",
                                  right=True, length=tick_length, width=tick_width)
@@ -976,7 +1011,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     # AXIS BREAK MARKERS (standard diagonal slashes)
     # ============================================================
-    def break_marker(ax, position="bottom", slope=1.0, size=0.02):
+    def break_marker(ax, position="bottom", slope=1.0, size=0.012):
         """
         Draw parallel diagonal break markers.
         
@@ -990,7 +1025,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         dx = size
         dy = size * slope
 
-        kwargs = dict(transform=ax.transAxes, color="black", lw=1.4, clip_on=False)
+        kwargs = dict(transform=ax.transAxes, color=color_borders, lw=break_marker_thickness, clip_on=False)
 
         y0 = 0 if position == "bottom" else 1
 
@@ -1002,20 +1037,17 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         ax.plot([1 - dx, 1 + dx], [y0 - dy, y0 + dy], **kwargs)
         ax.plot([1 - dx, 1 + dx], [y0 - dy, y0 + dy], **kwargs)
 
-    break_marker(ax_bottom_top, "bottom", slope=5)
+    break_marker(ax_bottom_top, "bottom", slope=3.33)
     break_marker(ax_bottom_bottom, "top")
-
+    
     # ============================================================
     # Bottom labels
     # ============================================================
     ax_bottom_bottom.set_xlabel("Gap Length (mm)", fontsize=font_label, fontname=font_TNR)
     ax_bottom_bottom.set_ylabel("Frequency", fontsize=font_label, fontname=font_TNR)
-    ax_bottom_bottom.legend(prop={"family": font_TNR, "size": font_legend}, frameon=False)
-
-    fig.tight_layout()
 
     if save_PDF:
-        fig.savefig("RWandRSdefectlength2.pdf", format="pdf", dpi=300, bbox_inches="tight")
+        fig.savefig("RWandRSdefectlength2.pdf", format="pdf", dpi=300, bbox_inches=None)
 
     plt.show()
 
@@ -1045,11 +1077,11 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
+    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    # compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    #compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
+    #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
+    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
 
 if __name__ == "__main__":
     main()

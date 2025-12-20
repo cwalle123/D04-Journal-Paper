@@ -943,24 +943,21 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         
         axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
         axs[0].hist(rw_shift, bins=bins, density=True, alpha=transparency, color=color_RW, label="MCMC simulation")
-        axs[0].axhline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
-        #axs[0].set_xlabel("Gap (mm)", fontsize=font_label)
+        #axs[0].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
         axs[0].set_ylabel("Density", fontsize=font_label)
         axs[0].set_xlim(-1.3, 1.3)
         axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
         axs[0].xaxis.set_tick_params(labelbottom=False)
-        leg0 = axs[0].legend(loc='upper right', ncol=1, fontsize=font_legend, fancybox=False)
-        #leg0.set_linewidth(legend_line_thickness)
+        leg0 = axs[0].legend(loc='upper left', ncol=1, fontsize=font_legend, fancybox=False)
 
         axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
         axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, color=color_RS, label="MC simulation")
-        axs[1].axhline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
+        #axs[1].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
         axs[1].set_xlabel("Gap (mm)", fontsize=font_label)
         axs[1].set_ylabel("Density", fontsize=font_label)
         axs[1].set_xlim(-1.3, 1.3)
         axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
-        leg1 = axs[1].legend(loc='upper right', ncol=1, fontsize=font_legend, fancybox=False)
-        #leg1.set_linewidth(legend_line_thickness)
+        leg1 = axs[1].legend(loc='upper left', ncol=1, fontsize=font_legend, fancybox=False)
 
         mpl.rcParams['font.family'] = 'serif'
         mpl.rcParams['font.serif'] = [font_TNR]
@@ -988,17 +985,9 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
             frame.set_facecolor('white')
         
         if save_PDF == True:
-            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf",bbox_inches='tight')
+            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf",bbox_inches=None)
         
         plt.show()
-
-        #plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
-        #plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35))
-        #plt.xlabel("Gap (mm)", fontsize=font_medium)
-        #plt.grid(alpha=0.5, linestyle="-")
-        
-        #plt.ylabel("Probability Density", fontsize=font_medium)
-        #plt.show()
 
     if plottype == "separate":
         
