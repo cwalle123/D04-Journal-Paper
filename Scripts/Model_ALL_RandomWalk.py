@@ -16,10 +16,15 @@ from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, g
 from tqdm import tqdm
 import os
 from scipy.stats import pareto
+import matplotlib as mpl
 
 # Internal imports
 from Handling_ALL_Functions import get_synced_data, get_data
-from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR, font_legend, graph_box_thickness, tick_length, tick_width
+from constants import (font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, 
+                       font_TNR, font_legend, graph_box_thickness, tick_length, tick_width, color_gap, color_overlap,
+                       graph_line_thickness, legend_box_thickness, legend_line_thickness, legend_space,
+                       annotation_stripe_height, annotation_thickness, color_annotations, color_borders, color_ideal_gap,
+                       transparency)
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 
@@ -684,12 +689,12 @@ def analyze_tow_spacing_effect(
         print(f"\n✅ Results (with std/min/max + intersections) saved to:\n   {csv_path}")
 
     # -------- Plot --------
-    plt.figure(figsize=(figure_width, min_figure_height))
-    ax = plt.gca()
+    fig, ax = plt.subplots(1, 1, figsize=(figure_width, min_figure_height))
+    fig.subplots_adjust(hspace=0)
 
     # Lines
-    ax.plot(spacing_arr, gap_arr, color="blue", label="Gap", linewidth=1)
-    ax.plot(spacing_arr, overlap_arr, color="red", label="Overlap", linewidth=1)
+    ax.plot(spacing_arr, gap_arr, color=color_gap, label="Gap", linewidth=graph_line_thickness)
+    ax.plot(spacing_arr, overlap_arr, color=color_overlap, label="Overlap", linewidth=graph_line_thickness)
 
     # ----- Error Display Logic -----
     # ----- Error areas (shaded regions) -----
@@ -708,9 +713,9 @@ def analyze_tow_spacing_effect(
             overlap_upper = overlap_arr + results_df["Overlap Std (%)"]
 
         ax.fill_between(spacing_arr, gap_lower, gap_upper,
-                        alpha=0.15, color="blue")
+                        alpha=1-transparency, color=color_gap, linewidth=0, edgecolor='none')
         ax.fill_between(spacing_arr, overlap_lower, overlap_upper,
-                        alpha=0.15, color="red")
+                        alpha=1-transparency, color=color_overlap, linewidth=0, edgecolor='none')
 
     # ----- Error bars (only if NOT using shaded areas) -----
     if error_bars:
@@ -721,43 +726,54 @@ def analyze_tow_spacing_effect(
                                     results_df["Overlap Max (%)"] - overlap_arr])
 
             ax.errorbar(spacing_arr, gap_arr, yerr=yerr_gap,
-                        fmt='none', color='blue', capsize=3, linewidth=1)
+                        fmt='none', color=color_gap, capsize=3, linewidth=annotation_thickness)
             ax.errorbar(spacing_arr, overlap_arr, yerr=yerr_overlap,
-                        fmt='none', color='red', capsize=3, linewidth=1)
+                        fmt='none', color=color_overlap, capsize=3, linewidth=annotation_thickness)
 
         else:
             ax.errorbar(spacing_arr, gap_arr, yerr=results_df["Gap Std (%)"],
-                        fmt='none', color='blue', capsize=3, linewidth=1)
+                        fmt='none', color=color_gap, capsize=3, linewidth=annotation_thickness)
             ax.errorbar(spacing_arr, overlap_arr, yerr=results_df["Overlap Std (%)"],
-                        fmt='none', color='red', capsize=3, linewidth=1)
+                        fmt='none', color=color_overlap, capsize=3, linewidth=annotation_thickness)
 
-    # Formatting
-    plt.xlabel("Programmed shift (mm)", fontname=font_TNR, fontsize=font_label)
-    plt.ylabel("Defect area (%)", fontname=font_TNR, fontsize=font_label)
-    plt.xticks(fontname=font_TNR, fontsize=font_axis_ticks)
-    plt.yticks(fontname=font_TNR, fontsize=font_axis_ticks)
-    plt.legend(prop={"family": font_TNR, "size": font_legend}, frameon=False, loc='upper right')
-    plt.tight_layout()
-
-    ax.tick_params(top=True, bottom=True, left=True, right=True,
-                   direction='in', length=tick_length, width=tick_width)
-
+    ax.set_xlabel("Programmed shift (mm)", size=font_label)
+    ax.set_ylabel("Defect area (%)", size=font_label)
+    
     # Axis limits (original)
     ax.set_xlim(5, 7.5)
     ax.set_ylim(0, 10)
 
-    # Box border
-    for spine in ax.spines.values():
-        spine.set_visible(True)
-        spine.set_linewidth(graph_box_thickness)
-        spine.set_color("black")
+    # Formatting
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
 
-    #if existing_data is None:
-    #    plt.savefig(f"Tow_spacing_effect_{proposal_type}_with_{num_simulations}_simulations_of_a_{num_tows_per_simulation}_tow_laminate.svg", format="svg", dpi=300)
+    ax.xaxis.set_ticks_position('both')
+    ax.yaxis.set_ticks_position('both')
+    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
+                   length=tick_length, width=tick_width)                            # tick dimensions
+    for spine in ax.spines.values():
+        spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+        spine.set_edgecolor(color_borders)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
+        label.set_fontname(font_TNR)
+        label.set_fontsize(font_axis_ticks)
+
+    handles, labels = ax.get_legend_handles_labels()
+    fig.subplots_adjust(bottom=0.2)
+    legend = fig.legend(handles, labels, loc='upper left', ncol=1, fontsize=font_legend, fancybox=False, borderaxespad=5) #create legend with black box
+    for legobj in legend.legend_handles:
+        legobj.set_linewidth(legend_line_thickness)
+    frame = legend.get_frame()
+    frame.set_edgecolor(color_borders)
+    frame.set_linewidth(legend_box_thickness)
+    frame.set_facecolor('white')
 
     # Save PDF
     if save_PDF == True:
-        plt.savefig("defect occurrence from varying values of programmed shift areas.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig("defect occurrence from varying values of programmed shift areas.pdf", format="pdf", bbox_inches=None)
 
     plt.show()
 
@@ -1095,9 +1111,9 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-    #                           error_areas=True, error_bars=False, save_PDF=True)
-    test_LLS_A_B_condition()
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+                               error_areas=True, error_bars=False, save_PDF=False)
+    #test_LLS_A_B_condition()
 
 
 if __name__ == "__main__":

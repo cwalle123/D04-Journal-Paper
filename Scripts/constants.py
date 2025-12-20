@@ -64,6 +64,8 @@ color_PDF_fits = (0.9290, 0.6940, 0.1250)       # PDF color figure 2, orange
 color_borders = (0, 0, 0)                       # graph boxes, legends etc.
 color_ideal_gap = (0.5, 0.5, 0.5)               # for figure 7, gray
 transparency = 0.8                              # transparency of shaded areas
+color_gap = (0.1216, 0.4667, 0.7059)            # standard blue
+color_overlap = (0.8392, 0.1529, 0.1569)        # standard red
 
 legend_space = 0.18
 
