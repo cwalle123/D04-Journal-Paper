@@ -674,7 +674,7 @@ def compare_real_vs_RW_simulated_gaps_overlaps_lengths(
         force_steps=force_steps)
 
     # --- Get RW simulated tow data ---
-    _, gap_sim, overlap_sim, hist_data_sim = generate_RW_multitow_layout_lengths(
+    _, gap_sim, overlap_sim, hist_data_sim, RW_all_tows_data = generate_RW_multitow_layout_lengths(
         num_tows=num_tows_sim,
         proposal_type=proposal_type,
         plot=False,
@@ -865,7 +865,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     gap_traverse, _, *_ = traverse_tow_gaps_and_overlaps_lengths(
         plot=False, histogram_bins=histogram_bins, force_steps=force_steps)
 
-    _, gap_RW, _, _ = generate_RW_multitow_layout_lengths(
+    _, gap_RW, _, _, _ = generate_RW_multitow_layout_lengths(
         num_tows=num_tows_sim,
         proposal_type=proposal_type,
         plot=False,
@@ -1066,88 +1066,178 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     summarize("RW Simulated Gaps", gap_RW)
     summarize("RS Simulated Gaps", gap_RS)
 
+# Functions to validate gap and overlaps for each model
+def validate_gap_lengths(n_tows: int = 2, bin_size: float = 3.0, tow_length_mm: float = 1000.0, plot: bool = True):
+    """
+    Validate gaps between multiple tows and visualize them in fixed-length bins.
 
-def validate_gap_lengths(positive: bool = True):
-    n_tows = 2
-    gap_overlap_df, gap_RW, overlap_RW, _ = generate_RW_multitow_layout_lengths(
-        num_tows=n_tows
+    Parameters
+    ----------
+    n_tows : int
+        Number of tows to simulate (>=2)
+    bin_size : float
+        Size of each gap length category in mm
+    tow_length_mm : float
+        Maximum tow length in mm (used for max defect length)
+    plot : bool
+        Whether to plot the gaps
+    """
+    if n_tows < 2:
+        raise ValueError("validate_gap_lengths requires at least 2 tows.")
+    max_defect_length = tow_length_mm
+
+    # Generate RW multitow layout
+    (gap_overlap_df, gap_RW, overlap_RW, _, RW_all_tows_data) = generate_RW_multitow_layout_lengths(
+        num_tows=n_tows, tow_length_mm=tow_length_mm
     )
 
-    values = gap_overlap_df.values.flatten()
-    if len(values) == 0:
+    if len(gap_overlap_df) == 0:
         return np.array([], dtype=float)
 
-    mask = values > 0 if positive else values < 0
-    x = gap_overlap_df.index.to_numpy()
+    # ------------------------------------------------------------
+    # Define bins
+    # ------------------------------------------------------------
+    bins = np.arange(0, max_defect_length + bin_size, bin_size)  # 0,3,6,...,max
+    bin_labels = [f"{bins[i]}-{bins[i+1]} mm" for i in range(len(bins)-1)]
 
-    dx = x[1] - x[0]
+    # Use a qualitative colormap with distinct colors
+    qual_colors = [
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+        "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
+    ]
+    bin_colors = [qual_colors[i % len(qual_colors)] for i in range(len(bin_labels))]
 
-    short_x, short_y = [], []
-    mid_x, mid_y = [], []
-    long_x, long_y = [], []
+    # Initialize bin counts
+    bin_counts = {label: 0 for label in bin_labels}
 
-    run_x, run_y = [], []
-    run_length = 0.0
+    # ------------------------------------------------------------
+    # Compute gap runs and fill bins
+    # ------------------------------------------------------------
+    for tow_i in range(n_tows - 1):
+        lower_tow = RW_all_tows_data[tow_i]
+        upper_tow = RW_all_tows_data[tow_i + 1]
 
-    for xi, yi, m in zip(x, values, mask):
-        if m:
-            run_x.append(xi)
-            run_y.append(yi)
-            run_length += dx
-        else:
-            if run_length > 0:
-                if run_length < 5:
-                    short_x.extend(run_x)
-                    short_y.extend(run_y)
-                elif run_length < 20:
-                    mid_x.extend(run_x)
-                    mid_y.extend(run_y)
-                else:
-                    long_x.extend(run_x)
-                    long_y.extend(run_y)
+        x_tow = lower_tow["x_mm"]
+        lower_top = lower_tow["top_edge"]
+        upper_bottom = upper_tow["bottom_edge"]
 
-            run_x, run_y = [], []
-            run_length = 0.0
+        gap_signal = upper_bottom - lower_top
+        dx = x_tow[1] - x_tow[0]
 
-    # handle case where run continues to the end
-    if run_length > 0:
-        if run_length < 5:
-            short_x.extend(run_x)
-            short_y.extend(run_y)
-        elif run_length < 20:
-            mid_x.extend(run_x)
-            mid_y.extend(run_y)
-        else:
-            long_x.extend(run_x)
-            long_y.extend(run_y)
+        run_start = None
+        run_length = 0.0
 
-    # calculated data by original function:
-    n_short = len(gap_RW[gap_RW < 5])
-    n_mid = len(gap_RW[(gap_RW > 5) & (gap_RW < 20)])
-    n_long = len(gap_RW[gap_RW > 20])
-    print(f"Short Gap Lengths: {n_short}")
-    print(f"Mid Gap Lengths: {n_mid}")
-    print(f"Long Gap Lengths: {n_long}")
+        for i, val in enumerate(gap_signal):
+            is_gap = val > 0
+            if is_gap:
+                if run_start is None:
+                    run_start = i
+                run_length += dx
+            else:
+                if run_start is not None:
+                    bin_index = int(run_length // bin_size)
+                    if bin_index < len(bin_labels):
+                        bin_counts[bin_labels[bin_index]] += 1
+                        if plot:
+                            plt.fill_between(
+                                x_tow[run_start:i],
+                                lower_top[run_start:i],
+                                upper_bottom[run_start:i],
+                                color=bin_colors[bin_index],
+                                alpha=0.7,
+                                label=bin_labels[bin_index] if tow_i == 0 else None
+                            )
+                    run_start = None
+                    run_length = 0.0
 
-    # ---- COMPARISON PLOT ----
+        # Handle run reaching the end
+        if run_start is not None:
+            bin_index = int(run_length // bin_size)
+            if bin_index < len(bin_labels):
+                bin_counts[bin_labels[bin_index]] += 1
+                if plot:
+                    plt.fill_between(
+                        x_tow[run_start:],
+                        lower_top[run_start:],
+                        upper_bottom[run_start:],
+                        color=bin_colors[bin_index],
+                        alpha=0.7,
+                        label=bin_labels[bin_index] if tow_i == 0 else None
+                    )
+
+    # ------------------------------------------------------------
+    # Plotting
+    # ------------------------------------------------------------
+    if plot:
+        plt.figure(figsize=(14, 5))
+        cmap = plt.get_cmap("tab10")
+
+        for tow_index, tow in enumerate(RW_all_tows_data):
+            color = cmap(tow_index % 10)
+            plt.plot(tow["x_mm"], tow["centerline"], "--", color=color, linewidth=1.1, alpha=0.7)
+            plt.plot(tow["x_mm"], tow["top_edge"], "-", color=color, linewidth=1.4)
+            plt.plot(tow["x_mm"], tow["bottom_edge"], "-", color=color, linewidth=1.4)
+
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = dict(zip(labels, handles))
+        # Sort legend by numeric bin
+        def bin_lower(label):
+            return float(label.split("-")[0])
+        sorted_labels = sorted([lbl for lbl in by_label.keys() if bin_counts[lbl] > 0], key=bin_lower)
+        legend_handles = [by_label[label] for label in sorted_labels]
+        legend_labels = [f"{label} (N={bin_counts[label]})" for label in sorted_labels]
+
+        plt.legend(legend_handles, legend_labels)
+        plt.xlabel("Tow length (mm)")
+        plt.ylabel("Tow position (mm)")
+        plt.title("Gap Defects Classified by Length Bins")
+        plt.tight_layout()
+        plt.show()
+
+    return bin_counts
+
+def mulitple_simulations_of_validate_gap_lengths(n_simulations: int = 10, n_tows: int = 29, bin_size: float = 3.0, tow_length_mm: float = 1000.0, max_plot_length: float = 100.0):
+    """
+    Run multiple simulations of validate_gap_lengths and compute average gaps per bin.
+    Plots a frequency vs length plot, only including bins up to max_plot_length.
+    """
+    # Generate bins
+    bins = np.arange(0, tow_length_mm + bin_size, bin_size)
+    bin_labels = [f"{bins[i]}-{bins[i+1]} mm" for i in range(len(bins)-1)]
+    
+    # Initialize counts
+    total_counts = {label: 0 for label in bin_labels}
+
+    for _ in range(n_simulations):
+        # Run the validation function but without plotting
+        bin_counts = validate_gap_lengths(
+            n_tows=n_tows,
+            bin_size=bin_size,
+            tow_length_mm=tow_length_mm,
+            plot=False  # Make sure validate_gap_lengths supports plot=False
+        )
+
+        for label in bin_counts:
+            total_counts[label] += bin_counts[label]
+
+    # Compute average per bin
+    avg_counts = {label: total_counts[label] / n_simulations for label in bin_labels}
+
+    # Filter to only bins <= max_plot_length
+    filtered_labels = [
+        label for label in bin_labels if float(label.split("-")[1].split()[0]) <= max_plot_length
+    ]
+    filtered_avg = [avg_counts[label] for label in filtered_labels]
+
+    # Plot
     plt.figure(figsize=(12, 5))
-
-    plt.plot(x, values, color="lightgray", linewidth=1, label="All values")
-    plt.scatter(short_x, short_y, color="green", s=15, label="Short runs")
-    plt.scatter(mid_x, mid_y, color="orange", s=15, label="Mid runs")
-    plt.scatter(long_x, long_y, color="red", s=15, label="Long runs")
-
-    plt.axhline(0, color="black", linewidth=0.8)
-    plt.xlabel("Index")
-    plt.ylabel("Gap / Overlap value")
-    plt.title("Gap/Overlap run-length validation")
-    plt.legend()
+    plt.bar(filtered_labels, filtered_avg, color="steelblue")
+    plt.xticks(rotation=45, ha="right")
+    plt.xlabel("Gap length (mm)")
+    plt.ylabel("Average number of gaps")
+    plt.title(f"Average Gaps per Length Bin over {n_simulations} Simulations")
     plt.tight_layout()
     plt.show()
-
-
-
-
 
 #############################################################################################################
 """Run this file"""
@@ -1164,8 +1254,9 @@ def main():
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    #compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
-    validate_gap_lengths()
+    # compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
+    # validate_gap_lengths(n_tows=29)
+    mulitple_simulations_of_validate_gap_lengths(n_simulations=1)
 
 if __name__ == "__main__":
     main()
