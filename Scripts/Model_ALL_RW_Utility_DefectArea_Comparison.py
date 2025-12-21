@@ -43,6 +43,7 @@ import textwrap
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+import matplotlib as mpl
 
 REPO_ROOT = os.path.dirname(__file__)
 SCRIPTS_DIR = os.path.join(REPO_ROOT, "Scripts")
@@ -50,7 +51,11 @@ sys.path.insert(0, SCRIPTS_DIR)
 
 # Internal imports
 from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk
-from constants import font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, font_TNR
+from constants import (font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, 
+                       font_TNR, graph_box_thickness, graph_line_thickness, legend_box_thickness, legend_line_thickness,
+                       annotation_stripe_height, annotation_thickness, color_PDF_fits, color_annotations, color_borders,
+                       color_gap, color_ideal_gap, color_overlap, tick_length, tick_width, transparency, legend_space,
+                       font_legend)
 
 ##############################################################################################################
 """"Functions and constants"""
@@ -84,7 +89,7 @@ Y_DECIMALS = 2
 # ---------------------------------------------------------------------
 # Global plotting style (Times New Roman, journal-style)
 # ---------------------------------------------------------------------
-plt.rcParams.update({
+"""plt.rcParams.update({
     # Fonts
     "font.family": "serif",
     "font.serif": ["Times New Roman", "Times", "Nimbus Roman No9 L"],
@@ -119,7 +124,7 @@ PASTEL_RED  = "#F4A6A6"   # Overlap
 # Thin reference line colors (darker)
 LINE_BLUE = "#1f77b4"
 LINE_RED  = "#d62728"
-
+"""
 # ---------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------
@@ -339,6 +344,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=False):
     # --------------------------------------------------------
 
     fig, ax = plt.subplots(figsize=(figure_width, 2*min_figure_height))
+    fig.subplots_adjust(hspace=0) # create space for x-axis labels
 
     # ------- Draw reference lines FIRST (behind the bars) -------
     if gap_line is not None:
@@ -348,9 +354,9 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=False):
                 y_g,
                 xmin=xg_min,
                 xmax=xg_max,
-                colors=LINE_BLUE,
+                colors=color_gap,
                 linestyles='-',
-                linewidth=0.9,
+                linewidth=graph_line_thickness,
                 zorder=1,      # behind bars
             )
 
@@ -361,37 +367,59 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=False):
                 y_o,
                 xmin=xo_min,
                 xmax=xo_max,
-                colors=LINE_RED,
+                colors=color_overlap,
                 linestyles='-',
-                linewidth=0.9,
+                linewidth=graph_line_thickness,
                 zorder=1,      # behind bars
             )
     # ------------------------------------------------------------
 
     # Bars (give them higher zorder so they’re in front of lines)
     ax.bar(x - width/2, gap_means, width,
-           label="Gap", color=PASTEL_BLUE, zorder=2)
+           label="Gap", alpha=transparency, color=color_gap, zorder=2)
     ax.bar(x + width/2, ovl_means, width,
-           label="Overlap", color=PASTEL_RED, zorder=2)
+           label="Overlap", alpha=transparency, color=color_overlap, zorder=2)
 
-    # Axis labels / ticks
     ax.set_ylabel("Defect area %")
     wrapped = _wrap_labels(labels, width=18)
     ax.set_xticks(x, wrapped, rotation=0, ha="center")
     ax.set_ylim(0, 5)
     ax.yaxis.set_major_locator(MultipleLocator(Y_MAJOR_STEP))
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
-    ax.minorticks_off()
-    ax.tick_params(axis='y',which='both',direction='in',
-                   length=8,width=1.2,left=True,right=True,)
+    
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
 
-
-    ax.legend(loc="best", frameon=False)
-    fig.tight_layout()
-    fig.subplots_adjust(bottom=0.22)
+    ax.xaxis.set_ticks_position('both')
+    ax.yaxis.set_ticks_position('both')
+    ax.tick_params(top=False, bottom=False, left=True, right=True, direction='in',    # tick locations
+                   length=tick_length, width=tick_width)                               # tick dimensions
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))                        # Format ticks with one decimal place (pad zeros)
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    for spine in ax.spines.values():
+        spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+        spine.set_edgecolor(color_borders)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
+        label.set_fontname(font_TNR)
+        label.set_fontsize(font_axis_ticks)
+    handles, labels = ax.get_legend_handles_labels()
+    fig.subplots_adjust(bottom=0.4)
+    legend = ax.legend(loc='lower center', ncol=1, fontsize=font_legend, fancybox=False, borderaxespad=-4.8)
+    for legobj in legend.legend_handles:
+        legobj.set_linewidth(legend_line_thickness)
+    frame = legend.get_frame()
+    frame.set_edgecolor(color_borders)
+    frame.set_linewidth(legend_box_thickness)
+    frame.set_facecolor('white')
+    
+    ax.yaxis.set_major_locator(MultipleLocator(Y_MAJOR_STEP))
+    ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
     
     if save_PDF == True:
-        fig.savefig("rw_defect_barchart.pdf", bbox_inches="tight", format="pdf")
+        fig.savefig("rw_defect_barchart.pdf", bbox_inches=None, format="pdf")
 
     plt.show()
 
@@ -429,7 +457,7 @@ def main():
 
     # Run experiment and generate figure
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
-    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=True)
+    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=False)
     #save_csv(scenarios, summary, CSV_PATH)
 
 if __name__ == "__main__":
