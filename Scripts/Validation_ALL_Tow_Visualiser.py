@@ -1114,7 +1114,7 @@ def validate_gap_lengths(positive: bool = True):
         if run_length < 5:
             short_x.extend(run_x)
             short_y.extend(run_y)
-        elif run_length < 220:
+        elif run_length < 20:
             mid_x.extend(run_x)
             mid_y.extend(run_y)
         else:
