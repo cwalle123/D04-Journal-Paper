@@ -744,7 +744,7 @@ def compare_real_vs_RW_simulated_gaps_overlaps_lengths(
 def compare_real_vs_RS_simulated_gaps_overlaps_lengths(
     histogram_bins=300,
     force_steps=True,
-    num_tows_sim=30,
+    num_tows_sim=29,
     method="Sidd",
     print_statement=False):
     """
@@ -848,7 +848,7 @@ def compare_real_vs_RS_simulated_gaps_overlaps_lengths(
 def compare_real_vs_RS_RW_gap_length_distributions(
     histogram_bins=300,
     force_steps=True,
-    num_tows_sim=30,
+    num_tows_sim=29,
     proposal_type="RWM",
     override=False,
     starting_mods=[None, 1, 1],
