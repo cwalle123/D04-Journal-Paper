@@ -280,8 +280,6 @@ def test_LLS_A_B_condition(n_tows: int=1000):
     print("STEPS FALSE: ", total_steps_false, ", percentage: ", false_steps_percentage)
     print("STEPS TRUE: ", total_steps_true)
 
-
-
 def get_proposal_distribution(sensor, plot: bool=False):
     data_pairs = get_data_pairs(sensor)
     data, weights = [], []
@@ -990,7 +988,7 @@ def generate_RW_multitow_layout_lengths(
     if len(overlap_lengths):
         print(f"  Mean = {np.mean(overlap_lengths):.3f} mm, Std = {np.std(overlap_lengths):.3f} mm")
 
-    return gap_overlap_df, gap_lengths, overlap_lengths, hist_data
+    return gap_overlap_df, gap_lengths, overlap_lengths, hist_data, RW_all_tows_data
 
 def run_multiple_RW_simulations_for_gaps_and_overlap_percentages(
     n_simulations: int = 100,
