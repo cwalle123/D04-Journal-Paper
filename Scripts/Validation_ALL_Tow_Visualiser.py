@@ -1066,6 +1066,89 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     summarize("RW Simulated Gaps", gap_RW)
     summarize("RS Simulated Gaps", gap_RS)
 
+
+def validate_gap_lengths(positive: bool = True):
+    n_tows = 2
+    gap_overlap_df, gap_RW, overlap_RW, _ = generate_RW_multitow_layout_lengths(
+        num_tows=n_tows
+    )
+
+    values = gap_overlap_df.values.flatten()
+    if len(values) == 0:
+        return np.array([], dtype=float)
+
+    mask = values > 0 if positive else values < 0
+    x = gap_overlap_df.index.to_numpy()
+
+    dx = x[1] - x[0]
+
+    short_x, short_y = [], []
+    mid_x, mid_y = [], []
+    long_x, long_y = [], []
+
+    run_x, run_y = [], []
+    run_length = 0.0
+
+    for xi, yi, m in zip(x, values, mask):
+        if m:
+            run_x.append(xi)
+            run_y.append(yi)
+            run_length += dx
+        else:
+            if run_length > 0:
+                if run_length < 5:
+                    short_x.extend(run_x)
+                    short_y.extend(run_y)
+                elif run_length < 20:
+                    mid_x.extend(run_x)
+                    mid_y.extend(run_y)
+                else:
+                    long_x.extend(run_x)
+                    long_y.extend(run_y)
+
+            run_x, run_y = [], []
+            run_length = 0.0
+
+    # handle case where run continues to the end
+    if run_length > 0:
+        if run_length < 5:
+            short_x.extend(run_x)
+            short_y.extend(run_y)
+        elif run_length < 220:
+            mid_x.extend(run_x)
+            mid_y.extend(run_y)
+        else:
+            long_x.extend(run_x)
+            long_y.extend(run_y)
+
+    # calculated data by original function:
+    n_short = len(gap_RW[gap_RW < 5])
+    n_mid = len(gap_RW[(gap_RW > 5) & (gap_RW < 20)])
+    n_long = len(gap_RW[gap_RW > 20])
+    print(f"Short Gap Lengths: {n_short}")
+    print(f"Mid Gap Lengths: {n_mid}")
+    print(f"Long Gap Lengths: {n_long}")
+
+    # ---- COMPARISON PLOT ----
+    plt.figure(figsize=(12, 5))
+
+    plt.plot(x, values, color="lightgray", linewidth=1, label="All values")
+    plt.scatter(short_x, short_y, color="green", s=15, label="Short runs")
+    plt.scatter(mid_x, mid_y, color="orange", s=15, label="Mid runs")
+    plt.scatter(long_x, long_y, color="red", s=15, label="Long runs")
+
+    plt.axhline(0, color="black", linewidth=0.8)
+    plt.xlabel("Index")
+    plt.ylabel("Gap / Overlap value")
+    plt.title("Gap/Overlap run-length validation")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+
+
+
 #############################################################################################################
 """Run this file"""
 
@@ -1081,7 +1164,8 @@ def main():
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
+    #compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
+    validate_gap_lengths()
 
 if __name__ == "__main__":
     main()
