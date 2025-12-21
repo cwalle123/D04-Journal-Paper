@@ -689,7 +689,7 @@ def analyze_tow_spacing_effect(
         print(f"\n✅ Results (with std/min/max + intersections) saved to:\n   {csv_path}")
 
     # -------- Plot --------
-    fig, ax = plt.subplots(1, 1, figsize=(figure_width, min_figure_height))
+    fig, ax = plt.subplots(1, 1, figsize=(figure_width, 2*min_figure_height))
     fig.subplots_adjust(hspace=0)
 
     # Lines
@@ -713,9 +713,9 @@ def analyze_tow_spacing_effect(
             overlap_upper = overlap_arr + results_df["Overlap Std (%)"]
 
         ax.fill_between(spacing_arr, gap_lower, gap_upper,
-                        alpha=1-transparency, color=color_gap, linewidth=0, edgecolor='none')
+                        alpha=1-0.75*transparency, color=color_gap, linewidth=0, edgecolor='none', label="Gap variation")
         ax.fill_between(spacing_arr, overlap_lower, overlap_upper,
-                        alpha=1-transparency, color=color_overlap, linewidth=0, edgecolor='none')
+                        alpha=1-0.75*transparency, color=color_overlap, linewidth=0, edgecolor='none', label="Overlap variation")
 
     # ----- Error bars (only if NOT using shaded areas) -----
     if error_bars:
@@ -762,8 +762,8 @@ def analyze_tow_spacing_effect(
         label.set_fontsize(font_axis_ticks)
 
     handles, labels = ax.get_legend_handles_labels()
-    fig.subplots_adjust(bottom=0.2)
-    legend = fig.legend(handles, labels, loc='upper left', ncol=1, fontsize=font_legend, fancybox=False, borderaxespad=5) #create legend with black box
+    fig.subplots_adjust(bottom=0.5)
+    legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
