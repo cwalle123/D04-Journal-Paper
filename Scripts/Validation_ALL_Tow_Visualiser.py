@@ -857,6 +857,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     print_statement=False,
     xlim=(0, 100),
     stack_graphs=False,
+    log: bool=False,
     save_PDF=False):
 
     # ============================================================
@@ -883,7 +884,14 @@ def compare_real_vs_RS_RW_gap_length_distributions(
 
     # Shared bins for all histograms
     all_data = np.concatenate([gap_traverse, gap_RW, gap_RS])
-    shared_bins = np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
+    if log:
+        shared_bins = np.logspace(
+            np.log10(1),
+            np.log10(1000),
+            histogram_bins + 1
+        )
+    else:
+        shared_bins = np.linspace(np.min(all_data), np.max(all_data), histogram_bins + 1)
     print(np.min(all_data))
     print(np.max(all_data))
 
@@ -912,6 +920,10 @@ def compare_real_vs_RS_RW_gap_length_distributions(
 
     ax_bottom_top = fig.add_subplot(bottom_gs[0], sharex=ax_top)
     ax_bottom_bottom = fig.add_subplot(bottom_gs[1], sharex=ax_top)
+
+    if log:
+        for ax in [ax_top, ax_bottom_top, ax_bottom_bottom]:
+            ax.set_xscale("log")
 
     # ============================================================
     # TOP SUBPLOT
@@ -1276,8 +1288,12 @@ def main():
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
-    # compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False)
-    validate_gap_lengths(n_tows=29)
+
+    # first function will gove linear plot, second log-plot
+    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=300, stack_graphs=True, save_PDF=False, log=False)
+    compare_real_vs_RS_RW_gap_length_distributions(histogram_bins=12, stack_graphs=True, save_PDF=False, xlim=(2, 1000), log=True)
+
+    #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
 
 if __name__ == "__main__":
