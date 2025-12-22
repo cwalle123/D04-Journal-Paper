@@ -463,7 +463,7 @@ def main():
     #    bin_widths=[0.005, 0.005],
     #    run = False)
     
-    sensor = "CAM"
+    sensor = "LLS_B"
     if sensor == "CAM":
         use_all_dist = True
         shrink_scale_factor = 0.9
@@ -475,7 +475,7 @@ def main():
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
     best = best_fit_distribution(data=data, bins=bins, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True, shrink_scale_factor=shrink_scale_factor)
-    #print(best)
+    print(best)
 
 if __name__ == "__main__":
     main()

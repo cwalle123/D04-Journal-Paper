@@ -261,13 +261,13 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
 
     handles, labels = axs[0].get_legend_handles_labels()
     fig.subplots_adjust(bottom=legend_space)                                # create space for legend without altering figure size
-    legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
+    """legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
-    frame.set_facecolor('white')
+    frame.set_facecolor('white')"""
 
     if save_PDF == True:
         plt.savefig("source wise validation_310 tows without legend.pdf", format="pdf", bbox_inches=None, dpi=600)
@@ -1085,8 +1085,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
+    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

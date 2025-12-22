@@ -83,41 +83,6 @@ from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_RandomSampling import generate_RS_multitow
 
 # ======================================================================
-# Local plotting constants (so you don't depend on constants.py)
-# ======================================================================
-figure_width = 9.5
-min_figure_height = 2.4
-
-color_exp = "#0072B2"   # blue
-color_RW  = "#009E73"   # green
-color_RS  = "#F1B047"   # orange
-
-font_TNR = "Times New Roman"
-
-graph_box_thickness = 1.0
-tick_length = 5
-tick_width = 1.0
-graph_line_thickness = 1.6
-
-color_borders = "black"
-
-legend_line_thickness = 1.6
-legend_box_thickness = 1.0
-font_legend = 11
-
-# ----------------- Global plot formatting -----------------
-plt.rcParams.update({
-    "font.family": "serif",
-    "font.serif": ["Times New Roman", "Times", "Nimbus Roman No9 L"],
-    "mathtext.fontset": "stix",
-    "axes.grid": False,
-    "axes.edgecolor": "black",
-    "axes.linewidth": 1.0,
-    "savefig.bbox": "tight",
-    "savefig.dpi": 300,
-})
-
-# ======================================================================
 # Helpers
 # ======================================================================
 def linear_detrend(y, x=None):
@@ -377,7 +342,7 @@ def run_fft_compare(
             spine.set_edgecolor(color_borders)
 
         handles, labels = ax.get_legend_handles_labels()
-        fig.subplots_adjust(bottom=0.30)
+        fig.subplots_adjust(bottom=0.35)
         legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False)
         for legobj in legend.legend_handles:
             legobj.set_linewidth(legend_line_thickness)
@@ -496,7 +461,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=False
+        save_PDF=True
     )
 
     # NEW: export BOTH lists as TWO SEPARATE CSV FILES
