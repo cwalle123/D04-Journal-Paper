@@ -45,10 +45,14 @@ import time
 import os
 import tkinter as tk
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-import matplotlib
-matplotlib.use("Agg")
+import matplotlib as mpl
+mpl.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from Scripts.constants import (figure_width, min_figure_height, font_TNR, font_label, font_axis_ticks, font_legend, graph_line_thickness, 
+                       legend_line_thickness, annotation_thickness, annotation_stripe_height, break_marker_thickness,
+                       tick_width, tick_length, graph_box_thickness, legend_box_thickness, color_exp, color_RW, color_RS,
+                       color_annotations, color_PDF_fits, color_borders, color_ideal_gap, transparency, color_gap, color_overlap, legend_space)
 
 # Import tow generator
 from Scripts.D04_Model.Model_ALL_Simulation import generate_multitow_layout
@@ -123,11 +127,11 @@ def run_simulation(GO=False, fill=False, centerline=True, gridlines=True):
 
     fig, ax = plt.subplots(figsize=(10, 6))
     '''MANUEL ADDED THIS: Just axis formatting'''
-    matplotlib.rcParams['font.family'] = 'serif'
-    matplotlib.rcParams['font.serif'] = ['Times New Roman']
-    matplotlib.rcParams['mathtext.fontset'] = 'stix'
-    matplotlib.rcParams['xtick.labelsize'] = 10
-    matplotlib.rcParams['ytick.labelsize'] = 10
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = ['Times New Roman']
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = 10
+    mpl.rcParams['ytick.labelsize'] = 10
     colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]
 
     x_vals = RW_all_tows_data[0]["x_mm"]
@@ -460,10 +464,86 @@ def draw_simulation_screen():
                 save_time = pygame.time.get_ticks()
     return SIMULATION
 
+def export_figure(save_PDF=True):
+    gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RW_all_tows_data = generate_RW_multitow(
+        num_tows=5,
+        tow_spacing_mm=6.35,
+        tow_width_mm=6.35,
+        tow_length_mm=1000,
+        proposal_type="RWM",
+        print_statement=False
+    )
+
+    # -----------------------------
+    # 1) Rebuild a clean Matplotlib figure
+    # (same styling as your other publication figures)
+    # ----------------------------
+
+    # Use your histogram-style rcParams
+    mpl.rcParams['font.family']      = 'serif'
+    mpl.rcParams['font.serif']       = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['axes.linewidth']   = graph_box_thickness
+    mpl.rcParams['xtick.direction']  = 'in'
+    mpl.rcParams['ytick.direction']  = 'in'
+    mpl.rcParams['xtick.major.size'] = tick_length
+    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.major.width'] = tick_width
+    mpl.rcParams['ytick.major.width'] = tick_width
+
+    # Create figure with publication dimensions
+    fig, ax = plt.subplots(figsize=(figure_width, 2*min_figure_height))
+    colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]
+    x_vals = RW_all_tows_data[0]["x_mm"]
+    tow_indices = range(num_tows)
+
+    for i in tow_indices:
+        tow_df = RW_all_tows_data[i]
+        color = colors[i % 2]
+        x = tow_df["x_mm"]
+        top_edge = tow_df["top_edge"]
+        bottom_edge = tow_df["bottom_edge"]
+        ax.plot(x, top_edge, color=color, lw=graph_line_thickness)
+        ax.plot(x, bottom_edge, color=color, lw=graph_line_thickness)
+        ax.fill_between(x, bottom_edge, top_edge, color=color, alpha=0.8, label=f"Tow {i+1}" if i == 0 else "", 
+                        linewidth=0, edgecolor=None)
+    
+
+    # --- Gaps and overlaps ---
+
+    for i in range(num_tows - 1):
+        top_edge_prev = RW_all_tows_data[i]["top_edge"]
+        bottom_edge_next = RW_all_tows_data[i + 1]["bottom_edge"]
+        diff = bottom_edge_next - top_edge_prev
+        ax.fill_between(x_vals, top_edge_prev, bottom_edge_next, where=(diff > 0),
+                        color="white", alpha=0.3, linewidth=0, edgecolor=None)
+        ax.fill_between(x_vals, top_edge_prev, bottom_edge_next, where=(diff < 0),
+                        color="black", alpha=0.3, linewidth=0, edgecolor=None)
+
+
+    # --- Axes and grid ---
+    ax.set_xlabel("Tow Length (mm)", fontname=font_TNR, fontsize=font_label)
+    ax.set_ylabel("Position (mm)", fontname=font_TNR, fontsize=font_label)
+    ax.grid(False)  # This removes the horizontal dashed lines
+    ax.xaxis.set_ticks_position('both')
+    ax.yaxis.set_ticks_position('both')
+    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
+                length=tick_length, width=tick_width)                               # tick dimensions
+    for spine in ax.spines.values():
+        spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+        spine.set_edgecolor(color_borders)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
+        label.set_fontname(font_TNR)
+        label.set_fontsize(font_axis_ticks)
+
+    if save_PDF == True:
+        plt.savefig("virtual lamina.pdf", format="pdf", bbox_inches=None)
+    
+    plt.show()
 # ---------------- Main Loop ----------------
 
 def main():
-    global state, simulation_thread, loading_start_time, loading_estimated_time, simulation_result
+    """global state, simulation_thread, loading_start_time, loading_estimated_time, simulation_result
     while True:
         if state == MENU:
             for event in pygame.event.get():
@@ -505,7 +585,8 @@ def main():
             state = draw_simulation_screen()
 
         pygame.display.flip()
-        clock.tick(30)
+        clock.tick(30)"""
+    export_figure(save_PDF=False)
 
 if __name__ == "__main__":
     main()

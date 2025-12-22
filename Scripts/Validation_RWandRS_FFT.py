@@ -31,6 +31,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from scipy.signal.windows import tukey
+from constants import (figure_width, min_figure_height, font_TNR, font_label, font_axis_ticks, font_legend, graph_line_thickness, 
+                       legend_line_thickness, annotation_thickness, annotation_stripe_height, break_marker_thickness,
+                       tick_width, tick_length, graph_box_thickness, legend_box_thickness, color_exp, color_RW, color_RS,
+                       color_annotations, color_PDF_fits, color_borders, color_ideal_gap, transparency, color_gap, color_overlap, legend_space)
 
 # ======================================================================
 # FFT PROCESSING TOGGLES (EDIT THESE)
@@ -348,7 +352,7 @@ def run_fft_compare(
     print("  RS model:  MSE={:.6e}, rho={}".format(mse_rs, "nan" if np.isnan(rho_rs) else f"{rho_rs:.6f}"))
 
     def plot_linear(f_exp, A_exp, f_rw, A_rw, f_rs, A_rs):
-        fig, ax = plt.subplots(1, 1, figsize=(figure_width, 2 * min_figure_height))
+        fig, ax = plt.subplots(1, 1, figsize=(figure_width, 2*min_figure_height))
         ax.plot(f_exp, A_exp, label="Experimental",    color=color_exp, linewidth=graph_line_thickness, linestyle="-")
         ax.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=graph_line_thickness, linestyle="-")
         ax.plot(f_rs,  A_rs,  label="MC simulation",   color=color_RS,  linewidth=graph_line_thickness, linestyle="-")
@@ -360,6 +364,8 @@ def run_fft_compare(
         mpl.rcParams['font.family'] = 'serif'
         mpl.rcParams['font.serif'] = [font_TNR]
         mpl.rcParams['mathtext.fontset'] = 'stix'
+        mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+        mpl.rcParams['ytick.labelsize'] = font_axis_ticks
 
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
@@ -490,7 +496,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=True
+        save_PDF=False
     )
 
     # NEW: export BOTH lists as TWO SEPARATE CSV FILES
