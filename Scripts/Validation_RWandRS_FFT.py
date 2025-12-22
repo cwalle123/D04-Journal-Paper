@@ -8,18 +8,16 @@ Written by: Giovanni Zattoni
 Validation_RWandRS_FFT.py
 
 FFT amplitude spectrum comparison between:
-- Random-Walk model (RW) tow (top/bottom edges + centerline)
-- Experimental traverse tow (top/bottom edges + centerline)
-- Random Sampling model (RS) tow (top/bottom edges + centerline)
+- Random-Walk model (RW) tow (MCMC / Random-Walk)
+- Experimental traverse tow
+- Random Sampling model (RS) tow (MC / Random Sampling)
 
 This version:
-- Uses Tukey window with alpha = 0.05 (when USE_WINDOW = True)
-- Lets you turn DETREND / WINDOW / PADDING on/off via True/False at the top
-- Does NOT import Scripts/constants.py (avoids your ImportErrors)
-- ALSO writes a CSV table for Tow 1..31:
-    Tow # | MSE | rho | dominant freq
-  plus a final row with averages (computed over valid tows only).
-
+- Tukey window (alpha=0.05) when USE_WINDOW=True
+- DETREND / WINDOW / PADDING toggles at the top
+- Writes FFT metrics CSV for Tow 2..30 + AVG row
+- NEW: Exports BOTH the RW list and RS list as TWO SEPARATE CSV FILES
+  (each list is a list of pandas DataFrames; we concatenate them with a sample_index column)
 """
 
 # ======================================================================
@@ -47,12 +45,21 @@ TUKEY_ALPHA  = 0.05     # Tukey alpha if USE_WINDOW = True
 FMAX_METRICS = 300.0    # cycles/m range used for MSE, rho, dominant freq
 FMIN_DOM     = 1.0      # ignore DC/very-low freq when finding dominant freq
 
-# Batch output
+# Batch output (metrics table)
 WRITE_BATCH_CSV = True
 TOW_MIN_BATCH   = 2
 TOW_MAX_BATCH   = 30
 OUTDIR          = "Outputs"
 CSV_NAME        = "FFT_metrics_alltows_centerline.csv"  # saved in Outputs/
+
+# NEW: export the RW/RS lists as CSV files
+EXPORT_LISTS_AS_CSV = True
+LIST_OUTDIR         = "Outputs"
+RW_LIST_CSV_NAME    = "RW_list_MCMC.csv"
+RS_LIST_CSV_NAME    = "RS_list_MC.csv"
+
+# How many simulated tows to generate for the exported lists (and for single-tow FFT, we still use index 0)
+N_LIST_TOWS_EXPORT = 1   # set to e.g. 50 if you want a bigger chain/ensemble saved to CSV
 
 # ======================================================================
 # PATH SETUP
@@ -197,19 +204,51 @@ def dominant_frequency(f_exp, A_exp, fmin=1.0, fmax=300.0):
         return np.nan
     return float(f[int(np.argmax(A))])
 
+def save_df_list_to_csv(df_list, outpath, index_col_name="sample_index"):
+    """
+    Save a list of pandas DataFrames to ONE CSV file by concatenation.
+    Adds a column (sample_index) so you know which list element each row came from.
+    """
+    try:
+        import pandas as pd
+    except ImportError as e:
+        raise ImportError("pandas is required to export the tow lists to CSV. Install it or disable EXPORT_LISTS_AS_CSV.") from e
+
+    if df_list is None or len(df_list) == 0:
+        raise ValueError(f"Cannot save empty list to CSV: {outpath}")
+
+    frames = []
+    for i, df in enumerate(df_list):
+        dfi = df.copy()
+        dfi.insert(0, index_col_name, i)
+        frames.append(dfi)
+
+    big = pd.concat(frames, axis=0, ignore_index=True)
+    big.to_csv(outpath, index=False)
+
 # ======================================================================
 # Data extraction
 # ======================================================================
 def extract_rw_edges_centerline(num_tows=1, seed=42):
+    """
+    Returns dict:
+      - "list": full RW output list (MCMC / Random-Walk)
+      - arrays for FIRST tow in list (index 0): x_mm, top, bottom, centerline
+    """
     import random as _r
     _r.seed(seed)
     np.random.seed(seed)
+
     _, _, _, _, _, rw_list = generate_RW_multitow(num_tows=num_tows, proposal_type="RWM")
     tow_df = rw_list[0]
-    return (tow_df["x_mm"].to_numpy(),
-            tow_df["top_edge"].to_numpy(),
-            tow_df["bottom_edge"].to_numpy(),
-            tow_df["centerline"].to_numpy())
+
+    return {
+        "list": rw_list,
+        "x_mm": tow_df["x_mm"].to_numpy(),
+        "top": tow_df["top_edge"].to_numpy(),
+        "bottom": tow_df["bottom_edge"].to_numpy(),
+        "centerline": tow_df["centerline"].to_numpy(),
+    }
 
 def extract_rs_edges_centerline(
     num_tows=1,
@@ -219,6 +258,11 @@ def extract_rs_edges_centerline(
     method="Sidd",
     seed=1234
 ):
+    """
+    Returns dict:
+      - "list": full RS output list (MC / Random Sampling)
+      - arrays for FIRST tow in list (index 0): x_mm, top, bottom, centerline
+    """
     import random as _r
     _r.seed(seed)
     np.random.seed(seed)
@@ -233,10 +277,14 @@ def extract_rs_edges_centerline(
         print_statement=False
     )
     tow_df = RS_all_tows_data[0]
-    return (tow_df["x_mm"].to_numpy(),
-            tow_df["top_edge"].to_numpy(),
-            tow_df["bottom_edge"].to_numpy(),
-            tow_df["centerline"].to_numpy())
+
+    return {
+        "list": RS_all_tows_data,
+        "x_mm": tow_df["x_mm"].to_numpy(),
+        "top": tow_df["top_edge"].to_numpy(),
+        "bottom": tow_df["bottom_edge"].to_numpy(),
+        "centerline": tow_df["centerline"].to_numpy(),
+    }
 
 def extract_experimental_edges_centerline(tow, normalize=True):
     df = traverse_tow_constructor(tow, normalize=normalize)
@@ -266,15 +314,24 @@ def run_fft_compare(
 
     (_, _), (_, _), (x_ctr_exp, y_ctr_exp) = exp_data
 
-    x_rw, _, _, y_ctr_rw = extract_rw_edges_centerline(num_tows=1, seed=rw_seed)
-    x_rs, _, _, y_ctr_rs = extract_rs_edges_centerline(
-        num_tows=1,
+    # Generate lists (exportable), but FFT uses element 0
+    rw = extract_rw_edges_centerline(num_tows=N_LIST_TOWS_EXPORT, seed=rw_seed)
+    rs = extract_rs_edges_centerline(
+        num_tows=N_LIST_TOWS_EXPORT,
         n_steps=len(x_grid_mm),
         tow_width_mm=6.35,
         tow_length_mm=float(x_grid_mm[-1]),
         method=rs_method,
         seed=rs_seed
     )
+
+    # Arrays for FFT (first element)
+    x_rw, y_ctr_rw = rw["x_mm"], rw["centerline"]
+    x_rs, y_ctr_rs = rs["x_mm"], rs["centerline"]
+
+    print(f"\nModel list outputs:")
+    print(f"  RW (MCMC) list length: {len(rw['list'])}")
+    print(f"  RS (MC)   list length: {len(rs['list'])}")
 
     f_ctr_exp, A_ctr_exp = resample_and_fft(x_ctr_exp, y_ctr_exp, x_grid_mm)
     f_ctr_rw,  A_ctr_rw  = resample_and_fft(x_rw,      y_ctr_rw,  x_grid_mm)
@@ -349,12 +406,15 @@ def run_fft_compare(
     if show_plots or show_loglog:
         plt.show()
 
+    # Return BOTH lists so main() can export them to CSV
+    return rw["list"], rs["list"]
+
 # ======================================================================
-# Batch CSV output for Tow 1..31 (centerline only)
+# Batch CSV output for Tow 2..30 (centerline only)
 # ======================================================================
 def write_batch_csv(
-    tow_min=1,
-    tow_max=31,
+    tow_min=2,
+    tow_max=30,
     rw_seed=42,
     rs_seed=1234,
     rs_method="Sidd",
@@ -370,36 +430,22 @@ def write_batch_csv(
     for tow in range(tow_min, tow_max + 1):
         exp_data = extract_experimental_edges_centerline(tow, normalize=True)
         if exp_data is None:
-            # Keep row, fill NaNs (matches your earlier batch behavior)
             rows.append([tow, np.nan, np.nan, np.nan])
             print(f"Tow {tow}: missing/failed (traverse_tow_constructor returned None) -> filling NaNs")
             continue
 
         (_, _), (_, _), (x_ctr_exp, y_ctr_exp) = exp_data
 
-        # Generate RW/RS (kept reproducible)
-        x_rw, _, _, y_ctr_rw = extract_rw_edges_centerline(num_tows=1, seed=rw_seed)
-        x_rs, _, _, y_ctr_rs = extract_rs_edges_centerline(
-            num_tows=1,
-            n_steps=len(x_grid_mm),
-            tow_width_mm=6.35,
-            tow_length_mm=float(x_grid_mm[-1]),
-            method=rs_method,
-            seed=rs_seed
-        )
-
-        # Spectra
+        rw = extract_rw_edges_centerline(num_tows=1, seed=rw_seed)
+        # (RS computed for plotting elsewhere; metrics table stays RW vs EXP like your current logic)
         f_exp, A_exp = resample_and_fft(x_ctr_exp, y_ctr_exp, x_grid_mm)
-        f_rw,  A_rw  = resample_and_fft(x_rw,      y_ctr_rw,  x_grid_mm)
-        f_rs,  A_rs  = resample_and_fft(x_rs,      y_ctr_rs,  x_grid_mm)
+        f_rw,  A_rw  = resample_and_fft(rw["x_mm"], rw["centerline"], x_grid_mm)
 
-        # Metrics: use RW vs EXP for MSE/rho (single values per tow)
         mse, rho = compute_mse_and_rho(f_exp, A_exp, f_rw, A_rw, fmax=FMAX_METRICS)
         dom_f = dominant_frequency(f_exp, A_exp, fmin=FMIN_DOM, fmax=FMAX_METRICS)
 
         rows.append([tow, mse, rho, dom_f])
 
-    # Averages over valid (non-NaN) entries
     mse_vals = np.array([r[1] for r in rows], dtype=float)
     rho_vals = np.array([r[2] for r in rows], dtype=float)
     dom_vals = np.array([r[3] for r in rows], dtype=float)
@@ -410,7 +456,6 @@ def write_batch_csv(
 
     rows.append(["AVG", avg_mse, avg_rho, avg_dom])
 
-    # Write CSV
     with open(outpath, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["Tow #", "MSE", "rho", "dominant freq"])
@@ -424,7 +469,7 @@ def write_batch_csv(
 # ======================================================================
 def parse_args():
     p = argparse.ArgumentParser(
-        description="FFT amplitude spectrum comparison (Experiment vs RW vs RS) for centerline + batch CSV."
+        description="FFT amplitude spectrum comparison (Experiment vs RW vs RS) for centerline + batch CSV + export RW/RS lists to CSV."
     )
     p.add_argument("--tow", type=int, default=7, help="Tow index to compare (2..30 recommended).")
     p.add_argument("--rw-seed", type=int, default=42, help="Random-walk RNG seed for reproducibility.")
@@ -437,8 +482,8 @@ def parse_args():
 def main():
     args = parse_args()
 
-    # Single tow plot + print
-    run_fft_compare(
+    # Single tow plot + print + returns both lists
+    rw_list, rs_list = run_fft_compare(
         tow=args.tow,
         rw_seed=args.rw_seed,
         rs_seed=args.rs_seed,
@@ -448,7 +493,19 @@ def main():
         save_PDF=True
     )
 
-    # Batch CSV (Tow 1..31) + AVG row
+    # NEW: export BOTH lists as TWO SEPARATE CSV FILES
+    if EXPORT_LISTS_AS_CSV:
+        os.makedirs(LIST_OUTDIR, exist_ok=True)
+        rw_csv_path = os.path.join(LIST_OUTDIR, RW_LIST_CSV_NAME)
+        rs_csv_path = os.path.join(LIST_OUTDIR, RS_LIST_CSV_NAME)
+
+        save_df_list_to_csv(rw_list, rw_csv_path, index_col_name="mcmc_index")
+        save_df_list_to_csv(rs_list, rs_csv_path, index_col_name="sample_index")
+
+        print(f"Saved RW (MCMC) list CSV: {rw_csv_path}")
+        print(f"Saved RS (MC)   list CSV: {rs_csv_path}")
+
+    # Batch metrics CSV (Tow 2..30) + AVG row
     if WRITE_BATCH_CSV:
         write_batch_csv(
             tow_min=TOW_MIN_BATCH,
@@ -462,4 +519,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
