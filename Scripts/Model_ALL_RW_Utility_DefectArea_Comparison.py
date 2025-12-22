@@ -382,7 +382,8 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=False):
 
     ax.set_ylabel("Defect area %")
     wrapped = _wrap_labels(labels, width=18)
-    ax.set_xticks(x, wrapped, rotation=0, ha="center")
+    ax.set_xticks(x)
+    ax.set_xticklabels(wrapped, rotation=0, ha="center")
     ax.set_ylim(0, 5)
     ax.yaxis.set_major_locator(MultipleLocator(Y_MAJOR_STEP))
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
@@ -397,7 +398,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=False):
     ax.yaxis.set_ticks_position('both')
     ax.tick_params(top=False, bottom=False, left=True, right=True, direction='in',    # tick locations
                    length=tick_length, width=tick_width)                               # tick dimensions
-    ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))                        # Format ticks with one decimal place (pad zeros)
+    #ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))                        # Format ticks with one decimal place (pad zeros)
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     for spine in ax.spines.values():
         spine.set_linewidth(graph_box_thickness)                                    # black box around figure
@@ -407,7 +408,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=False):
         label.set_fontsize(font_axis_ticks)
     handles, labels = ax.get_legend_handles_labels()
     fig.subplots_adjust(bottom=0.4)
-    legend = ax.legend(loc='lower center', ncol=1, fontsize=font_legend, fancybox=False, borderaxespad=-4.8)
+    legend = ax.legend(loc='lower center', ncol=1, fontsize=font_legend, fancybox=False, borderaxespad=-7)
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
