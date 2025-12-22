@@ -760,7 +760,7 @@ def analyze_tow_spacing_effect(
         label.set_fontsize(font_axis_ticks)
 
     handles, labels = ax.get_legend_handles_labels()
-    fig.subplots_adjust(bottom=0.5)
+    fig.subplots_adjust(bottom=0.4)
     legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
@@ -1186,10 +1186,10 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-    #                           error_areas=True, error_bars=False, save_PDF=False)
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+                               error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
-    generate_virtual_lamina_figure(save_PDF=False)
+    #generate_virtual_lamina_figure(save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

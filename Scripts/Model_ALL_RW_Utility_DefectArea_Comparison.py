@@ -458,7 +458,7 @@ def main():
 
     # Run experiment and generate figure
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
-    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=False)
+    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=True)
     #save_csv(scenarios, summary, CSV_PATH)
 
 if __name__ == "__main__":
