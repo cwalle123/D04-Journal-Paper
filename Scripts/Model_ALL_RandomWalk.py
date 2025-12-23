@@ -341,7 +341,7 @@ def find_RW_statistics(n_tows: int=1000, proposal_type: str="RWM"):
 
     # finding the mean and variance
     data = [LT_walk_data, CAM_walk_data, LLSA_walk_data, LLSB_walk_data]
-    names = ['LT_walk', 'CAM_walk', 'LLSB_walk', 'LLSA_walk']
+    names = ['LT_walk', 'CAM_walk', 'LLSA_walk', 'LLSB_walk']
     for i in range(4):
         mean = np.average(data[i])
         variance = np.std(data[i])
