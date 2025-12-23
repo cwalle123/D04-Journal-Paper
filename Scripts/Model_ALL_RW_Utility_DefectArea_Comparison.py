@@ -55,7 +55,8 @@ from constants import (font_label, font_axis_ticks, figure_width, min_figure_hei
                        font_TNR, graph_box_thickness, graph_line_thickness, legend_box_thickness, legend_line_thickness,
                        annotation_stripe_height, annotation_thickness, color_PDF_fits, color_annotations, color_borders,
                        color_gap, color_ideal_gap, color_overlap, tick_length, tick_width, transparency, legend_space,
-                       font_legend)
+                       font_legend, unit_box_height, left_margin, right_margin, top_margin, bottom_margin,
+                       legend_drop, legend_margin, inter_axes_gap)
 
 ##############################################################################################################
 """"Functions and constants"""
@@ -356,8 +357,18 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
     mpl.rcParams['xtick.direction'] = 'in'
     mpl.rcParams['ytick.direction'] = 'in'
 
-    fig, ax = plt.subplots(figsize=(figure_width, 2*min_figure_height))
-    fig.subplots_adjust(hspace=0) # create space for x-axis labels
+    # Establish correct geometry
+    axes_units_per_box = 2
+    n_boxes = 1
+    total_axes_units = n_boxes * axes_units_per_box
+    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                     + top_margin + bottom_margin + legend_margin)
+    fig = plt.figure(figsize=(figure_width, figure_height))
+    axes_left = left_margin / figure_width
+    axes_width = 1 - (left_margin + right_margin) / figure_width
+    axes_bottom = (bottom_margin + legend_margin) / figure_height
+    axes_height = (axes_units_per_box * unit_box_height) / figure_height
+    ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
 
     # ------- Draw reference lines FIRST (behind the bars) -------
     if gap_line is not None:
@@ -393,7 +404,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
     ax.bar(x + width/2, ovl_means, width,
            label="Overlap", alpha=transparency, color=color_overlap, zorder=2)
 
-    ax.set_ylabel("Defect area %", fontname=font_TNR, size=font_legend)
+    ax.set_ylabel("Defect area %")
     wrapped = _wrap_labels(labels, width=18)
     ax.set_xticks(x)
     ax.set_xticklabels(wrapped, rotation=0, ha="center")
@@ -410,9 +421,12 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
         spine.set_linewidth(graph_box_thickness)                                    # black box around figure
         spine.set_edgecolor(color_borders)
 
+    legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                              axes_width, legend_margin/figure_height], frameon=False)
+    legend_ax.axis("off")
     handles, labels = ax.get_legend_handles_labels()
-    fig.subplots_adjust(bottom=0.4)
-    legend = ax.legend(loc='lower center', ncol=1, fancybox=False, borderaxespad=-7)
+
+    legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()

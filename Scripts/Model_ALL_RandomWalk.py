@@ -743,7 +743,7 @@ def analyze_tow_spacing_effect(
     axes_left = left_margin / figure_width
     axes_width = 1 - (left_margin + right_margin) / figure_width
     axes_bottom = (bottom_margin + legend_margin) / figure_height
-    axes_height = (axes_units_per_box * min_figure_height) / figure_height
+    axes_height = (axes_units_per_box * unit_box_height) / figure_height
     ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
 
     # Lines
@@ -1245,11 +1245,11 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-    #                          error_areas=True, error_bars=False, save_PDF=True)
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+                              error_areas=True, error_bars=False, save_PDF=False)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(save_PDF=False)
-    find_RW_statistics(n_tows=1000)
+    #find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
