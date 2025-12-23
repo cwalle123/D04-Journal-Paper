@@ -335,7 +335,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     axes_left = left_margin / figure_width
     axes_width = 1 - (left_margin + right_margin) / figure_width
     axes_bottom = (bottom_margin + legend_margin) / figure_height
-    axes_height = (axes_units_per_box * min_figure_height) / figure_height
+    axes_height = (axes_units_per_box * unit_box_height) / figure_height
     ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
 
     # Real tow
@@ -932,11 +932,12 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     mpl.rcParams['ytick.direction'] = 'in'
 
     # Establish correct geometry
+    inter_axes_gap_list = [inter_axes_gap, 0.2 * inter_axes_gap] # Only change the factor before the second entry
     legend_margin = 0                   # Remove this line when adding a legend below the figure
-    axes_units_per_box = [3, 1, 2]
+    axes_units_per_box = [2, 0.5, 1.5]
     n_boxes = 3
     total_axes_units = sum(axes_units_per_box)
-    figure_height = (total_axes_units * unit_box_height + (n_boxes - 2) * inter_axes_gap
+    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap
                      + top_margin + bottom_margin + legend_margin)
     fig = plt.figure(figsize=(figure_width, figure_height))
     axes_left = left_margin / figure_width
@@ -948,7 +949,10 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         bottom = current_top - axes_height
         ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
         axs.append(ax)
-        current_top = bottom - inter_axes_gap / figure_height
+        if i != 2:
+            current_top = bottom - inter_axes_gap_list[i] / figure_height
+        else:
+            current_top = bottom - inter_axes_gap / figure_height
     
     axs[-1].set_xlabel("Gap length (mm)")
 
@@ -959,7 +963,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         hspace=0.25                 # spacing only between top and bottom
     )"""
 
-    # --- Top panel
+    """# --- Top panel
     ax_top = fig.add_subplot(gs[0])
 
     # --- Bottom panel split into 2 touching axes
@@ -967,35 +971,35 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         2, 1,
         height_ratios=[0.3, 1],
         hspace=0.1                    # THIS makes them TOUCH
-    )
+    )"""
 
-    ax_bottom_top = fig.add_subplot(bottom_gs[0], sharex=ax_top)
-    ax_bottom_bottom = fig.add_subplot(bottom_gs[1], sharex=ax_top)
+    #ax_bottom_top = fig.add_subplot(bottom_gs[0], sharex=ax_top)
+    #ax_bottom_bottom = fig.add_subplot(bottom_gs[1], sharex=ax_top)
 
-    if log:
-        for ax in [ax_top, ax_bottom_top, ax_bottom_bottom]:
-            ax.set_xscale("log")
+    #if log:
+    #    for ax in [ax_top, ax_bottom_top, ax_bottom_bottom]:
+    #        ax.set_xscale("log")
 
     # ============================================================
     # TOP SUBPLOT
     # ============================================================
-    ax_top.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
-    ax_top.hist(gap_RW, bins=shared_bins, color=color_RW, alpha=transparency, label="MCMC simulation")
-    ax_top.xaxis.set_tick_params(labelbottom=False)
+    axs[0].hist(gap_RW, bins=shared_bins, color=color_RW, alpha=transparency, label="MCMC simulation")
+    axs[0].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
+    axs[0].xaxis.set_tick_params(labelbottom=False)
 
-    ax_top.set_xlim(*xlim)
-    ax_top.set_ylim(0, 160)
+    axs[0].set_xlim(*xlim)
+    axs[0].set_ylim(0, 160)
 
-    ax_top.set_ylabel("Frequency")
-    ax_top.tick_params(axis="both", top=True, right=True)
-    ax_top.xaxis.set_ticks_position("both")
-    ax_top.yaxis.set_ticks_position("both")
+    axs[0].set_ylabel("Frequency")
+    axs[0].tick_params(axis="both", top=True, right=True)
+    axs[0].xaxis.set_ticks_position("both")
+    axs[0].yaxis.set_ticks_position("both")
 
-    for spine in ax_top.spines.values():
+    for spine in axs[0].spines.values():
         spine.set_linewidth(graph_box_thickness)
         spine.set_edgecolor(color_borders)
 
-    legend_top = ax_top.legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
+    legend_top = axs[0].legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
     frame = legend_top.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
@@ -1009,44 +1013,45 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     peak_max = 1100
 
     # Upper small range
-    ax_bottom_top.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
-    ax_bottom_top.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
-    ax_bottom_top.set_ylim(peak_min, peak_max)
+    axs[1].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
+    axs[1].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
+    axs[1].set_ylim(peak_min, peak_max)
+    axs[1].set_xlim(*xlim)
 
-    for spine in ax_bottom_top.spines.values():
+    for spine in axs[1].spines.values():
         spine.set_linewidth(graph_box_thickness)
         spine.set_edgecolor(color_borders)
 
     # Lower full range
-    ax_bottom_bottom.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
-    ax_bottom_bottom.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
+    axs[2].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
+    axs[2].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
 
-    ax_bottom_bottom.set_ylim(0, 140)
-    ax_bottom_bottom.set_xlim(*xlim)
+    axs[2].set_ylim(0, 140)
+    axs[2].set_xlim(*xlim)
 
-    for spine in ax_bottom_bottom.spines.values():
+    for spine in axs[2].spines.values():
         spine.set_linewidth(graph_box_thickness)
         spine.set_edgecolor(color_borders)
 
     # Remove touching spines
-    ax_bottom_top.spines.bottom.set_visible(False)
-    ax_bottom_bottom.spines.top.set_visible(False)
+    axs[1].spines.bottom.set_visible(False)
+    axs[2].spines.top.set_visible(False)
 
     # Tick formatting
-    ax_bottom_top.tick_params(axis="x", bottom=False, labelbottom=False)
-    ax_bottom_top.tick_params(axis="both", right=True, top=True, left=True)
-    legend_bottom_top = ax_bottom_top.legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
+    axs[1].tick_params(axis="x", bottom=False, labelbottom=False)
+    axs[1].tick_params(axis="both", right=True, top=True, left=True)
+    legend_bottom_top = axs[1].legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
     frame = legend_bottom_top.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
     frame.set_facecolor('white')
 
-    ax_bottom_bottom.tick_params(axis="both", right=True)
+    axs[2].tick_params(axis="both", right=True)
 
     # ============================================================
     # AXIS BREAK MARKERS (standard diagonal slashes)
     # ============================================================
-    def break_marker(ax, position="bottom", slope=1.0, size=0.012):
+    def break_marker(ax, position="bottom", pixel_slope=1.0, size=0.012):
         """
         Draw parallel diagonal break markers.
         
@@ -1056,9 +1061,17 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         slope    : dy/dx  (controls angle of slashes)
         size     : overall length scale of slashes
         """
+        bbox = ax.get_window_extent().transformed(ax.figure.dpi_scale_trans.inverted())
+        width_px  = bbox.width  * ax.figure.dpi
+        height_px = bbox.height * ax.figure.dpi
+
+        # Convert desired pixel slope to axes slope
+        slope_axes = pixel_slope * (width_px / height_px)
+
+
         # dx determines horizontal length; dy determines slope
         dx = size
-        dy = size * slope
+        dy = size * slope_axes
 
         kwargs = dict(transform=ax.transAxes, color=color_borders, lw=break_marker_thickness, clip_on=False)
 
@@ -1072,14 +1085,14 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         ax.plot([1 - dx, 1 + dx], [y0 - dy, y0 + dy], **kwargs)
         ax.plot([1 - dx, 1 + dx], [y0 - dy, y0 + dy], **kwargs)
 
-    break_marker(ax_bottom_top, "bottom", slope=3.33)
-    break_marker(ax_bottom_bottom, "top")
+    break_marker(axs[1], "bottom", pixel_slope=0.554)
+    break_marker(axs[2], "top", pixel_slope = 0.554)
     
     # ============================================================
     # Bottom labels
     # ============================================================
-    ax_bottom_bottom.set_xlabel("Gap Length (mm)")
-    ax_bottom_bottom.set_ylabel("Frequency")
+    axs[2].set_xlabel("Gap Length (mm)")
+    axs[2].set_ylabel("Frequency")
 
     if save_PDF:
         fig.savefig("RWandRSdefectlength2.pdf", format="pdf", dpi=300, bbox_inches=None)
@@ -1305,7 +1318,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
+    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=False)
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
