@@ -19,7 +19,8 @@ from constants import (tow_width_specified, font_label, font_axis_ticks, figure_
                         color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, graph_box_thickness, font_legend,
                         legend_box_thickness, color_borders, color_annotations, color_PDF_fits, transparency,
                         legend_space, annotation_thickness, annotation_stripe_height, legend_line_thickness, graph_line_thickness,
-                        color_ideal_gap, transparency)
+                        color_ideal_gap, transparency, left_margin, right_margin, top_margin, bottom_margin, 
+                        legend_drop, legend_margin, inter_axes_gap, unit_box_height)
 from Handling_ALL_Functions import get_synced_data
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
@@ -135,6 +136,33 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     mpl.rcParams['ytick.major.size'] = tick_length
     mpl.rcParams['xtick.direction'] = 'in'
     mpl.rcParams['ytick.direction'] = 'in'
+
+    # Establish correct geometry
+    axes_units_per_box = 1
+    n_boxes = 4
+    total_axes_units = n_boxes * axes_units_per_box
+    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                     + top_margin + bottom_margin + legend_margin)
+    fig = plt.figure(figsize=(figure_width, figure_height))
+    axes_left = left_margin / figure_width
+    axes_width = 1 - (left_margin + right_margin) / figure_width
+    axes_height = unit_box_height / figure_height
+    axs = []
+    current_top = 1 - top_margin / figure_height
+    for i in range(n_boxes):
+        bottom = (current_top - axes_height)
+        ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
+        axs.append(ax)
+        current_top = bottom - inter_axes_gap / figure_height
+    
+    x_labels = ["Error, robot position", "Error, tape lateral movement", 
+                "Error, tape width before compaction", "Error, tape width after compaction"]
+    for i, ax in enumerate(axs):
+        if i < n_boxes - 1:
+            ax.tick_params(labelbottom=True)
+            ax.set_xlabel(x_labels[i])
+        else:
+            ax.set_xlabel(x_labels[-1])
  
     def annotate_mean_std(ax, data, stripe_height=annotation_stripe_height, lw=annotation_thickness, show_debug=False):
         """
@@ -202,9 +230,6 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
                     zorder=950, clip_on=False)
 
     # --------PLotting----------
-    #plt.rc('font', family=font_TNR)
-    fig, axs = plt.subplots(4, 1, figsize=(figure_width, 4*min_figure_height), sharex=True)
-    fig.subplots_adjust(hspace=0.4) # create space for x-axis labels
     im0 = image.imread('Figures/robotinacc.jpg')
     im1 = image.imread('Figures/tapelatmvmt.jpg')
     im2 = image.imread('Figures/tape width.jpg')
@@ -264,9 +289,12 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
             spine.set_linewidth(graph_box_thickness)                                    # black box around figure
             spine.set_edgecolor(color_borders)
 
+    legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                              axes_width, legend_margin/figure_height], frameon=False)
+    legend_ax.axis("off")
     handles, labels = axs[0].get_legend_handles_labels()
-    fig.subplots_adjust(bottom=legend_space)                                # create space for legend without altering figure size
-    legend = fig.legend(handles, labels, loc='lower center', ncol=1, fancybox=False) #create legend with black box
+
+    legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
@@ -1094,8 +1122,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
+    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

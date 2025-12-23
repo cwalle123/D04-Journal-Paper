@@ -24,7 +24,8 @@ from constants import (font_label, font_axis_ticks, figure_width, min_figure_hei
                        font_TNR, font_legend, graph_box_thickness, tick_length, tick_width, color_gap, color_overlap,
                        graph_line_thickness, legend_box_thickness, legend_line_thickness, legend_space,
                        annotation_stripe_height, annotation_thickness, color_annotations, color_borders, color_ideal_gap,
-                       transparency)
+                       transparency, left_margin, right_margin, top_margin, bottom_margin, legend_drop, legend_margin,
+                       unit_box_height)
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 
@@ -701,8 +702,15 @@ def analyze_tow_spacing_effect(
     mpl.rcParams['xtick.direction'] = 'in'
     mpl.rcParams['ytick.direction'] = 'in'
 
-    fig, ax = plt.subplots(1, 1, figsize=(figure_width, 2*min_figure_height))
-    fig.subplots_adjust(hspace=0)
+    # Establish correct geometry
+    axes_units_per_box = 1
+    figure_height = axes_units_per_box * unit_box_height + top_margin + bottom_margin + legend_margin
+    fig = plt.figure(figsize=(figure_width, figure_height))
+    axes_left = left_margin / figure_width
+    axes_width = 1 - (left_margin + right_margin) / figure_width
+    axes_bottom = (bottom_margin + legend_margin) / figure_height
+    axes_height = (axes_units_per_box * min_figure_height) / figure_height
+    ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
 
     # Lines
     ax.plot(spacing_arr, gap_arr, color=color_gap, label="Gap", linewidth=graph_line_thickness)
@@ -763,9 +771,12 @@ def analyze_tow_spacing_effect(
         spine.set_linewidth(graph_box_thickness)                                    # black box around figure
         spine.set_edgecolor(color_borders)
 
+    legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                              axes_width, legend_margin/figure_height], frameon=False)
+    legend_ax.axis("off")
     handles, labels = ax.get_legend_handles_labels()
-    fig.subplots_adjust(bottom=0.4)
-    legend = fig.legend(handles, labels, loc='lower center', ncol=1, fancybox=False) #create legend with black box
+
+    legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
@@ -775,7 +786,7 @@ def analyze_tow_spacing_effect(
 
     # Save PDF
     if save_PDF == True:
-        plt.savefig("defect occurrence from varying values of programmed shift areas.pdf", format="pdf", bbox_inches=None)
+        fig.savefig("defect occurrence from varying values of programmed shift areas.pdf", format="pdf", bbox_inches=None)
 
     plt.show()
 
@@ -1189,7 +1200,7 @@ def main():
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
     analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-                               error_areas=True, error_bars=False, save_PDF=False)
+                               error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(save_PDF=False)
 
