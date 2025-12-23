@@ -687,6 +687,20 @@ def analyze_tow_spacing_effect(
         print(f"\n✅ Results (with std/min/max + intersections) saved to:\n   {csv_path}")
 
     # -------- Plot --------
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+    mpl.rcParams['axes.labelsize'] = font_label
+    mpl.rcParams['legend.fontsize'] = font_legend
+    mpl.rcParams['xtick.major.width'] = tick_width
+    mpl.rcParams['ytick.major.width'] = tick_width
+    mpl.rcParams['xtick.major.size'] = tick_length
+    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['ytick.direction'] = 'in'
+
     fig, ax = plt.subplots(1, 1, figsize=(figure_width, 2*min_figure_height))
     fig.subplots_adjust(hspace=0)
 
@@ -734,34 +748,24 @@ def analyze_tow_spacing_effect(
             ax.errorbar(spacing_arr, overlap_arr, yerr=results_df["Overlap Std (%)"],
                         fmt='none', color=color_overlap, capsize=3, linewidth=annotation_thickness)
 
-    ax.set_xlabel("Programmed shift (mm)", size=font_label)
-    ax.set_ylabel("Defect area (%)", size=font_label)
+    ax.set_xlabel("Programmed shift (mm)")
+    ax.set_ylabel("Defect area (%)")
     
     # Axis limits (original)
     ax.set_xlim(5, 7.5)
     ax.set_ylim(0, 10)
 
     # Formatting
-    mpl.rcParams['font.family'] = 'serif'
-    mpl.rcParams['font.serif'] = [font_TNR]
-    mpl.rcParams['mathtext.fontset'] = 'stix'
-    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-
     ax.xaxis.set_ticks_position('both')
     ax.yaxis.set_ticks_position('both')
-    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
-                   length=tick_length, width=tick_width)                            # tick dimensions
+    ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
     for spine in ax.spines.values():
         spine.set_linewidth(graph_box_thickness)                                    # black box around figure
         spine.set_edgecolor(color_borders)
-    for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
-        label.set_fontname(font_TNR)
-        label.set_fontsize(font_axis_ticks)
 
     handles, labels = ax.get_legend_handles_labels()
     fig.subplots_adjust(bottom=0.4)
-    legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
+    legend = fig.legend(handles, labels, loc='lower center', ncol=1, fancybox=False) #create legend with black box
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
@@ -1098,17 +1102,19 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
     # (same styling as your other publication figures)
     # ----------------------------
 
-    # Use your histogram-style rcParams
-    mpl.rcParams['font.family']      = 'serif'
-    mpl.rcParams['font.serif']       = [font_TNR]
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
     mpl.rcParams['mathtext.fontset'] = 'stix'
-    mpl.rcParams['axes.linewidth']   = graph_box_thickness
-    mpl.rcParams['xtick.direction']  = 'in'
-    mpl.rcParams['ytick.direction']  = 'in'
-    mpl.rcParams['xtick.major.size'] = tick_length
-    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+    mpl.rcParams['axes.labelsize'] = font_label
+    mpl.rcParams['legend.fontsize'] = font_legend
     mpl.rcParams['xtick.major.width'] = tick_width
     mpl.rcParams['ytick.major.width'] = tick_width
+    mpl.rcParams['xtick.major.size'] = tick_length
+    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['ytick.direction'] = 'in'
 
     # Create figure with publication dimensions
     fig, ax = plt.subplots(figsize=(figure_width, 2*min_figure_height))
@@ -1141,19 +1147,15 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
 
 
     # --- Axes and grid ---
-    ax.set_xlabel("Tow Length (mm)", fontname=font_TNR, fontsize=font_label)
-    ax.set_ylabel("Position (mm)", fontname=font_TNR, fontsize=font_label)
+    ax.set_xlabel("Tow Length (mm)")
+    ax.set_ylabel("Position (mm)")
     ax.grid(False)  # This removes the horizontal dashed lines
     ax.xaxis.set_ticks_position('both')
     ax.yaxis.set_ticks_position('both')
-    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
-                length=tick_length, width=tick_width)                               # tick dimensions
+    ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
     for spine in ax.spines.values():
         spine.set_linewidth(graph_box_thickness)                                    # black box around figure
         spine.set_edgecolor(color_borders)
-    for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
-        label.set_fontname(font_TNR)
-        label.set_fontsize(font_axis_ticks)
 
     if save_PDF == True:
         plt.savefig("virtual lamina.pdf", format="pdf", bbox_inches=None)
@@ -1187,9 +1189,9 @@ def main():
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
     analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-                               error_areas=True, error_bars=False, save_PDF=True)
+                               error_areas=True, error_bars=False, save_PDF=False)
     #test_LLS_A_B_condition()
-    #generate_virtual_lamina_figure(save_PDF=True)
+    #generate_virtual_lamina_figure(save_PDF=False)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

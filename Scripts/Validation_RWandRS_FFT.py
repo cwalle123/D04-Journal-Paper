@@ -317,6 +317,20 @@ def run_fft_compare(
     print("  RS model:  MSE={:.6e}, rho={}".format(mse_rs, "nan" if np.isnan(rho_rs) else f"{rho_rs:.6f}"))
 
     def plot_linear(f_exp, A_exp, f_rw, A_rw, f_rs, A_rs):
+        mpl.rcParams['font.family'] = 'serif'
+        mpl.rcParams['font.serif'] = [font_TNR]
+        mpl.rcParams['mathtext.fontset'] = 'stix'
+        mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+        mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+        mpl.rcParams['axes.labelsize'] = font_label
+        mpl.rcParams['legend.fontsize'] = font_legend
+        mpl.rcParams['xtick.major.width'] = tick_width
+        mpl.rcParams['ytick.major.width'] = tick_width
+        mpl.rcParams['xtick.major.size'] = tick_length
+        mpl.rcParams['ytick.major.size'] = tick_length
+        mpl.rcParams['xtick.direction'] = 'in'
+        mpl.rcParams['ytick.direction'] = 'in'
+        
         fig, ax = plt.subplots(1, 1, figsize=(figure_width, 2*min_figure_height))
         ax.plot(f_exp, A_exp, label="Experimental",    color=color_exp, linewidth=graph_line_thickness, linestyle="-")
         ax.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=graph_line_thickness, linestyle="-")
@@ -326,16 +340,9 @@ def run_fft_compare(
         ax.grid(False)
         ax.set_xlim(0, 50)
 
-        mpl.rcParams['font.family'] = 'serif'
-        mpl.rcParams['font.serif'] = [font_TNR]
-        mpl.rcParams['mathtext.fontset'] = 'stix'
-        mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-        mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',
-                       length=tick_length, width=tick_width)
+        ax.tick_params(top=True, bottom=True, left=True, right=True)
 
         for spine in ax.spines.values():
             spine.set_linewidth(graph_box_thickness)
@@ -343,7 +350,7 @@ def run_fft_compare(
 
         handles, labels = ax.get_legend_handles_labels()
         fig.subplots_adjust(bottom=0.35)
-        legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False)
+        legend = fig.legend(handles, labels, loc='lower center', ncol=1, fancybox=False)
         for legobj in legend.legend_handles:
             legobj.set_linewidth(legend_line_thickness)
         frame = legend.get_frame()
@@ -461,7 +468,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=True
+        save_PDF=False
     )
 
     # NEW: export BOTH lists as TWO SEPARATE CSV FILES

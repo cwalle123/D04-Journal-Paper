@@ -121,6 +121,21 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     scale_LLSB = params_LLSB[-1]
     y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf_LLS_B, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
 
+    #Start of plotting
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+    mpl.rcParams['axes.labelsize'] = font_label
+    mpl.rcParams['legend.fontsize'] = font_legend
+    mpl.rcParams['xtick.major.width'] = tick_width
+    mpl.rcParams['ytick.major.width'] = tick_width
+    mpl.rcParams['xtick.major.size'] = tick_length
+    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['ytick.direction'] = 'in'
+ 
     def annotate_mean_std(ax, data, stripe_height=annotation_stripe_height, lw=annotation_thickness, show_debug=False):
         """
         Annotate `ax` with:
@@ -187,7 +202,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
                     zorder=950, clip_on=False)
 
     # --------PLotting----------
-    plt.rc('font', family=font_TNR)
+    #plt.rc('font', family=font_TNR)
     fig, axs = plt.subplots(4, 1, figsize=(figure_width, 4*min_figure_height), sharex=True)
     fig.subplots_adjust(hspace=0.4) # create space for x-axis labels
     im0 = image.imread('Figures/robotinacc.jpg')
@@ -201,8 +216,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
     #axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, label="Distribution fits")
     annotate_mean_std(axs[0], LT_exp)
-    axs[0].set_xlabel("Error, robot position", size=font_label,)
-    axs[0].set_ylabel("Density", size=font_label)
+    axs[0].set_xlabel("Error, robot position")
+    axs[0].set_ylabel("Density")
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
     axs[0].xaxis.set_tick_params(labelbottom=True)
 
@@ -212,8 +227,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
     #axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits)
     annotate_mean_std(axs[1], CAM_exp)
-    axs[1].set_xlabel("Error, tape lateral movement", size=font_label)
-    axs[1].set_ylabel("Density", size=font_label)
+    axs[1].set_xlabel("Error, tape lateral movement")
+    axs[1].set_ylabel("Density")
     axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
     axs[1].xaxis.set_tick_params(labelbottom=True)
 
@@ -223,8 +238,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     #axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits)
     annotate_mean_std(axs[2], LLSA_exp)
-    axs[2].set_xlabel("Error, tape width before compaction", size=font_label)
-    axs[2].set_ylabel("Density", size=font_label)
+    axs[2].set_xlabel("Error, tape width before compaction")
+    axs[2].set_ylabel("Density")
     axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
     axs[2].xaxis.set_tick_params(labelbottom=True)
 
@@ -234,40 +249,30 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     #axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits)
     annotate_mean_std(axs[3], LLSB_exp)
-    axs[3].set_xlabel("Error, tape width after compaction", size=font_label)
-    axs[3].set_ylabel("Density", size=font_label)
+    axs[3].set_xlabel("Error, tape width after compaction")
+    axs[3].set_ylabel("Density")
     axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
     axs[3].xaxis.set_tick_params(labelbottom=True)
-
-    mpl.rcParams['font.family'] = 'serif'
-    mpl.rcParams['font.serif'] = [font_TNR]
-    mpl.rcParams['mathtext.fontset'] = 'stix'
-    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
 
     for i, ax in enumerate(axs):
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
-                       length=tick_length, width=tick_width)                            # tick dimensions
+        ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
         ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))                        # Format ticks with one decimal place (pad zeros)
         ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         for spine in ax.spines.values():
             spine.set_linewidth(graph_box_thickness)                                    # black box around figure
             spine.set_edgecolor(color_borders)
-        for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
-            label.set_fontname(font_TNR)
-            label.set_fontsize(font_axis_ticks)
 
     handles, labels = axs[0].get_legend_handles_labels()
     fig.subplots_adjust(bottom=legend_space)                                # create space for legend without altering figure size
-    """legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False) #create legend with black box
+    legend = fig.legend(handles, labels, loc='lower center', ncol=1, fancybox=False) #create legend with black box
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
-    frame.set_facecolor('white')"""
+    frame.set_facecolor('white')
 
     if save_PDF == True:
         plt.savefig("source wise validation_310 tows without legend.pdf", format="pdf", bbox_inches=None, dpi=600)
@@ -932,6 +937,20 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         plt.show()
 
     if plottype == "single no D04":
+        mpl.rcParams['font.family'] = 'serif'
+        mpl.rcParams['font.serif'] = [font_TNR]
+        mpl.rcParams['mathtext.fontset'] = 'stix'
+        mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+        mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+        mpl.rcParams['axes.labelsize'] = font_label
+        mpl.rcParams['legend.fontsize'] = font_legend
+        mpl.rcParams['xtick.major.width'] = tick_width
+        mpl.rcParams['ytick.major.width'] = tick_width
+        mpl.rcParams['xtick.major.size'] = tick_length
+        mpl.rcParams['ytick.major.size'] = tick_length
+        mpl.rcParams['xtick.direction'] = 'in'
+        mpl.rcParams['ytick.direction'] = 'in'
+        
         fig, axs = plt.subplots(2, 1, figsize=(figure_width, 3*min_figure_height))
         fig.subplots_adjust(hspace=0.2) # create space for x-axis labels
 
@@ -944,11 +963,11 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
         axs[0].hist(rw_shift, bins=bins, density=True, alpha=transparency, color=color_RW, label="MCMC simulation")
         #axs[0].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
-        axs[0].set_ylabel("Density", fontsize=font_label)
+        axs[0].set_ylabel("Density")
         axs[0].set_xlim(-1.3, 1.3)
         axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
         axs[0].xaxis.set_tick_params(labelbottom=False)
-        leg0 = axs[0].legend(loc='upper left', ncol=1, fontsize=font_legend, fancybox=False)
+        leg0 = axs[0].legend(loc='upper left', ncol=1, fancybox=False)
 
         axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
         axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, color=color_RS, label="MC simulation")
@@ -957,25 +976,15 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[1].set_ylabel("Density", fontsize=font_label)
         axs[1].set_xlim(-1.3, 1.3)
         axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
-        leg1 = axs[1].legend(loc='upper left', ncol=1, fontsize=font_legend, fancybox=False)
-
-        mpl.rcParams['font.family'] = 'serif'
-        mpl.rcParams['font.serif'] = [font_TNR]
-        mpl.rcParams['mathtext.fontset'] = 'stix'
-        mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-        mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+        leg1 = axs[1].legend(loc='upper left', ncol=1, fancybox=False)
     
         for i, ax in enumerate(axs):
             ax.xaxis.set_ticks_position('both')
             ax.yaxis.set_ticks_position('both')
-            ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
-                        length=tick_length, width=tick_width)                               # tick dimensions
+            ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
             for spine in ax.spines.values():
                 spine.set_linewidth(graph_box_thickness)                                    # black box around figure
                 spine.set_edgecolor(color_borders)
-            for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
-                label.set_fontname(font_TNR)
-                label.set_fontsize(font_axis_ticks)
             legend = leg0 if i == 0 else leg1
             for legobj in legend.legend_handles:
                 legobj.set_linewidth(legend_line_thickness)
@@ -985,7 +994,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
             frame.set_facecolor('white')
         
         if save_PDF == True:
-            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf",bbox_inches=None)
+            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf", bbox_inches=None)
         
         plt.show()
 
@@ -1085,7 +1094,7 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=False)
     #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":

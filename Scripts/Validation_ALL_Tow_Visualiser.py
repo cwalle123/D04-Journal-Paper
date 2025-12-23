@@ -309,6 +309,21 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     x_RS_centerline  = RS_df["x_mm"].to_numpy()
     y_RS_centerline  = RS_df["centerline"].to_numpy()
 
+    #Start of plotting
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+    mpl.rcParams['axes.labelsize'] = font_label
+    mpl.rcParams['legend.fontsize'] = font_legend
+    mpl.rcParams['xtick.major.width'] = tick_width
+    mpl.rcParams['ytick.major.width'] = tick_width
+    mpl.rcParams['xtick.major.size'] = tick_length
+    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['ytick.direction'] = 'in'
+
     fig, ax = plt.subplots(1, 1, figsize=(figure_width,2*min_figure_height))
     fig.subplots_adjust(hspace=0)
 
@@ -332,30 +347,21 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     ax.plot(x_RS_left, y_RS_left, "-", color=color_RS, linewidth=graph_line_thickness, label="MC simulation")
     ax.plot(x_RS_right, y_RS_right, "-", color=color_RS, linewidth=graph_line_thickness)
 
-    ax.set_xlabel("Tow Length (mm)", fontsize=font_label, fontname=font_TNR)
-    ax.set_ylabel("Position (mm)", fontsize=font_label, fontname=font_TNR)
-
-    mpl.rcParams['font.family'] = 'serif'
-    mpl.rcParams['font.serif'] = [font_TNR]
-    mpl.rcParams['mathtext.fontset'] = 'stix'
-    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+    ax.set_xlabel("Tow Length (mm)")
+    ax.set_ylabel("Position (mm)")
 
     ax.xaxis.set_ticks_position('both')
     ax.yaxis.set_ticks_position('both')
-    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in',    # tick locations
-                   length=tick_length, width=tick_width)                            # tick dimensions
+    ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
     for spine in ax.spines.values():
         spine.set_linewidth(graph_box_thickness)                                    # black box around figure
         spine.set_edgecolor(color_borders)
-    for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
-        label.set_fontname(font_TNR)
-        label.set_fontsize(font_axis_ticks)
 
     fig.subplots_adjust(bottom=0.3)
     legend_ax = fig.add_axes([0, 0.1, 1, 0.1], frameon=False) 
     legend_ax.axis('off')
-    legend = legend_ax.legend(handles=ax.get_legend_handles_labels()[0], labels=ax.get_legend_handles_labels()[1], fontsize=font_legend, loc='upper center', ncols=1, fancybox=False)
+    legend = legend_ax.legend(handles=ax.get_legend_handles_labels()[0], labels=ax.get_legend_handles_labels()[1], 
+                              loc='upper center', ncols=1, fancybox=False)
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
@@ -899,6 +905,19 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     # Figure layout: TOP + (BOTTOM broken axis)
     # ============================================================
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+    mpl.rcParams['axes.labelsize'] = font_label
+    mpl.rcParams['legend.fontsize'] = font_legend
+    mpl.rcParams['xtick.major.width'] = tick_width
+    mpl.rcParams['ytick.major.width'] = tick_width
+    mpl.rcParams['xtick.major.size'] = tick_length
+    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['ytick.direction'] = 'in'
     fig = plt.figure(figsize=(figure_width, 4*min_figure_height))
 
     # Main grid: top panel, and a lower area that will hold 2 touching panels
@@ -935,24 +954,14 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     ax_top.set_xlim(*xlim)
     ax_top.set_ylim(0, 160)
 
-    mpl.rcParams['font.family'] = 'serif'
-    mpl.rcParams['font.serif'] = [font_TNR]
-    mpl.rcParams['mathtext.fontset'] = 'stix'
-    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-
-    ax_top.set_ylabel("Frequency", fontsize=font_label, fontname=font_TNR)
-    ax_top.tick_params(axis="both", labelsize=font_axis_ticks, direction="in",
-                       top=True, right=True, length=tick_length, width=tick_width)
+    ax_top.set_ylabel("Frequency")
+    ax_top.tick_params(axis="both", top=True, right=True)
     ax_top.xaxis.set_ticks_position("both")
     ax_top.yaxis.set_ticks_position("both")
 
     for spine in ax_top.spines.values():
         spine.set_linewidth(graph_box_thickness)
         spine.set_edgecolor(color_borders)
-    for label in ax_top.get_xticklabels() + ax_top.get_yticklabels():                       # tick labels
-        label.set_fontname(font_TNR)
-        label.set_fontsize(font_axis_ticks)
 
     legend_top = ax_top.legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
     frame = legend_top.get_frame()
@@ -972,18 +981,9 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     ax_bottom_top.hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
     ax_bottom_top.set_ylim(peak_min, peak_max)
 
-    mpl.rcParams['font.family'] = 'serif'
-    mpl.rcParams['font.serif'] = [font_TNR]
-    mpl.rcParams['mathtext.fontset'] = 'stix'
-    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-
     for spine in ax_bottom_top.spines.values():
         spine.set_linewidth(graph_box_thickness)
         spine.set_edgecolor(color_borders)
-    for label in ax_bottom_top.get_xticklabels() + ax_bottom_top.get_yticklabels():                       # tick labels
-        label.set_fontname(font_TNR)
-        label.set_fontsize(font_axis_ticks)
 
     # Lower full range
     ax_bottom_bottom.hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
@@ -992,18 +992,9 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     ax_bottom_bottom.set_ylim(0, 140)
     ax_bottom_bottom.set_xlim(*xlim)
 
-    mpl.rcParams['font.family'] = 'serif'
-    mpl.rcParams['font.serif'] = [font_TNR]
-    mpl.rcParams['mathtext.fontset'] = 'stix'
-    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
-
     for spine in ax_bottom_bottom.spines.values():
         spine.set_linewidth(graph_box_thickness)
         spine.set_edgecolor(color_borders)
-    for label in ax_bottom_bottom.get_xticklabels() + ax_bottom_bottom.get_yticklabels():                       # tick labels
-        label.set_fontname(font_TNR)
-        label.set_fontsize(font_axis_ticks)
 
     # Remove touching spines
     ax_bottom_top.spines.bottom.set_visible(False)
@@ -1011,16 +1002,14 @@ def compare_real_vs_RS_RW_gap_length_distributions(
 
     # Tick formatting
     ax_bottom_top.tick_params(axis="x", bottom=False, labelbottom=False)
-    ax_bottom_top.tick_params(axis="both", labelsize=font_axis_ticks, direction="in",
-                              right=True, top=True, left=True, length=tick_length, width=tick_width)
+    ax_bottom_top.tick_params(axis="both", right=True, top=True, left=True)
     legend_bottom_top = ax_bottom_top.legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
     frame = legend_bottom_top.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
     frame.set_facecolor('white')
 
-    ax_bottom_bottom.tick_params(axis="both", labelsize=font_axis_ticks, direction="in",
-                                 right=True, length=tick_length, width=tick_width)
+    ax_bottom_bottom.tick_params(axis="both", right=True)
 
     # ============================================================
     # AXIS BREAK MARKERS (standard diagonal slashes)
@@ -1057,8 +1046,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     # Bottom labels
     # ============================================================
-    ax_bottom_bottom.set_xlabel("Gap Length (mm)", fontsize=font_label, fontname=font_TNR)
-    ax_bottom_bottom.set_ylabel("Frequency", fontsize=font_label, fontname=font_TNR)
+    ax_bottom_bottom.set_xlabel("Gap Length (mm)")
+    ax_bottom_bottom.set_ylabel("Frequency")
 
     if save_PDF:
         fig.savefig("RWandRSdefectlength2.pdf", format="pdf", dpi=300, bbox_inches=None)
@@ -1295,7 +1284,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
+    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False)
 
 if __name__ == "__main__":
     main()

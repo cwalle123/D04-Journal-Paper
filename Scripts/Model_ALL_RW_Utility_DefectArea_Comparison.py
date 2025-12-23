@@ -342,6 +342,19 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=False):
         x_right_edge_last_ovl   = x[-1] + width           # right edge of last OVL bar
         ovl_line = (y_o, x_left_edge_tallest_ovl, x_right_edge_last_ovl)
     # --------------------------------------------------------
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+    mpl.rcParams['axes.labelsize'] = font_label
+    mpl.rcParams['legend.fontsize'] = font_legend
+    mpl.rcParams['xtick.major.width'] = tick_width
+    mpl.rcParams['ytick.major.width'] = tick_width
+    mpl.rcParams['xtick.major.size'] = tick_length
+    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['ytick.direction'] = 'in'
 
     fig, ax = plt.subplots(figsize=(figure_width, 2*min_figure_height))
     fig.subplots_adjust(hspace=0) # create space for x-axis labels
@@ -387,28 +400,19 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=False):
     ax.set_ylim(0, 5)
     ax.yaxis.set_major_locator(MultipleLocator(Y_MAJOR_STEP))
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
-    
-    mpl.rcParams['font.family'] = 'serif'
-    mpl.rcParams['font.serif'] = [font_TNR]
-    mpl.rcParams['mathtext.fontset'] = 'stix'
-    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
-    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
 
     ax.xaxis.set_ticks_position('both')
     ax.yaxis.set_ticks_position('both')
-    ax.tick_params(top=False, bottom=False, left=True, right=True, direction='in',    # tick locations
-                   length=tick_length, width=tick_width)                               # tick dimensions
+    ax.tick_params(top=False, bottom=False, left=True, right=True)                   # tick locations
     #ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))                        # Format ticks with one decimal place (pad zeros)
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     for spine in ax.spines.values():
         spine.set_linewidth(graph_box_thickness)                                    # black box around figure
         spine.set_edgecolor(color_borders)
-    for label in ax.get_xticklabels() + ax.get_yticklabels():                       # tick labels
-        label.set_fontname(font_TNR)
-        label.set_fontsize(font_axis_ticks)
+
     handles, labels = ax.get_legend_handles_labels()
     fig.subplots_adjust(bottom=0.4)
-    legend = ax.legend(loc='lower center', ncol=1, fontsize=font_legend, fancybox=False, borderaxespad=-7)
+    legend = ax.legend(loc='lower center', ncol=1, fancybox=False, borderaxespad=-7)
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
@@ -458,7 +462,7 @@ def main():
 
     # Run experiment and generate figure
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
-    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=True)
+    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=False)
     #save_csv(scenarios, summary, CSV_PATH)
 
 if __name__ == "__main__":
