@@ -1318,7 +1318,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=False)
+    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
@@ -1329,7 +1329,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    #compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False)
+    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
 
 if __name__ == "__main__":
     main()
