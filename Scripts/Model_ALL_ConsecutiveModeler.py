@@ -1007,21 +1007,35 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
         axs[0].hist(rw_shift, bins=bins, density=True, alpha=transparency, color=color_RW, label="MCMC simulation")
         #axs[0].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
-        axs[0].set_ylabel("Density")
+        axs[0].set_ylabel("Density", fontsize=font_label, fontname= font_TNR)
         axs[0].set_xlim(-1.3, 1.3)
         axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
         axs[0].xaxis.set_tick_params(labelbottom=False)
-        leg0 = axs[0].legend(loc='upper left', ncol=1, fancybox=False)
+        #leg0 = axs[0].legend(loc='upper left', ncol=1, fancybox=False)
 
         axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
         axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, color=color_RS, label="MC simulation")
         #axs[1].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
-        axs[1].set_xlabel("Gap (mm)", fontsize=font_label)
-        axs[1].set_ylabel("Density", fontsize=font_label)
+        axs[1].set_xlabel("Gap (mm)", fontsize=font_label, fontname=font_TNR)
+        axs[1].set_ylabel("Density", fontsize=font_label, fontname= font_TNR)
         axs[1].set_xlim(-1.3, 1.3)
         axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
-        leg1 = axs[1].legend(loc='upper left', ncol=1, fancybox=False)
-    
+        #leg1 = axs[1].legend(loc='lower center', ncol=1, fancybox=False, borderaxespad=-7)
+        handles0, labels0 = axs[0].get_legend_handles_labels()
+        handles1, labels1 = axs[1].get_legend_handles_labels()
+        handles = handles0 + handles1
+        labels  = labels0  + labels1
+
+        leg0 = fig.legend(
+            handles, labels,
+            loc="lower center",
+            bbox_to_anchor=(0.5, 0.02),   # slightly above bottom edge of figure
+            ncol=3,                       # put items in one row (adjust if needed)
+            fancybox=False,
+            frameon=True)
+
+        leg1 = leg0 
+
         for i, ax in enumerate(axs):
             ax.xaxis.set_ticks_position('both')
             ax.yaxis.set_ticks_position('both')
@@ -1038,7 +1052,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
             frame.set_facecolor('white')
         
         if save_PDF == True:
-            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf", bbox_inches=None)
+            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf", bbox_inches="tight")
         
         plt.show()
 
@@ -1108,8 +1122,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
-        plt.xlabel("Gap (mm)", fontsize=14)
-        plt.ylabel("Probability Density", fontsize=14)
+        plt.xlabel("Gap (mm)", fontsize=font_label)
+        plt.ylabel("Probability Density", fontsize=font_label)
         plt.legend(fontsize=10)
         plt.tight_layout()
         plt.show()
@@ -1125,8 +1139,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
         plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
         plt.axhline(0, color='gray', linestyle='--', linewidth=1)
-        plt.xlabel("Gap (mm)", fontsize=14)
-        plt.ylabel("Probability Density", fontsize=14)
+        plt.xlabel("Gap (mm)", fontsize=font_label)
+        plt.ylabel("Probability Density", fontsize=font_label)
         plt.legend(fontsize=10)
         plt.tight_layout()
         plt.show()

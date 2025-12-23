@@ -317,6 +317,37 @@ def interpolate(data, new_steps):
     new_indices = np.linspace(0, 1, num=new_steps)
     return np.interp(new_indices, old_indices, data)
 
+def find_RW_statistics(n_tows: int=1000, proposal_type: str="RWM"):
+    '''This function runs a number of tows and determines the mean and variance
+    for each error type's generated RW data.'''
+
+    # fitting random walk to experimental data
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B")
+    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A")
+
+    # generating random walk data
+    LT_walk_data, CAM_walk_data, LLSB_walk_data, LLSA_walk_data = [], [], [], []
+    for i in range(n_tows):
+        LT_walk_data.extend(generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
+                                            proposal_type=proposal_type))
+        CAM_walk_data.extend(generate_random_walk("CAM", CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params,
+                                             proposal_type=proposal_type))
+        LLSB_walk_data.extend(generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist,
+                                              LLS_B_params, proposal_type=proposal_type))
+        LLSA_walk_data.extend(generate_random_walk("LLS_A", LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist,
+                                              LLS_A_params, proposal_type=proposal_type))
+
+    # finding the mean and variance
+    data = [LT_walk_data, CAM_walk_data, LLSA_walk_data, LLSB_walk_data]
+    names = ['LT_walk', 'CAM_walk', 'LLSA_walk', 'LLSB_walk']
+    for i in range(4):
+        mean = np.average(data[i])
+        variance = np.std(data[i])
+        print(f"for {names[i]} the mean is {mean}, the variance is {variance}")
+
+
 def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000,
                          proposal_type: str="RWM", print_statement: bool=False, starting_mods: list=[None, 1, 1], alternate_start: list=[None, "params"], override: bool=False):
     """This function generate a multitow layout using RW"""
@@ -1217,7 +1248,8 @@ def main():
     #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
     #                          error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
-    generate_virtual_lamina_figure(save_PDF=True)
+    #generate_virtual_lamina_figure(save_PDF=False)
+    find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
