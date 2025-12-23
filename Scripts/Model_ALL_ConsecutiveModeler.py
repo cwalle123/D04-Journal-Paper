@@ -980,7 +980,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         mpl.rcParams['ytick.direction'] = 'in'
         
         fig, axs = plt.subplots(2, 1, figsize=(figure_width, 3*min_figure_height))
-        fig.subplots_adjust(hspace=0.2) # create space for x-axis labels
+        fig.subplots_adjust(hspace=0.2, bottom=0.22) # create space for x-axis labels
 
         # Shift data so that ideal gap is at x = 0
         bins = np.linspace(-1.3, 1.3, 101)
@@ -995,7 +995,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[0].set_xlim(-1.3, 1.3)
         axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
         axs[0].xaxis.set_tick_params(labelbottom=False)
-        leg0 = axs[0].legend(loc='upper left', ncol=1, fancybox=False)
+        #leg0 = axs[0].legend(loc='upper left', ncol=1, fancybox=False)
 
         axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
         axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, color=color_RS, label="MC simulation")
@@ -1004,8 +1004,22 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[1].set_ylabel("Density", fontsize=font_label, fontname= font_TNR)
         axs[1].set_xlim(-1.3, 1.3)
         axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
-        leg1 = axs[1].legend(loc='lower center', ncol=1, fancybox=False, borderaxespad=-7)
-    
+        #leg1 = axs[1].legend(loc='lower center', ncol=1, fancybox=False, borderaxespad=-7)
+        handles0, labels0 = axs[0].get_legend_handles_labels()
+        handles1, labels1 = axs[1].get_legend_handles_labels()
+        handles = handles0 + handles1
+        labels  = labels0  + labels1
+
+        leg0 = fig.legend(
+            handles, labels,
+            loc="lower center",
+            bbox_to_anchor=(0.5, 0.02),   # slightly above bottom edge of figure
+            ncol=3,                       # put items in one row (adjust if needed)
+            fancybox=False,
+            frameon=True)
+
+        leg1 = leg0 
+
         for i, ax in enumerate(axs):
             ax.xaxis.set_ticks_position('both')
             ax.yaxis.set_ticks_position('both')
@@ -1022,7 +1036,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
             frame.set_facecolor('white')
         
         if save_PDF == True:
-            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf", bbox_inches=None)
+            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf", bbox_inches="tight")
         
         plt.show()
 
@@ -1122,8 +1136,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
