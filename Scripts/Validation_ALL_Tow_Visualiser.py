@@ -26,7 +26,8 @@ from Model_ALL_RandomSampling import generate_RS_multitow, generate_RS_multitow_
 from constants import (number_of_steps, Consecutive_Error_Bins, y_increment_traverse, y_increment_programmed, 
                        font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, 
                        font_TNR, tick_length, tick_width, graph_box_thickness, font_legend, color_borders, legend_box_thickness,
-                       graph_line_thickness, legend_line_thickness, legend_space, transparency, break_marker_thickness)
+                       graph_line_thickness, legend_line_thickness, legend_space, transparency, break_marker_thickness,
+                       left_margin, right_margin, top_margin, bottom_margin, legend_drop, legend_margin, inter_axes_gap, unit_box_height)
 
 ##############################################################################################################
 """Functions"""
@@ -324,8 +325,18 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     mpl.rcParams['xtick.direction'] = 'in'
     mpl.rcParams['ytick.direction'] = 'in'
 
-    fig, ax = plt.subplots(1, 1, figsize=(figure_width,2*min_figure_height))
-    fig.subplots_adjust(hspace=0)
+    # Establish correct geometry
+    axes_units_per_box = 2
+    n_boxes = 1
+    total_axes_units = n_boxes * axes_units_per_box
+    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                     + top_margin + bottom_margin + legend_margin)
+    fig = plt.figure(figsize=(figure_width, figure_height))
+    axes_left = left_margin / figure_width
+    axes_width = 1 - (left_margin + right_margin) / figure_width
+    axes_bottom = (bottom_margin + legend_margin) / figure_height
+    axes_height = (axes_units_per_box * min_figure_height) / figure_height
+    ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
 
     # Real tow
     ax.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp, linewidth=graph_line_thickness)
@@ -357,11 +368,12 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
         spine.set_linewidth(graph_box_thickness)                                    # black box around figure
         spine.set_edgecolor(color_borders)
 
-    fig.subplots_adjust(bottom=0.3)
-    legend_ax = fig.add_axes([0, 0.1, 1, 0.1], frameon=False) 
-    legend_ax.axis('off')
-    legend = legend_ax.legend(handles=ax.get_legend_handles_labels()[0], labels=ax.get_legend_handles_labels()[1], 
-                              loc='upper center', ncols=1, fancybox=False)
+    legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                              axes_width, legend_margin/figure_height], frameon=False)
+    legend_ax.axis("off")
+    handles, labels = ax.get_legend_handles_labels()
+
+    legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
@@ -918,14 +930,34 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     mpl.rcParams['ytick.major.size'] = tick_length
     mpl.rcParams['xtick.direction'] = 'in'
     mpl.rcParams['ytick.direction'] = 'in'
-    fig = plt.figure(figsize=(figure_width, 4*min_figure_height))
+
+    # Establish correct geometry
+    legend_margin = 0                   # Remove this line when adding a legend below the figure
+    axes_units_per_box = [3, 1, 2]
+    n_boxes = 3
+    total_axes_units = sum(axes_units_per_box)
+    figure_height = (total_axes_units * unit_box_height + (n_boxes - 2) * inter_axes_gap
+                     + top_margin + bottom_margin + legend_margin)
+    fig = plt.figure(figsize=(figure_width, figure_height))
+    axes_left = left_margin / figure_width
+    axes_width = 1 - (left_margin + right_margin) / figure_width
+    axs = []
+    current_top = 1 - top_margin / figure_height
+    for i in range(n_boxes):
+        axes_height = axes_units_per_box[i] / figure_height
+        bottom = current_top - axes_height
+        ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
+        axs.append(ax)
+        current_top = bottom - inter_axes_gap / figure_height
+    
+    axs[-1].set_xlabel("Gap length (mm)")
 
     # Main grid: top panel, and a lower area that will hold 2 touching panels
-    gs = fig.add_gridspec(
+    """gs = fig.add_gridspec(
         2, 1,
         height_ratios=[1.62, 1.91],   # top unaffected, bottom large block
         hspace=0.25                 # spacing only between top and bottom
-    )
+    )"""
 
     # --- Top panel
     ax_top = fig.add_subplot(gs[0])
@@ -1273,7 +1305,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=False)
+    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
@@ -1284,7 +1316,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False)
+    #compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False)
 
 if __name__ == "__main__":
     main()

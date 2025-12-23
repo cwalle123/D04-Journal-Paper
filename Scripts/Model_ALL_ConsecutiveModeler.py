@@ -978,9 +978,25 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         mpl.rcParams['ytick.major.size'] = tick_length
         mpl.rcParams['xtick.direction'] = 'in'
         mpl.rcParams['ytick.direction'] = 'in'
-        
-        fig, axs = plt.subplots(2, 1, figsize=(figure_width, 3*min_figure_height))
-        fig.subplots_adjust(hspace=0.2) # create space for x-axis labels
+
+        # Esteblish the correct 
+        legend_margin = 0                       # Remove this line when adding a legend below the figure
+        axes_units_per_box = 2
+        n_boxes = 2
+        total_axes_units = n_boxes * axes_units_per_box
+        figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                        + top_margin + bottom_margin + legend_margin)
+        fig = plt.figure(figsize=(figure_width, figure_height))
+        axes_left = left_margin / figure_width
+        axes_width = 1 - (left_margin + right_margin) / figure_width
+        axes_height = (axes_units_per_box * min_figure_height) / figure_height
+        axs = []
+        current_top = 1 - top_margin / figure_height
+        for i in range(n_boxes):
+            bottom = (current_top - axes_height)
+            ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
+            axs.append(ax)
+            current_top = bottom - inter_axes_gap / figure_height    
 
         # Shift data so that ideal gap is at x = 0
         bins = np.linspace(-1.3, 1.3, 101)
@@ -1122,8 +1138,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04", save_PDF=False)
-    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

@@ -25,7 +25,7 @@ from constants import (font_label, font_axis_ticks, figure_width, min_figure_hei
                        graph_line_thickness, legend_box_thickness, legend_line_thickness, legend_space,
                        annotation_stripe_height, annotation_thickness, color_annotations, color_borders, color_ideal_gap,
                        transparency, left_margin, right_margin, top_margin, bottom_margin, legend_drop, legend_margin,
-                       unit_box_height)
+                       unit_box_height, inter_axes_gap)
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 
@@ -704,7 +704,10 @@ def analyze_tow_spacing_effect(
 
     # Establish correct geometry
     axes_units_per_box = 1
-    figure_height = axes_units_per_box * unit_box_height + top_margin + bottom_margin + legend_margin
+    n_boxes = 1
+    total_axes_units = n_boxes * axes_units_per_box
+    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                     + top_margin + bottom_margin + legend_margin)
     fig = plt.figure(figsize=(figure_width, figure_height))
     axes_left = left_margin / figure_width
     axes_width = 1 - (left_margin + right_margin) / figure_width
@@ -1127,8 +1130,20 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
     mpl.rcParams['xtick.direction'] = 'in'
     mpl.rcParams['ytick.direction'] = 'in'
 
-    # Create figure with publication dimensions
-    fig, ax = plt.subplots(figsize=(figure_width, 2*min_figure_height))
+    # Establish correct geometry
+    legend_margin = 0                   # Remove this line when adding a legend below the figure
+    axes_units_per_box = 3
+    n_boxes = 1
+    total_axes_units = n_boxes * axes_units_per_box
+    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                     + top_margin + bottom_margin + legend_margin)
+    fig = plt.figure(figsize=(figure_width, figure_height))
+    axes_left = left_margin / figure_width
+    axes_width = 1 - (left_margin + right_margin) / figure_width
+    axes_bottom = (bottom_margin + legend_margin) / figure_height
+    axes_height = (axes_units_per_box * min_figure_height) / figure_height
+    ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
+
     colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]
     x_vals = RW_all_tows_data[0]["x_mm"]
     tow_indices = range(num_tows)
@@ -1199,10 +1214,10 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-                               error_areas=True, error_bars=False, save_PDF=True)
+    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+    #                          error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
-    #generate_virtual_lamina_figure(save_PDF=False)
+    generate_virtual_lamina_figure(save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

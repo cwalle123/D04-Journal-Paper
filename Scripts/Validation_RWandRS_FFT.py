@@ -34,7 +34,9 @@ from scipy.signal.windows import tukey
 from constants import (figure_width, min_figure_height, font_TNR, font_label, font_axis_ticks, font_legend, graph_line_thickness, 
                        legend_line_thickness, annotation_thickness, annotation_stripe_height, break_marker_thickness,
                        tick_width, tick_length, graph_box_thickness, legend_box_thickness, color_exp, color_RW, color_RS,
-                       color_annotations, color_PDF_fits, color_borders, color_ideal_gap, transparency, color_gap, color_overlap, legend_space)
+                       color_annotations, color_PDF_fits, color_borders, color_ideal_gap, transparency, color_gap, color_overlap, 
+                       legend_space, unit_box_height, left_margin, right_margin, top_margin, bottom_margin, legend_drop, legend_margin,
+                       inter_axes_gap)
 
 # ======================================================================
 # FFT PROCESSING TOGGLES (EDIT THESE)
@@ -330,8 +332,20 @@ def run_fft_compare(
         mpl.rcParams['ytick.major.size'] = tick_length
         mpl.rcParams['xtick.direction'] = 'in'
         mpl.rcParams['ytick.direction'] = 'in'
+
+        # Establish correct geometry
+        axes_units_per_box = 2
+        n_boxes = 1
+        total_axes_units = n_boxes * axes_units_per_box
+        figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                        + top_margin + bottom_margin + legend_margin)
+        fig = plt.figure(figsize=(figure_width, figure_height))
+        axes_left = left_margin / figure_width
+        axes_width = 1 - (left_margin + right_margin) / figure_width
+        axes_bottom = (bottom_margin + legend_margin) / figure_height
+        axes_height = (axes_units_per_box * min_figure_height) / figure_height
+        ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
         
-        fig, ax = plt.subplots(1, 1, figsize=(figure_width, 2*min_figure_height))
         ax.plot(f_exp, A_exp, label="Experimental",    color=color_exp, linewidth=graph_line_thickness, linestyle="-")
         ax.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=graph_line_thickness, linestyle="-")
         ax.plot(f_rs,  A_rs,  label="MC simulation",   color=color_RS,  linewidth=graph_line_thickness, linestyle="-")
@@ -348,9 +362,12 @@ def run_fft_compare(
             spine.set_linewidth(graph_box_thickness)
             spine.set_edgecolor(color_borders)
 
+        legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                              axes_width, legend_margin/figure_height], frameon=False)
+        legend_ax.axis("off")
         handles, labels = ax.get_legend_handles_labels()
-        fig.subplots_adjust(bottom=0.35)
-        legend = fig.legend(handles, labels, loc='lower center', ncol=1, fancybox=False)
+
+        legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
         for legobj in legend.legend_handles:
             legobj.set_linewidth(legend_line_thickness)
         frame = legend.get_frame()
@@ -468,7 +485,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=False
+        save_PDF=True
     )
 
     # NEW: export BOTH lists as TWO SEPARATE CSV FILES
