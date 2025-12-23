@@ -316,7 +316,7 @@ def run_experiment(n_runs=100, num_tows=6):
 # ---------------------------------------------------------------------
 # Plotting function (adds thin reference lines at tallest Gap & Overlap bars)
 # ---------------------------------------------------------------------
-def plot_barchart(scenarios, summary, save_path, save_PDF=False):
+def plot_barchart(scenarios, summary, save_path, save_PDF=True):
     labels = [s[0] for s in scenarios]
     gap_means = [summary[l][0] for l in labels]
     ovl_means = [summary[l][1] for l in labels]
@@ -393,7 +393,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=False):
     ax.bar(x + width/2, ovl_means, width,
            label="Overlap", alpha=transparency, color=color_overlap, zorder=2)
 
-    ax.set_ylabel("Defect area %")
+    ax.set_ylabel("Defect area %", fontname=font_TNR, size=font_legend)
     wrapped = _wrap_labels(labels, width=18)
     ax.set_xticks(x)
     ax.set_xticklabels(wrapped, rotation=0, ha="center")
@@ -462,7 +462,7 @@ def main():
 
     # Run experiment and generate figure
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
-    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=False)
+    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=True)
     #save_csv(scenarios, summary, CSV_PATH)
 
 if __name__ == "__main__":
