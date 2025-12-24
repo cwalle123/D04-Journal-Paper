@@ -372,8 +372,12 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
                               axes_width, legend_margin/figure_height], frameon=False)
     legend_ax.axis("off")
     handles, labels = ax.get_legend_handles_labels()
-
     legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+    fig.canvas.draw()
+    legend_bbox = legend.get_window_extent()
+    legend_height_fig = legend_bbox.height / fig.bbox.height
+    desired_gap = legend_drop / figure_height
+    legend_ax.set_position([axes_left, axes_bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
@@ -1318,7 +1322,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
+    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=False)
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
@@ -1329,7 +1333,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
+    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False)
 
 if __name__ == "__main__":
     main()

@@ -427,13 +427,17 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
     handles, labels = ax.get_legend_handles_labels()
 
     legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+    fig.canvas.draw()
+    legend_bbox = legend.get_window_extent()
+    legend_height_fig = legend_bbox.height / fig.bbox.height
+    desired_gap = legend_drop / figure_height
+    legend_ax.set_position([axes_left, axes_bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
     frame.set_facecolor('white')
-    
     ax.yaxis.set_major_locator(MultipleLocator(Y_MAJOR_STEP))
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
     
@@ -476,7 +480,7 @@ def main():
 
     # Run experiment and generate figure
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
-    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=True)
+    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=False)
     #save_csv(scenarios, summary, CSV_PATH)
 
 if __name__ == "__main__":

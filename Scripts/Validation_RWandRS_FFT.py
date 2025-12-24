@@ -368,6 +368,11 @@ def run_fft_compare(
         handles, labels = ax.get_legend_handles_labels()
 
         legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+        fig.canvas.draw()
+        legend_bbox = legend.get_window_extent()
+        legend_height_fig = legend_bbox.height / fig.bbox.height
+        desired_gap = legend_drop / figure_height
+        legend_ax.set_position([axes_left, axes_bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
         for legobj in legend.legend_handles:
             legobj.set_linewidth(legend_line_thickness)
         frame = legend.get_frame()
@@ -485,7 +490,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=True
+        save_PDF=False
     )
 
     # NEW: export BOTH lists as TWO SEPARATE CSV FILES

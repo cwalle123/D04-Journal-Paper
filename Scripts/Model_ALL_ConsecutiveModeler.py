@@ -295,6 +295,11 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     handles, labels = axs[0].get_legend_handles_labels()
 
     legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+    fig.canvas.draw()
+    legend_bbox = legend.get_window_extent()
+    legend_height_fig = legend_bbox.height / fig.bbox.height
+    desired_gap = legend_drop / figure_height
+    legend_ax.set_position([axes_left, bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
@@ -979,8 +984,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         mpl.rcParams['xtick.direction'] = 'in'
         mpl.rcParams['ytick.direction'] = 'in'
 
-        # Esteblish the correct 
-        legend_margin = 0                       # Remove this line when adding a legend below the figure
+        # Esteblish the correct geometry
         axes_units_per_box = 2
         n_boxes = 2
         total_axes_units = n_boxes * axes_units_per_box
@@ -1013,7 +1017,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[0].xaxis.set_tick_params(labelbottom=False)
         #leg0 = axs[0].legend(loc='upper left', ncol=1, fancybox=False)
 
-        axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
+        axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp)
         axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, color=color_RS, label="MC simulation")
         #axs[1].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
         axs[1].set_xlabel("Gap (mm)", fontsize=font_label, fontname=font_TNR)
@@ -1021,20 +1025,6 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[1].set_xlim(-1.3, 1.3)
         axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
         #leg1 = axs[1].legend(loc='lower center', ncol=1, fancybox=False, borderaxespad=-7)
-        handles0, labels0 = axs[0].get_legend_handles_labels()
-        handles1, labels1 = axs[1].get_legend_handles_labels()
-        handles = handles0 + handles1
-        labels  = labels0  + labels1
-
-        leg0 = fig.legend(
-            handles, labels,
-            loc="lower center",
-            bbox_to_anchor=(0.5, 0.02),   # slightly above bottom edge of figure
-            ncol=3,                       # put items in one row (adjust if needed)
-            fancybox=False,
-            frameon=True)
-
-        leg1 = leg0 
 
         for i, ax in enumerate(axs):
             ax.xaxis.set_ticks_position('both')
@@ -1043,16 +1033,27 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
             for spine in ax.spines.values():
                 spine.set_linewidth(graph_box_thickness)                                    # black box around figure
                 spine.set_edgecolor(color_borders)
-            legend = leg0 if i == 0 else leg1
-            for legobj in legend.legend_handles:
-                legobj.set_linewidth(legend_line_thickness)
-            frame = legend.get_frame()
-            frame.set_edgecolor(color_borders)
-            frame.set_linewidth(legend_box_thickness)
-            frame.set_facecolor('white')
+            
+        legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                              axes_width, legend_margin/figure_height], frameon=False)
+        legend_ax.axis("off")
+        handles_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+        handles, labels = [sum(hol, []) for hol in zip(*handles_labels)]
+        legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+        fig.canvas.draw()
+        legend_bbox = legend.get_window_extent()
+        legend_height_fig = legend_bbox.height / fig.bbox.height
+        desired_gap = legend_drop / figure_height
+        legend_ax.set_position([axes_left, bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
+        for legobj in legend.legend_handles:
+            legobj.set_linewidth(legend_line_thickness)
+        frame = legend.get_frame()
+        frame.set_edgecolor(color_borders)
+        frame.set_linewidth(legend_box_thickness)
+        frame.set_facecolor('white')
         
         if save_PDF == True:
-            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf", bbox_inches="tight")
+            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf", bbox_inches=None)
         
         plt.show()
 
@@ -1152,8 +1153,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=False)
+    #plot_RW_vs_exp_histograms(RW_tows=3, save_PDF=False)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

@@ -767,9 +767,9 @@ def analyze_tow_spacing_effect(
             overlap_upper = overlap_arr + results_df["Overlap Std (%)"]
 
         ax.fill_between(spacing_arr, gap_lower, gap_upper,
-                        alpha=1-0.75*transparency, color=color_gap, linewidth=0, edgecolor='none', label="Gap variation")
+                        alpha=1-0.75*transparency, color=color_gap, linewidth=0, edgecolor='none')
         ax.fill_between(spacing_arr, overlap_lower, overlap_upper,
-                        alpha=1-0.75*transparency, color=color_overlap, linewidth=0, edgecolor='none', label="Overlap variation")
+                        alpha=1-0.75*transparency, color=color_overlap, linewidth=0, edgecolor='none')
 
     # ----- Error bars (only if NOT using shaded areas) -----
     if error_bars:
@@ -811,6 +811,11 @@ def analyze_tow_spacing_effect(
     handles, labels = ax.get_legend_handles_labels()
 
     legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+    fig.canvas.draw()
+    legend_bbox = legend.get_window_extent()
+    legend_height_fig = legend_bbox.height / fig.bbox.height
+    desired_gap = legend_drop / figure_height
+    legend_ax.set_position([axes_left, axes_bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
     for legobj in legend.legend_handles:
         legobj.set_linewidth(legend_line_thickness)
     frame = legend.get_frame()
@@ -1246,7 +1251,7 @@ def main():
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
     analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-                              error_areas=True, error_bars=False, save_PDF=True)
+                              error_areas=True, error_bars=False, save_PDF=False)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(save_PDF=True)
     #find_RW_statistics(n_tows=1000)

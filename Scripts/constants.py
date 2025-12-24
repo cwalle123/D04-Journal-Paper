@@ -40,9 +40,9 @@ frame_width_traverse = 12.5 #mm
 """Figure Formatting"""
 
 font_TNR = "Times New Roman"
-font_label = 10         #points
-font_axis_ticks = 8     #points
-font_legend = 10        #points
+font_label = 8         #points
+font_axis_ticks = 6     #points
+font_legend = 8        #points
 
 figure_width = 345 / 72.27                      #points/points per inch = inch, amount of points taken from \the\textwidth in Overleaf
 min_figure_height = 0.19 * figure_width         #Aspect ratio (heigt:width) of shortest figure (figure 8) * figure width. Figure heights should be multiples of this value, then Latex will take care of the scaling
@@ -52,7 +52,7 @@ right_margin = 0.25                             #inch
 top_margin = 0.25                               #inch
 bottom_margin = 0.75                            #inch
 legend_margin = 0.80                            #inch
-legend_drop = 0.55                              #inch
+legend_drop = 0.70                              #inch
 inter_axes_gap = 0.50                           #inch
 graph_line_thickness = 1                        #points
 legend_line_thickness = 2                       #points
@@ -65,8 +65,8 @@ graph_box_thickness = 0.5                       #points
 legend_box_thickness = graph_box_thickness      #points, has to be the same as graph box thickness
 
 color_exp = (0, 0.4470, 0.7410)                 # AKA Experiment, blue
-color_RW = (0.22, 0.51, 0.35)                   # AKA MCMC, green
-color_RS = (0.8, 0.7, 0.2)                      # AKA MC, orange
+color_RW = (0.4660, 0.6740, 0.1880)             # AKA MCMC, green
+color_RS = (0.9290, 0.6940, 0.1250)             # AKA MC, orange
 color_annotations = (0.8500, 0.3250, 0.0980)    # axis annotations figure 2, redish
 color_PDF_fits = (0.9290, 0.6940, 0.1250)       # PDF color figure 2, orange
 color_borders = (0, 0, 0)                       # graph boxes, legends etc., black
