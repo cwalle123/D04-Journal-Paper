@@ -1008,8 +1008,10 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         rw_shift  = np.array(RW_gap_data) - ideal_gap_center
         rs_shift  = np.array(RS_gap_data) - ideal_gap_center
         
-        axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp, label="Experimental")
-        axs[0].hist(rw_shift, bins=bins, density=True, alpha=transparency, color=color_RW, label="MCMC simulation")
+        axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled',
+                    linewidth=0, edgecolor='none', color=color_exp, label="Experimental")
+        axs[0].hist(rw_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled',
+                    linewidth=0, edgecolor='none', color=color_RW, label="MCMC simulation")
         #axs[0].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
         axs[0].set_ylabel("Density", fontsize=font_label, fontname= font_TNR)
         axs[0].set_xlim(-1.3, 1.3)
@@ -1017,8 +1019,10 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         axs[0].xaxis.set_tick_params(labelbottom=False)
         #leg0 = axs[0].legend(loc='upper left', ncol=1, fancybox=False)
 
-        axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, color=color_exp)
-        axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, color=color_RS, label="MC simulation")
+        axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled',
+                    linewidth=0, edgecolor='none', color=color_exp)
+        axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', 
+                    linewidth=0, edgecolor='none', color=color_RS, label="MC simulation")
         #axs[1].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
         axs[1].set_xlabel("Gap (mm)", fontsize=font_label, fontname=font_TNR)
         axs[1].set_ylabel("Density", fontsize=font_label, fontname= font_TNR)
@@ -1153,7 +1157,7 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=False)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
     #plot_RW_vs_exp_histograms(RW_tows=3, save_PDF=False)
 
 if __name__ == "__main__":

@@ -937,7 +937,6 @@ def compare_real_vs_RS_RW_gap_length_distributions(
 
     # Establish correct geometry
     inter_axes_gap_list = [inter_axes_gap, 0.2 * inter_axes_gap] # Only change the factor before the second entry
-    legend_margin = 0                   # Remove this line when adding a legend below the figure
     axes_units_per_box = [2, 0.5, 1.5]
     n_boxes = 3
     total_axes_units = sum(axes_units_per_box)
@@ -1003,11 +1002,11 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         spine.set_linewidth(graph_box_thickness)
         spine.set_edgecolor(color_borders)
 
-    legend_top = axs[0].legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
+    """legend_top = axs[0].legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
     frame = legend_top.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
-    frame.set_facecolor('white')
+    frame.set_facecolor('white')"""
 
     # ============================================================
     # BOTTOM SUBPLOTS — BROKEN AXIS
@@ -1018,7 +1017,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
 
     # Upper small range
     axs[1].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
-    axs[1].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
+    axs[1].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency)
     axs[1].set_ylim(peak_min, peak_max)
     axs[1].set_xlim(*xlim)
 
@@ -1027,8 +1026,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         spine.set_edgecolor(color_borders)
 
     # Lower full range
-    axs[2].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
-    axs[2].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
+    axs[2].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency)
+    axs[2].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency)
 
     axs[2].set_ylim(0, 140)
     axs[2].set_xlim(*xlim)
@@ -1044,11 +1043,11 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # Tick formatting
     axs[1].tick_params(axis="x", bottom=False, labelbottom=False)
     axs[1].tick_params(axis="both", right=True, top=True, left=True)
-    legend_bottom_top = axs[1].legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
+    """legend_bottom_top = axs[1].legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
     frame = legend_bottom_top.get_frame()
     frame.set_edgecolor(color_borders)
     frame.set_linewidth(legend_box_thickness)
-    frame.set_facecolor('white')
+    frame.set_facecolor('white')"""
 
     axs[2].tick_params(axis="both", right=True)
 
@@ -1097,6 +1096,24 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     axs[2].set_xlabel("Gap Length (mm)")
     axs[2].set_ylabel("Frequency")
+
+    legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                              axes_width, legend_margin/figure_height], frameon=False)
+    legend_ax.axis("off")
+    handles_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+    handles, labels = [sum(hol, []) for hol in zip(*handles_labels)]
+    legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+    fig.canvas.draw()
+    legend_bbox = legend.get_window_extent()
+    legend_height_fig = legend_bbox.height / fig.bbox.height
+    desired_gap = legend_drop / figure_height
+    legend_ax.set_position([axes_left, bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
+    for legobj in legend.legend_handles:
+        legobj.set_linewidth(legend_line_thickness)
+    frame = legend.get_frame()
+    frame.set_edgecolor(color_borders)
+    frame.set_linewidth(legend_box_thickness)
+    frame.set_facecolor('white')
 
     if save_PDF:
         fig.savefig("RWandRSdefectlength2.pdf", format="pdf", dpi=300, bbox_inches=None)

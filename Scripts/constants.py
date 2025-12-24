@@ -41,7 +41,7 @@ frame_width_traverse = 12.5 #mm
 
 font_TNR = "Times New Roman"
 font_label = 8         #points
-font_axis_ticks = 6     #points
+font_axis_ticks = 6    #points
 font_legend = 8        #points
 
 figure_width = 345 / 72.27                      #points/points per inch = inch, amount of points taken from \the\textwidth in Overleaf
