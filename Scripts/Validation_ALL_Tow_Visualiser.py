@@ -964,8 +964,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     # TOP SUBPLOT
     # ============================================================
-    axs[0].hist(gap_RW, bins=shared_bins, color=color_RW, alpha=transparency, label="MCMC simulation")
-    axs[0].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experiment")
+    axs[0].hist(gap_RW, bins=shared_bins, color=color_RW, alpha=transparency, histtype='stepfilled', label="MCMC simulation")
+    axs[0].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, histtype='stepfilled', label="Experiment")
 
     axs[0].set_xlim(*xlim)
     axs[0].set_ylim(0, 160)
@@ -988,8 +988,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     peak_max = 1100
 
     # Upper small range
-    axs[1].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, label="MC simulation")
-    axs[1].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency)
+    axs[1].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, histtype='stepfilled', label="MC simulation")
+    axs[1].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, histtype='stepfilled')
     axs[1].set_ylim(peak_min, peak_max)
     axs[1].set_xlim(*xlim)
 
@@ -998,8 +998,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         spine.set_edgecolor(color_borders)
 
     # Lower full range
-    axs[2].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency)
-    axs[2].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency)
+    axs[2].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, histtype='stepfilled')
+    axs[2].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, histtype='stepfilled')
 
     axs[2].set_ylim(0, 140)
     axs[2].set_xlim(*xlim)
