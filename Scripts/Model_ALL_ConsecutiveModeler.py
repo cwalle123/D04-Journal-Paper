@@ -1008,7 +1008,7 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         rw_shift  = np.array(RW_gap_data) - ideal_gap_center
         rs_shift  = np.array(RS_gap_data) - ideal_gap_center
         
-        axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_exp, label="Experimental")
+        axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_exp, label="Experiment")
         axs[0].hist(rw_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_RW, label="MCMC simulation")
         #axs[0].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
         axs[0].set_xlabel("Gap (mm)")
@@ -1154,8 +1154,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

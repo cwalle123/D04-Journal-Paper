@@ -340,7 +340,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
 
     # Real tow
     ax.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp, linewidth=graph_line_thickness)
-    ax.plot(x_real_left, y_real_left, "-", color=color_exp, linewidth=graph_line_thickness, label="Experimental")
+    ax.plot(x_real_left, y_real_left, "-", color=color_exp, linewidth=graph_line_thickness, label="Experiment")
     ax.plot(x_real_right, y_real_right, "-", color=color_exp, linewidth=graph_line_thickness)
 
     # Simulated tow
@@ -965,7 +965,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # TOP SUBPLOT
     # ============================================================
     axs[0].hist(gap_RW, bins=shared_bins, color=color_RW, alpha=transparency, label="MCMC simulation")
-    axs[0].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
+    axs[0].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experiment")
 
     axs[0].set_xlim(*xlim)
     axs[0].set_ylim(0, 160)
@@ -1068,6 +1068,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     legend_ax.axis("off")
     handles_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
     handles, labels = [sum(hol, []) for hol in zip(*handles_labels)]
+    order = [1, 0, 2]
+    handles, labels = [handles[i] for i in order], [labels[i] for i in order]
     legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
     fig.canvas.draw()
     legend_bbox = legend.get_window_extent()
@@ -1305,7 +1307,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
+    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
@@ -1316,7 +1318,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    #compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False)
+    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
 
 if __name__ == "__main__":
     main()

@@ -31,7 +31,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from scipy.signal.windows import tukey
-from constants import (figure_width, min_figure_height, font_TNR, font_label, font_axis_ticks, font_legend, graph_line_thickness, 
+from constants import (figure_width, font_TNR, font_label, font_axis_ticks, font_legend, graph_line_thickness, 
                        legend_line_thickness, annotation_thickness, annotation_stripe_height, break_marker_thickness,
                        tick_width, tick_length, graph_box_thickness, legend_box_thickness, color_exp, color_RW, color_RS,
                        color_annotations, color_PDF_fits, color_borders, color_ideal_gap, transparency, color_gap, color_overlap, 
@@ -343,10 +343,10 @@ def run_fft_compare(
         axes_left = left_margin / figure_width
         axes_width = 1 - (left_margin + right_margin) / figure_width
         axes_bottom = (bottom_margin + legend_margin) / figure_height
-        axes_height = (axes_units_per_box * min_figure_height) / figure_height
+        axes_height = (axes_units_per_box * unit_box_height) / figure_height
         ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
         
-        ax.plot(f_exp, A_exp, label="Experimental",    color=color_exp, linewidth=graph_line_thickness, linestyle="-")
+        ax.plot(f_exp, A_exp, label="Experiment",    color=color_exp, linewidth=graph_line_thickness, linestyle="-")
         ax.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=graph_line_thickness, linestyle="-")
         ax.plot(f_rs,  A_rs,  label="MC simulation",   color=color_RS,  linewidth=graph_line_thickness, linestyle="-")
         ax.set_xlabel("Spatial frequency (cycles/m)")

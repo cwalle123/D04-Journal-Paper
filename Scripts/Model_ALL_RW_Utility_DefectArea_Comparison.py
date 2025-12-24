@@ -51,7 +51,7 @@ sys.path.insert(0, SCRIPTS_DIR)
 
 # Internal imports
 from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk
-from constants import (font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, 
+from constants import (font_label, font_axis_ticks, figure_width, color_exp, color_RS, color_RW, 
                        font_TNR, graph_box_thickness, graph_line_thickness, legend_box_thickness, legend_line_thickness,
                        annotation_stripe_height, annotation_thickness, color_PDF_fits, color_annotations, color_borders,
                        color_gap, color_ideal_gap, color_overlap, tick_length, tick_width, transparency, legend_space,
@@ -480,7 +480,7 @@ def main():
 
     # Run experiment and generate figure
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
-    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=False)
+    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=True)
     #save_csv(scenarios, summary, CSV_PATH)
 
 if __name__ == "__main__":
