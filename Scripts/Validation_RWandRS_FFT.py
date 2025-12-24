@@ -490,7 +490,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=False
+        save_PDF=True
     )
 
     # NEW: export BOTH lists as TWO SEPARATE CSV FILES

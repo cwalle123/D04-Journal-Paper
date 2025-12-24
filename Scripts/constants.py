@@ -45,8 +45,7 @@ font_axis_ticks = 6    #points
 font_legend = 8        #points
 
 figure_width = 345 / 72.27                      #points/points per inch = inch, amount of points taken from \the\textwidth in Overleaf
-min_figure_height = 0.19 * figure_width         #Aspect ratio (heigt:width) of shortest figure (figure 8) * figure width. Figure heights should be multiples of this value, then Latex will take care of the scaling
-unit_box_height = 0.19 * figure_width           #Height of smallest black box
+unit_box_height = 0.1863 * figure_width         #Height of smallest black box
 left_margin = 0.75                              #inch
 right_margin = 0.25                             #inch
 top_margin = 0.25                               #inch

@@ -24,7 +24,7 @@ from D04_Model.Model_ALL_Simulation import generate_multitow_layout, generate_mu
 from Model_ALL_RandomWalk import plot_RW_tows, generate_RW_multitow, generate_RW_multitow_layout_lengths
 from Model_ALL_RandomSampling import generate_RS_multitow, generate_RS_multitow_layout_lengths
 from constants import (number_of_steps, Consecutive_Error_Bins, y_increment_traverse, y_increment_programmed, 
-                       font_label, font_axis_ticks, figure_width, min_figure_height, color_exp, color_RS, color_RW, 
+                       font_label, font_axis_ticks, figure_width, color_exp, color_RS, color_RW, 
                        font_TNR, tick_length, tick_width, graph_box_thickness, font_legend, color_borders, legend_box_thickness,
                        graph_line_thickness, legend_line_thickness, legend_space, transparency, break_marker_thickness,
                        left_margin, right_margin, top_margin, bottom_margin, legend_drop, legend_margin, inter_axes_gap, unit_box_height)
@@ -956,28 +956,6 @@ def compare_real_vs_RS_RW_gap_length_distributions(
             current_top = bottom - inter_axes_gap_list[i] / figure_height
         else:
             current_top = bottom - inter_axes_gap / figure_height
-    
-    axs[-1].set_xlabel("Gap length (mm)")
-
-    # Main grid: top panel, and a lower area that will hold 2 touching panels
-    """gs = fig.add_gridspec(
-        2, 1,
-        height_ratios=[1.62, 1.91],   # top unaffected, bottom large block
-        hspace=0.25                 # spacing only between top and bottom
-    )"""
-
-    """# --- Top panel
-    ax_top = fig.add_subplot(gs[0])
-
-    # --- Bottom panel split into 2 touching axes
-    bottom_gs = gs[1].subgridspec(
-        2, 1,
-        height_ratios=[0.3, 1],
-        hspace=0.1                    # THIS makes them TOUCH
-    )"""
-
-    #ax_bottom_top = fig.add_subplot(bottom_gs[0], sharex=ax_top)
-    #ax_bottom_bottom = fig.add_subplot(bottom_gs[1], sharex=ax_top)
 
     #if log:
     #    for ax in [ax_top, ax_bottom_top, ax_bottom_bottom]:
@@ -988,11 +966,11 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     axs[0].hist(gap_RW, bins=shared_bins, color=color_RW, alpha=transparency, label="MCMC simulation")
     axs[0].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, label="Experimental")
-    axs[0].xaxis.set_tick_params(labelbottom=False)
 
     axs[0].set_xlim(*xlim)
     axs[0].set_ylim(0, 160)
 
+    axs[0].set_xlabel("Gap length (mm)")
     axs[0].set_ylabel("Frequency")
     axs[0].tick_params(axis="both", top=True, right=True)
     axs[0].xaxis.set_ticks_position("both")
@@ -1001,12 +979,6 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     for spine in axs[0].spines.values():
         spine.set_linewidth(graph_box_thickness)
         spine.set_edgecolor(color_borders)
-
-    """legend_top = axs[0].legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
-    frame = legend_top.get_frame()
-    frame.set_edgecolor(color_borders)
-    frame.set_linewidth(legend_box_thickness)
-    frame.set_facecolor('white')"""
 
     # ============================================================
     # BOTTOM SUBPLOTS — BROKEN AXIS
@@ -1043,12 +1015,6 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # Tick formatting
     axs[1].tick_params(axis="x", bottom=False, labelbottom=False)
     axs[1].tick_params(axis="both", right=True, top=True, left=True)
-    """legend_bottom_top = axs[1].legend(prop={"family": font_TNR, "size": font_legend}, fancybox=False)
-    frame = legend_bottom_top.get_frame()
-    frame.set_edgecolor(color_borders)
-    frame.set_linewidth(legend_box_thickness)
-    frame.set_facecolor('white')"""
-
     axs[2].tick_params(axis="both", right=True)
 
     # ============================================================
@@ -1339,7 +1305,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=False)
+    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
     #compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
@@ -1350,7 +1316,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False)
+    #compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False)
 
 if __name__ == "__main__":
     main()
