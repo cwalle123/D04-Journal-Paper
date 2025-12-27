@@ -795,7 +795,7 @@ def analyze_tow_spacing_effect(
     
     # Axis limits (original)
     ax.set_xlim(5, 7.5)
-    ax.set_ylim(0, 10)
+    ax.set_ylim(0, 5)
 
     # Formatting
     ax.xaxis.set_ticks_position('both')
