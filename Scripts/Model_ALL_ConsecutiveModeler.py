@@ -230,13 +230,13 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
                     zorder=950, clip_on=False)
 
     # --------PLotting----------
-    im0 = image.imread('Figures/robotinacc.jpg')
-    im1 = image.imread('Figures/tapelatmvmt.jpg')
-    im2 = image.imread('Figures/tape width.jpg')
-    im3 = image.imread('Figures/tapecompaction.jpg')
+    im0 = image.imread('Figures/robotinacc.png')
+    im1 = image.imread('Figures/tapelatmvmt.png')
+    im2 = image.imread('Figures/tape width.png')
+    im3 = image.imread('Figures/tapecompaction.png')
 
     # LT plot
-    axs[0].imshow(im0, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
+    axs[0].imshow(im0, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
     axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
     axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
     #axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, label="Distribution fits")
@@ -247,7 +247,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[0].xaxis.set_tick_params(labelbottom=True)
 
     # CAM plot
-    axs[1].imshow(im1, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
+    axs[1].imshow(im1, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
     axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
     axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
     #axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits)
@@ -258,7 +258,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[1].xaxis.set_tick_params(labelbottom=True)
 
     # LLS_A 
-    axs[2].imshow(im2, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
+    axs[2].imshow(im2, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
     axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     #axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits)
@@ -269,7 +269,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[2].xaxis.set_tick_params(labelbottom=True)
 
     # LLS_B plot
-    axs[3].imshow(im3, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
+    axs[3].imshow(im3, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
     axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     #axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits)
@@ -308,7 +308,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     frame.set_facecolor('white')
 
     if save_PDF == True:
-        plt.savefig("source wise validation_310 tows without legend.pdf", format="pdf", bbox_inches=None, dpi=600)
+        plt.savefig("source wise validation_310 tows with legend.pdf", format="pdf", bbox_inches=None, dpi=600)
 
     plt.show()
 
@@ -1154,8 +1154,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
+    #model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

@@ -379,6 +379,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
                 xmin=xg_min,
                 xmax=xg_max,
                 colors=color_gap,
+                alpha=transparency,
                 linestyles='-',
                 linewidth=graph_line_thickness,
                 zorder=1,      # behind bars
@@ -392,6 +393,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
                 xmin=xo_min,
                 xmax=xo_max,
                 colors=color_overlap,
+                alpha=transparency,
                 linestyles='-',
                 linewidth=graph_line_thickness,
                 zorder=1,      # behind bars
@@ -400,9 +402,9 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
 
     # Bars (give them higher zorder so they’re in front of lines)
     ax.bar(x - width/2, gap_means, width,
-           label="Gap", alpha=transparency, color=color_gap, zorder=2)
+           label="Gap", color=color_gap, zorder=2)
     ax.bar(x + width/2, ovl_means, width,
-           label="Overlap", alpha=transparency, color=color_overlap, zorder=2)
+           label="Overlap", color=color_overlap, zorder=2)
 
     ax.set_ylabel("Defect area %")
     wrapped = _wrap_labels(labels, width=18)
