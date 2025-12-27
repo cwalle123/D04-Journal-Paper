@@ -344,8 +344,8 @@ def find_RW_statistics(n_tows: int=1000, proposal_type: str="RWM"):
     names = ['LT_walk', 'CAM_walk', 'LLSA_walk', 'LLSB_walk']
     for i in range(4):
         mean = np.average(data[i])
-        variance = np.std(data[i])
-        print(f"for {names[i]} the mean is {mean}, the variance is {variance}")
+        standard_deviation = np.std(data[i])
+        print(f"for {names[i]} the mean is {mean}, the standard deviation is {standard_deviation}")
 
 
 def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000,
@@ -1250,11 +1250,11 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-                              error_areas=True, error_bars=False, save_PDF=True)
+    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+    #                          error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(save_PDF=True)
-    #find_RW_statistics(n_tows=1000)
+    find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
