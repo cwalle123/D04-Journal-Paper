@@ -1190,8 +1190,8 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
         x = tow_df["x_mm"]
         top_edge = tow_df["top_edge"]
         bottom_edge = tow_df["bottom_edge"]
-        ax.plot(x, top_edge, color=color, lw=graph_line_thickness)
-        ax.plot(x, bottom_edge, color=color, lw=graph_line_thickness)
+        ax.plot(x, top_edge, color=color, lw=0)
+        ax.plot(x, bottom_edge, color=color, lw=0)
         ax.fill_between(x, bottom_edge, top_edge, color=color, alpha=0.8, label=f"Tow {i+1}" if i == 0 else "", 
                         linewidth=0, edgecolor=None)
     
@@ -1253,8 +1253,8 @@ def main():
     #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
     #                          error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
-    #generate_virtual_lamina_figure(save_PDF=True)
-    find_RW_statistics(n_tows=1000)
+    generate_virtual_lamina_figure(save_PDF=True)
+    #find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
