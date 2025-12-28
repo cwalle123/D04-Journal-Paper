@@ -321,7 +321,7 @@ def generate_error_path(start_error, n_steps, bin_stats_df, slope, intercept, x_
         deviations = deviations_per_bin[bin_index]
         mean = bin_stats_df["deviation_mean"][bin_index]
         std = math.sqrt(bin_stats_df["deviation_variance"][bin_index])
-        print(bin_index)
+        #print(bin_index)
 
         # if necessary, truncates the distribution to only sample within 2 std's or the max/min of the data
         if use_truncnorm:
@@ -645,7 +645,7 @@ def generate_simulated_VS_real(n_real_tow=1, rdm_seed=0, test_ratio=0.2, errorCo
         # Convert steps to length (mm)
         x_sign = np.linspace(0, get_delta_x(n_real_tow), len(simulated_total_offset_centerline))
 
-        print(get_delta_x(n_real_tow))
+        #print(get_delta_x(n_real_tow))
         # --- Overlay Plot with Upper/Lower Boundaries ---
         plt.figure(figsize=(8, 5))
         plt.plot(x_sign, simulated_total_offset_centerline, label="model's total offset simulated", c="orange", linestyle='--')
