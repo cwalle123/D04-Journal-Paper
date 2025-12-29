@@ -1,40 +1,27 @@
 #!/usr/bin/env python3
-"""
-Written by: Giovanni Zattoni
+"This file is meant to run a batch FFT validation over many tows at a time."
 
----------------------------------------
-#!/usr/bin/env python3
-
-Validation_RWandRS_FFT_Params_Lists.py
-
-FIX:
-- RW/RS per-tow seeding no longer contaminates EXP extraction.
-  We do this by saving/restoring BOTH Python's random state and NumPy's RNG state
-  around RW/RS generation.
-
-Still true:
-- Each tow row uses a truly-random seed (new each run)
-- RW and RS share the SAME seed for that tow row
-- If EXP tow is missing -> fill NaNs and do NOT generate a seed
-- CSV format unchanged
-"""
-
-# ======================================================================
-# Imports
-# ======================================================================
+##############################################################################################################
+# External imports
 import argparse
 import csv
 import os
 import sys
 import secrets
-import random  # <<< NEW (needed to save/restore Python RNG state)
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal.windows import tukey
 
-# ======================================================================
-# PROCESSING TOGGLES
-# ======================================================================
+# Internal imports
+from Model_ALL_RandomWalk import generate_RW_multitow
+from Model_ALL_RandomSampling import generate_RS_multitow
+from Data_ALL_traverse import traverse_tow_constructor
+
+##############################################################################################################
+# Settings / config
+
+# Processing toggles
 USE_DETREND      = False
 USE_TUKEY_WINDOW = False
 USE_PADDING      = False
@@ -58,9 +45,9 @@ CSV_EXP  = "FFT_metrics_EXP_centerline.csv"
 CSV_RW   = "FFT_metrics_RW_centerline.csv"
 CSV_RS   = "FFT_metrics_RS_centerline.csv"
 
-# ======================================================================
-# PATH SETUP
-# ======================================================================
+##############################################################################################################
+# Path setup
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 if SCRIPT_DIR not in sys.path:
@@ -68,24 +55,23 @@ if SCRIPT_DIR not in sys.path:
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# ======================================================================
-# IMPORT PROJECT MODULES
-# ======================================================================
-from Model_ALL_RandomWalk import generate_RW_multitow
-from Model_ALL_RandomSampling import generate_RS_multitow
-from Data_ALL_traverse import traverse_tow_constructor
+##############################################################################################################
+"""Functions"""
 
-# ======================================================================
-# RNG ISOLATION HELPERS (FIX)
-# ======================================================================
+
+# -----------------------------
+# RNG isolation helpers (FIX)
+# -----------------------------
 def _rng_snapshot():
     """Capture BOTH Python and NumPy RNG global states."""
     return random.getstate(), np.random.get_state()
+
 
 def _rng_restore(py_state, np_state):
     """Restore BOTH Python and NumPy RNG global states."""
     random.setstate(py_state)
     np.random.set_state(np_state)
+
 
 def _run_with_seed(seed: int, fn, *args, **kwargs):
     """
@@ -100,9 +86,10 @@ def _run_with_seed(seed: int, fn, *args, **kwargs):
     finally:
         _rng_restore(py_state, np_state)
 
-# ======================================================================
+
+# -----------------------------
 # FFT helpers
-# ======================================================================
+# -----------------------------
 def linear_detrend(y, x):
     y = np.asarray(y, dtype=float)
     x = np.asarray(x, dtype=float)
@@ -110,10 +97,12 @@ def linear_detrend(y, x):
     coef, _, _, _ = np.linalg.lstsq(A, y, rcond=None)
     return y - (A @ coef)
 
+
 def make_window(N: int) -> np.ndarray:
     if USE_TUKEY_WINDOW:
         return tukey(N, alpha=TUKEY_ALPHA)
     return np.ones(N, dtype=float)
+
 
 def one_sided_amplitude_spectrum(y, dx_m):
     y = np.asarray(y, dtype=float)
@@ -140,6 +129,7 @@ def one_sided_amplitude_spectrum(y, dx_m):
 
     return f, A
 
+
 def resample_and_fft(x_src_mm, y_src, x_grid_mm):
     x_src_mm = np.asarray(x_src_mm, dtype=float)
     y_src = np.asarray(y_src, dtype=float)
@@ -152,6 +142,7 @@ def resample_and_fft(x_src_mm, y_src, x_grid_mm):
 
     dx_m = (xg[1] - xg[0]) * 1e-3
     return one_sided_amplitude_spectrum(yg, dx_m)
+
 
 def compute_mse_and_rho(f_exp, A_exp, f_mod, A_mod, fmax=300.0):
     f_exp = np.asarray(f_exp)
@@ -176,6 +167,7 @@ def compute_mse_and_rho(f_exp, A_exp, f_mod, A_mod, fmax=300.0):
 
     return mse, rho
 
+
 def dominant_frequency(f, A, fmin=1.0, fmax=300.0):
     f = np.asarray(f)
     A = np.asarray(A)
@@ -191,14 +183,16 @@ def dominant_frequency(f, A, fmin=1.0, fmax=300.0):
 
     return float(fm[int(np.argmax(Am))])
 
-# ======================================================================
+
+# -----------------------------
 # Data extraction
-# ======================================================================
+# -----------------------------
 def extract_experimental_centerline(tow, normalize=True):
     df = traverse_tow_constructor(tow, normalize=normalize)
     if df is None:
         return None
     return df["x_centerline"].to_numpy(), df["y_centerline"].to_numpy()
+
 
 def extract_rw_centerline(seed: int):
     def _gen():
@@ -207,7 +201,14 @@ def extract_rw_centerline(seed: int):
         return tow_df["x_mm"].to_numpy(), tow_df["centerline"].to_numpy()
     return _run_with_seed(seed, _gen)
 
-def extract_rs_centerline(n_steps, tow_width_mm=6.35, tow_length_mm=1000.0, method="Sidd", seed: int = 1234):
+
+def extract_rs_centerline(
+    n_steps,
+    tow_width_mm=6.35,
+    tow_length_mm=1000.0,
+    method="Sidd",
+    seed: int = 1234,
+):
     def _gen():
         _, RS_all_tows_data, _, _ = generate_RS_multitow(
             num_tows=1,
@@ -216,21 +217,23 @@ def extract_rs_centerline(n_steps, tow_width_mm=6.35, tow_length_mm=1000.0, meth
             tow_width_mm=tow_width_mm,
             tow_length_mm=tow_length_mm,
             method=method,
-            print_statement=False
+            print_statement=False,
         )
         tow_df = RS_all_tows_data[0]
         return tow_df["x_mm"].to_numpy(), tow_df["centerline"].to_numpy()
     return _run_with_seed(seed, _gen)
 
-# ======================================================================
+
+# -----------------------------
 # Truly random per-tow row seed (RW + RS share it)
-# ======================================================================
+# -----------------------------
 def random_row_seed_32bit() -> int:
     return secrets.randbits(32)
 
-# ======================================================================
+
+# -----------------------------
 # Batch metrics tables: EXP + RW + RS
-# ======================================================================
+# -----------------------------
 def write_batch_metrics_exp_rw_rs(
     tow_min=1,
     tow_max=31,
@@ -272,7 +275,7 @@ def write_batch_metrics_exp_rw_rs(
             tow_width_mm=6.35,
             tow_length_mm=float(x_grid_mm[-1]),
             method=rs_method,
-            seed=row_seed
+            seed=row_seed,
         )
 
         f_exp, A_exp = resample_and_fft(x_exp, y_exp, x_grid_mm)
@@ -317,18 +320,25 @@ def write_batch_metrics_exp_rw_rs(
     print(f"Saved: {out_rw}")
     print(f"Saved: {out_rs}")
 
-# ======================================================================
-# CLI
-# ======================================================================
+
+##############################################################################################################
+"""Run this file"""
+
+
 def parse_args():
     p = argparse.ArgumentParser(
         description="Write EXP/RW/RS FFT metric tables (Tow 1..31 + AVG)."
     )
     p.add_argument("--tow-min", type=int, default=TOW_MIN, help="Minimum tow index (default: 1).")
     p.add_argument("--tow-max", type=int, default=TOW_MAX, help="Maximum tow index (default: 31).")
-    p.add_argument("--rs-method", choices=["Sidd", "Random"], default=RS_METHOD,
-                   help="RS method (default: Sidd).")
+    p.add_argument(
+        "--rs-method",
+        choices=["Sidd", "Random"],
+        default=RS_METHOD,
+        help="RS method (default: Sidd).",
+    )
     return p.parse_args()
+
 
 def main():
     args = parse_args()
@@ -339,8 +349,9 @@ def main():
         outdir=OUTDIR,
         csv_exp=CSV_EXP,
         csv_rw=CSV_RW,
-        csv_rs=CSV_RS
+        csv_rs=CSV_RS,
     )
 
+
 if __name__ == "__main__":
-    main()
+    main()  # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
