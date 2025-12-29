@@ -7,12 +7,7 @@ Written by: Giovanni Zattoni
 
 Validation_RWandRS_FFT.py
 
-FIX:
-- RW/RS per-tow seeding no longer contaminates EXP extraction.
-  We do this by saving/restoring BOTH Python's random state and NumPy's RNG state
-  around RW/RS generation.
-
-Still true:
+Explanation:
 - Each tow row uses a truly-random seed (new each run)
 - RW and RS share the SAME seed for that tow row
 - If EXP tow is missing -> fill NaNs and do NOT generate a seed
