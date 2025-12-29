@@ -1,344 +1,1163 @@
-#!/usr/bin/env python3
-"""
-Written by: Giovanni Zattoni
+'''This file is meant to run a large number of simulations at a time.'''
 
----------------------------------------
-#!/usr/bin/env python3
+##############################################################################################################
 
-Validation_RWandRS_FFT.py
-
-Explanation:
-- Each tow row uses a truly-random seed (new each run)
-- RW and RS share the SAME seed for that tow row
-- If EXP tow is missing -> fill NaNs and do NOT generate a seed
-- CSV format unchanged
-"""
-
-# ======================================================================
-# Imports
-# ======================================================================
-import argparse
-import csv
-import os
-import sys
-import secrets
-import random  # <<< NEW (needed to save/restore Python RNG state)
+# External imports
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal.windows import tukey
+import matplotlib.image as image
+import matplotlib.transforms as transforms
+from matplotlib.ticker import FormatStrFormatter
+import matplotlib as mpl
+import random
+from dataclasses import dataclass
+import seaborn as sns
 
-# ======================================================================
-# PROCESSING TOGGLES
-# ======================================================================
-USE_DETREND      = False
-USE_TUKEY_WINDOW = False
-USE_PADDING      = False
-
-TUKEY_ALPHA = 0.05
-PAD_FACTOR  = 4
-
-FMAX_METRICS = 300.0
-FMIN_DOM     = 1.0
-
-# Tow range
-TOW_MIN = 1
-TOW_MAX = 31
-
-# RS settings
-RS_METHOD = "Sidd"      # "Sidd" or "Random"
-
-# Output
-OUTDIR   = "Outputs"
-CSV_EXP  = "FFT_metrics_EXP_centerline.csv"
-CSV_RW   = "FFT_metrics_RW_centerline.csv"
-CSV_RS   = "FFT_metrics_RS_centerline.csv"
-
-# ======================================================================
-# PATH SETUP
-# ======================================================================
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-if SCRIPT_DIR not in sys.path:
-    sys.path.insert(0, SCRIPT_DIR)
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-
-# ======================================================================
-# IMPORT PROJECT MODULES
-# ======================================================================
-from Model_ALL_RandomWalk import generate_RW_multitow
+# Internal imports
+from constants import (tow_width_specified, font_label, font_axis_ticks, figure_width, 
+                        color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, graph_box_thickness, font_legend,
+                        legend_box_thickness, color_borders, color_annotations, color_PDF_fits, transparency,
+                        legend_space, annotation_thickness, annotation_stripe_height, legend_line_thickness, graph_line_thickness,
+                        color_ideal_gap, transparency, left_margin, right_margin, top_margin, bottom_margin, 
+                        legend_drop, legend_margin, inter_axes_gap, unit_box_height)
+from Handling_ALL_Functions import get_synced_data
+from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
+from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
+from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow, get_data
+from D04_Model.Model_ALL_Simulation import generate_multitow_layout
 from Model_ALL_RandomSampling import generate_RS_multitow
-from Data_ALL_traverse import traverse_tow_constructor
 
-# ======================================================================
-# RNG ISOLATION HELPERS (FIX)
-# ======================================================================
-def _rng_snapshot():
-    """Capture BOTH Python and NumPy RNG global states."""
-    return random.getstate(), np.random.get_state()
+##############################################################################################################
+"""Functions"""
 
-def _rng_restore(py_state, np_state):
-    """Restore BOTH Python and NumPy RNG global states."""
-    random.setstate(py_state)
-    np.random.set_state(np_state)
+def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
+    """This function creates the plot of Random Walk vs Experimental Data for each individual sensor.
+    This is equivalent to plot 2 in the paper atm."""
 
-def _run_with_seed(seed: int, fn, *args, **kwargs):
-    """
-    Run fn(*args, **kwargs) with global RNGs seeded to `seed`,
-    then restore original RNG states so nothing leaks to EXP.
-    """
-    py_state, np_state = _rng_snapshot()
-    try:
-        random.seed(seed)
-        np.random.seed(seed)
-        return fn(*args, **kwargs)
-    finally:
-        _rng_restore(py_state, np_state)
+    # getting the experimental data per sensor
+    LT_exp = get_data("LT", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
+    CAM_exp = get_data("CAM", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
+    LLSA_exp = get_data("LLS_A", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
+    LLSB_exp = get_data("LLS_B", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
 
-# ======================================================================
-# FFT helpers
-# ======================================================================
-def linear_detrend(y, x):
-    y = np.asarray(y, dtype=float)
-    x = np.asarray(x, dtype=float)
-    A = np.vstack([x, np.ones_like(x)]).T
-    coef, _, _, _ = np.linalg.lstsq(A, y, rcond=None)
-    return y - (A @ coef)
+    # getting RW data per sensor
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT", bins=100)
+    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM", bins=250)
+    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A", bins=100)
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B", bins=100)
 
-def make_window(N: int) -> np.ndarray:
-    if USE_TUKEY_WINDOW:
-        return tukey(N, alpha=TUKEY_ALPHA)
-    return np.ones(N, dtype=float)
+    LT_walk_data, CAM_walk_data, LLSA_walk_data, LLSB_walk_data = [], [], [], []
+    for tow in range(RW_tows):
+        LT_walk_data += generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
+                                            proposal_type="RWM")
+        CAM_walk_data += generate_random_walk("CAM", CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params,
+                                             proposal_type="RWM")
+        LLSA_walk_data += generate_random_walk("LLS_A", LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist,
+                                              LLS_A_params, proposal_type="RWM")
+        LLSB_walk_data += generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist,
+                                              LLS_B_params, proposal_type="RWM")
+    print(LT_exp, len(LT_exp))
 
-def one_sided_amplitude_spectrum(y, dx_m):
-    y = np.asarray(y, dtype=float)
-    N = len(y)
 
-    w = make_window(N)
-    y_win = y * w
+    distribution_label_names = {
+        'norm': 'Normal Distribution',
+        'logistic': 'Logistic Distribution',
+        'skewnorm': 'Skew-Normal Distribution',
+        'genextreme': 'Generalized Extreme Value'}
 
-    Nfft = int(PAD_FACTOR * N) if USE_PADDING else int(N)
-    Y = np.fft.rfft(y_win, n=Nfft)
-    f = np.fft.rfftfreq(Nfft, d=dx_m)
+    # getting the correct names for the pdf's for labels in the plot
+    dist_data = [LT_dist, CAM_dist, LLS_A_dist, LLS_B_dist]
+    dist_labels, y_pdfs = [], []
+    for sensor_dist in dist_data:
+        dist = sensor_dist
+        dist_labels.append(distribution_label_names.get(dist.name, dist.name))
 
-    # Coherent gain correction
-    CG = w.sum() / N
-    A = np.abs(Y) / (N * CG)
+    #These actually have to be the distributions of the experimental data
+    #Different linspaces for axis visibility
+    x_pdf_LT = np.linspace(-1.2, -0.6, 75)
+    x_pdf_CAM = np.linspace(-0.6, 0.9, 188)
+    x_pdf_LLS_A = np.linspace(-0.6, 0, 75)
+    x_pdf_LLS_B = np.linspace(-0.3, 0.3, 75)
 
-    # One-sided scaling
-    if Nfft % 2 == 0:
-        if len(A) > 2:
-            A[1:-1] *= 2
-    else:
-        if len(A) > 1:
-            A[1:] *= 2
+    #LT
+    best_LT = best_fit_distribution(LT_exp, bins=100)
+    best_LT_dist = best_LT['dist']
+    params_LT = best_LT['params']
+    mse_LT = best_LT['mse']
+    shapes_LT = params_LT[:-2]    
+    loc_LT = params_LT[-2]
+    scale_LT = params_LT[-1]
+    y_pdf_LT = best_LT_dist.pdf(x_pdf_LT, *shapes_LT, loc=loc_LT, scale=scale_LT)
 
-    return f, A
+    #CAM
+    shrink_scale_factor_CAM = 0.9 # This factor is used to artifically stretch the skewnorm distribution to visually better fit the histogram
+    best_CAM = best_fit_distribution(CAM_exp, bins=250, use_all_dist=True, shrink_scale_factor=shrink_scale_factor_CAM)
+    best_CAM_dist = best_CAM['dist']
+    params_CAM = best_CAM['params']
+    mse_CAM = best_CAM['mse']
+    shapes_CAM = params_CAM[:-2] 
+    loc_CAM = params_CAM[-2]
+    scale_CAM = params_CAM[-1]
+    print(f'Scale_CAM: {scale_CAM}')
+    y_pdf_CAM = best_CAM_dist.pdf(x_pdf_CAM, *shapes_CAM, loc=loc_CAM, scale=scale_CAM)
 
-def resample_and_fft(x_src_mm, y_src, x_grid_mm):
-    x_src_mm = np.asarray(x_src_mm, dtype=float)
-    y_src = np.asarray(y_src, dtype=float)
-    xg = np.asarray(x_grid_mm, dtype=float)
+    #LSS A
+    best_LLSA = best_fit_distribution(LLSA_exp, bins=100)
+    best_LLSA_dist = best_LLSA['dist']
+    params_LLSA = best_LLSA['params']
+    mse_LLSA = best_LLSA['mse']
+    shapes_LLSA = params_LLSA[:-2]    
+    loc_LLSA = params_LLSA[-2]
+    scale_LLSA = params_LLSA[-1]
+    y_pdf_LLS_A = best_LLSA_dist.pdf(x_pdf_LLS_A, *shapes_LLSA, loc=loc_LLSA, scale=scale_LLSA)
 
-    yg = np.interp(xg, x_src_mm, y_src)
+    #LLS B
+    best_LLSB = best_fit_distribution(LLSB_exp, bins=100)
+    best_LLSB_dist = best_LLSB['dist']
+    params_LLSB = best_LLSB['params']
+    mse_LLSB = best_LLSB['mse']
+    shapes_LLSB = params_LLSB[:-2]    
+    loc_LLSB = params_LLSB[-2]
+    scale_LLSB = params_LLSB[-1]
+    y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf_LLS_B, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
 
-    if USE_DETREND:
-        yg = linear_detrend(yg, xg * 1e-3)
+    #Start of plotting
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+    mpl.rcParams['axes.labelsize'] = font_label
+    mpl.rcParams['legend.fontsize'] = font_legend
+    mpl.rcParams['xtick.major.width'] = tick_width
+    mpl.rcParams['ytick.major.width'] = tick_width
+    mpl.rcParams['xtick.major.size'] = tick_length
+    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['ytick.direction'] = 'in'
 
-    dx_m = (xg[1] - xg[0]) * 1e-3
-    return one_sided_amplitude_spectrum(yg, dx_m)
+    # Establish correct geometry
+    axes_units_per_box = 1
+    n_boxes = 4
+    total_axes_units = n_boxes * axes_units_per_box
+    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                     + top_margin + bottom_margin + legend_margin)
+    fig = plt.figure(figsize=(figure_width, figure_height))
+    axes_left = left_margin / figure_width
+    axes_width = 1 - (left_margin + right_margin) / figure_width
+    axes_height = unit_box_height / figure_height
+    axs = []
+    current_top = 1 - top_margin / figure_height
+    for i in range(n_boxes):
+        bottom = (current_top - axes_height)
+        ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
+        axs.append(ax)
+        current_top = bottom - inter_axes_gap / figure_height
+    
+    x_labels = ["Error, robot position", "Error, tape lateral movement", 
+                "Error, tape width before compaction", "Error, tape width after compaction"]
+    for i, ax in enumerate(axs):
+        if i < n_boxes - 1:
+            ax.tick_params(labelbottom=True)
+            ax.set_xlabel(x_labels[i])
+        else:
+            ax.set_xlabel(x_labels[-1])
+ 
+    def annotate_mean_std(ax, data, stripe_height=annotation_stripe_height, lw=annotation_thickness, show_debug=False):
+        """
+        Annotate `ax` with:
+        - Hollow red circle at mean (y=0 in data coordinates)
+        - Horizontal red line from mean-std to mean+std at y=0
+        - Two vertical red stripes at mean±std, centered at y=0
 
-def compute_mse_and_rho(f_exp, A_exp, f_mod, A_mod, fmax=300.0):
-    f_exp = np.asarray(f_exp)
-    A_exp = np.asarray(A_exp)
-    f_mod = np.asarray(f_mod)
-    A_mod = np.asarray(A_mod)
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+        data : array-like
+        stripe_height : float
+            Total stripe height measured in AXES fraction (0..1). Default 0.08.
+        lw : float
+            Line/edge width for stripes and marker edge width.
+        show_debug : bool
+            If True prints internal coords for debugging.
+        """
 
-    m = (f_exp >= 0.0) & (f_exp <= fmax)
-    if not np.any(m):
-        return np.nan, np.nan
+        mean = float(np.mean(data))
+        std = float(np.std(data))
 
-    f = f_exp[m]
-    Ae = A_exp[m]
-    Am = np.interp(f, f_mod, A_mod)
+        # Lower spines so annotations are on top
+        for spine in ax.spines.values():
+            spine.set_zorder(0)
+        ax.set_axisbelow(False)
 
-    mse = float(np.mean((Am - Ae) ** 2))
+        # Ensure y=0 is in the visible range
+        ymin, ymax = ax.get_ylim()
+        if 0 < ymin:
+            ymin = 0
+        if 0 > ymax:
+            ymax = 0
+        ax.set_ylim(ymin, ymax)
 
-    if np.std(Ae) == 0.0 or np.std(Am) == 0.0:
-        rho = np.nan
-    else:
-        rho = float(np.corrcoef(Ae, Am)[0, 1])
+        # 1) Hollow circle at (mean, 0)
+        ax.plot(mean, 0,
+                marker='o', markersize=4,
+                markerfacecolor='none', markeredgecolor=color_annotations,
+                markeredgewidth=lw, zorder=1000, clip_on=False)
 
-    return mse, rho
+        # 2) Horizontal ±1σ line at y=0
+        ax.hlines(0, mean - std, mean + std,
+                colors=color_annotations, linewidth=lw, zorder=900, clip_on=False)
 
-def dominant_frequency(f, A, fmin=1.0, fmax=300.0):
-    f = np.asarray(f)
-    A = np.asarray(A)
+        # 3) Compute y=0 in axes fraction
+        disp_x0, disp_y0 = ax.transData.transform((mean, 0))
+        _, y0_axes = ax.transAxes.inverted().transform((disp_x0, disp_y0))
 
-    m = (f >= fmin) & (f <= fmax)
-    if not np.any(m):
-        return np.nan
+        if show_debug:
+            print(f"mean={mean:.4g}, std={std:.4g}, y0_axes={y0_axes:.4g}")
 
-    fm = f[m]
-    Am = A[m]
-    if len(Am) == 0:
-        return np.nan
+        # 4) Compute stripe top/bottom in axes fraction around y0_axes
+        half = stripe_height / 2.0
+        y_low = y0_axes - half
+        y_high = y0_axes + half
 
-    return float(fm[int(np.argmax(Am))])
+        # 5) Draw vertical stripes with blended transform
+        trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+        for x in (mean - std, mean + std):
+            ax.plot([x, x], [y_low, y_high],
+                    transform=trans,
+                    color=color_annotations, linewidth=lw,
+                    zorder=950, clip_on=False)
 
-# ======================================================================
-# Data extraction
-# ======================================================================
-def extract_experimental_centerline(tow, normalize=True):
-    df = traverse_tow_constructor(tow, normalize=normalize)
-    if df is None:
-        return None
-    return df["x_centerline"].to_numpy(), df["y_centerline"].to_numpy()
+    # --------PLotting----------
+    im0 = image.imread('Figures/robotinacc.jpg')
+    im1 = image.imread('Figures/tapelatmvmt.jpg')
+    im2 = image.imread('Figures/tape width.jpg')
+    im3 = image.imread('Figures/tapecompaction.jpg')
 
-def extract_rw_centerline(seed: int):
-    def _gen():
-        _, _, _, _, _, rw_list = generate_RW_multitow(num_tows=1, proposal_type="RWM")
-        tow_df = rw_list[0]
-        return tow_df["x_mm"].to_numpy(), tow_df["centerline"].to_numpy()
-    return _run_with_seed(seed, _gen)
+    # LT plot
+    axs[0].imshow(im0, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
+    axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
+    axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
+    #axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, label="Distribution fits")
+    annotate_mean_std(axs[0], LT_exp)
+    axs[0].set_xlabel("Error, robot position")
+    axs[0].set_ylabel("Density")
+    axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
+    axs[0].xaxis.set_tick_params(labelbottom=True)
 
-def extract_rs_centerline(n_steps, tow_width_mm=6.35, tow_length_mm=1000.0, method="Sidd", seed: int = 1234):
-    def _gen():
-        _, RS_all_tows_data, _, _ = generate_RS_multitow(
-            num_tows=1,
-            n_steps=n_steps,
-            tow_spacing_mm=tow_width_mm,
-            tow_width_mm=tow_width_mm,
-            tow_length_mm=tow_length_mm,
-            method=method,
-            print_statement=False
+    # CAM plot
+    axs[1].imshow(im1, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
+    axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
+    axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
+    #axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits)
+    annotate_mean_std(axs[1], CAM_exp)
+    axs[1].set_xlabel("Error, tape lateral movement")
+    axs[1].set_ylabel("Density")
+    axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
+    axs[1].xaxis.set_tick_params(labelbottom=True)
+
+    # LLS_A 
+    axs[2].imshow(im2, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
+    axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+    axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+    #axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits)
+    annotate_mean_std(axs[2], LLSA_exp)
+    axs[2].set_xlabel("Error, tape width before compaction")
+    axs[2].set_ylabel("Density")
+    axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
+    axs[2].xaxis.set_tick_params(labelbottom=True)
+
+    # LLS_B plot
+    axs[3].imshow(im3, aspect='auto', extent=(0.854, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
+    axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+    axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+    #axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits)
+    annotate_mean_std(axs[3], LLSB_exp)
+    axs[3].set_xlabel("Error, tape width after compaction")
+    axs[3].set_ylabel("Density")
+    axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
+    axs[3].xaxis.set_tick_params(labelbottom=True)
+
+    for i, ax in enumerate(axs):
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
+        ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))                        # Format ticks with one decimal place (pad zeros)
+        ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        for spine in ax.spines.values():
+            spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+            spine.set_edgecolor(color_borders)
+
+    legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                              axes_width, legend_margin/figure_height], frameon=False)
+    legend_ax.axis("off")
+    handles, labels = axs[0].get_legend_handles_labels()
+
+    legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+    fig.canvas.draw()
+    legend_bbox = legend.get_window_extent()
+    legend_height_fig = legend_bbox.height / fig.bbox.height
+    desired_gap = legend_drop / figure_height
+    legend_ax.set_position([axes_left, bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
+    for legobj in legend.legend_handles:
+        legobj.set_linewidth(legend_line_thickness)
+    frame = legend.get_frame()
+    frame.set_edgecolor(color_borders)
+    frame.set_linewidth(legend_box_thickness)
+    frame.set_facecolor('white')
+
+    if save_PDF == True:
+        plt.savefig("source wise validation_310 tows without legend.pdf", format="pdf", bbox_inches=None, dpi=600)
+
+    plt.show()
+
+def plot_histograms(real_data: pd.DataFrame, sim_data: list, RW_data: list, title: str, bin_widths: list[float] = None):
+    '''This function plots a histogram of real and simulated data
+        for each of the sensors separately.'''
+
+    distribution_labels = {
+        'norm': 'Normal Distribution',
+        'logistic': 'Logistic Distribution',
+        'skewnorm': 'Skew-Normal Distribution',
+        'genextreme': 'Generalized Extreme Value'}
+
+    #fig, ax = plt.subplots(figsize=(10, 8))
+    #fig.suptitle(title)
+    errors = [
+        real_data[0],
+        real_data[1],
+        real_data[2],
+        real_data[3]]
+
+    names = ['error_LLS_A', 'error_LLS_B', 'error_LT', 'error_CAM']
+
+    titles = [
+        'Error Tape width before compaction',
+        'Error Tape width after compaction',
+        'Error robot position',
+        'Error tape lateral movement']
+
+    bin_widths = [0.005, 0.005, 0.005, 0.008]
+    if bin_widths is None:
+        bin_widths = [None] * 4
+
+    for i, vals in enumerate(errors):
+        fig, ax = plt.subplots(figsize=(8, 2.5))
+        # print(f'TESTTEST: i={i}, vals={vals} #######################')
+        row, col = divmod(i, 2)
+        clean = vals.dropna().to_numpy()
+        mn, mx = clean.min(), clean.max()
+        bw = bin_widths[i]
+        bins = 40 if bw is None else np.arange(mn, mx + bw, bw)
+
+        ax.hist(clean, bins=bins, alpha=0.4, density=True, label='Experimental')
+        ax.hist(sim_data[i], bins=bins, alpha=0.4, density=True, label='D04-Model')
+        ax.hist(RW_data[i], bins=bins, alpha=0.4, density=True, label='Random Walk', color='lightgreen')
+        best = best_fit_distribution(clean, bins=len(bins) - 1)
+        dist, params = best['dist'], best['params']
+        friendly = distribution_labels.get(dist.name, dist.name)
+
+
+
+
+        # print(f"{names[i]} best fit: {friendly}")
+
+        #x = np.linspace(mn, mx, 200)
+        #pdf = dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
+
+        #ax[row, col].plot(x, pdf, '-', lw=2, label=friendly)
+        #ax[row, col].text(0.02, 0.95, friendly, transform=ax[row, col].transAxes,
+        #                  va='top', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+
+
+        ################
+        #ax[row, col].hist(sim_data[i], bins=bins, alpha=0.5, density=True, label='simulated', color='red')
+        #best = best_fit_distribution(sim_data[i], bins=len(bins) - 1)
+        #dist, params = best['dist'], best['params']
+        #friendly = distribution_labels.get(dist.name, dist.name)
+#
+        #ax[row, col].hist(sim_data[i], bins=bins, alpha=0.6, density=True, label='simulated')
+#
+        ## print(f"{names[i]} best fit: {friendly}")
+#
+        #x = np.linspace(mn, mx, 200)
+        #pdf = dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
+#
+        #ax[row, col].plot(x, pdf, '-', lw=2, label=friendly)
+        #ax[row, col].text(0.02, 0.95, friendly, transform=ax[row, col].transAxes,
+        #                  va='top', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+        ################
+
+        # Fix limits for individual plots for better visualization
+        #if i == 1:
+        #    ax.set_xlim(-0.4, 0.2)  #0.4
+        #elif i == 2:
+        #    ax.set_xlim(-1.2, -0.75)
+        #elif i == 3:
+        #    ax.set_xlim(-0.5, 1)
+        ax.set_xlim(-1.2, 1.2)
+
+        mean_val = clean.mean()
+        std_val = clean.std()
+        sim_mean = np.array(sim_data[i]).mean()
+        sim_std = np.array(sim_data[i]).std()
+        RW_mean = np.array(RW_data[i]).mean()
+        RW_std = np.array(RW_data[i]).std()
+
+        print(f'{titles[i]} Experimental mean/std = {mean_val}/{std_val}')
+        print(f'{titles[i]} Model mean/std = {sim_mean}/{sim_std}')
+        print(f'{titles[i]} RW mean/std = {RW_mean}/{RW_std}')
+
+        ax.axvline(mean_val, color='purple', linestyle='-', label='Experimental Mean', linewidth=1)
+        ax.axvline(sim_mean, color='red', linestyle='-', label='Model Mean', linewidth=1)     # + '\n' + rf'$\sigma$ = {sim_std:.2f}'
+        ax.axvline(RW_mean, color='darkgreen', linestyle='-', label='Random Walk Mean', linewidth=1)
+        ax.axvline(0, color='black', linestyle='dashed')
+
+        #ax[row, col].set_title(titles[i])
+        ax.set_xlabel(titles[i], fontsize=12)
+        ax.set_ylabel('Density', fontsize=12)
+        ax.legend(fontsize=10)
+        ax.yaxis.set_major_formatter('{x:0<3.1f}')
+
+        plt.xticks(np.linspace(-1.2, 1.2, 9))
+        plt.tight_layout(rect=[0, 0, 1, 1])
+        plt.show()
+
+def run_model(generate_varying_bin_plots: bool=False, return_data: bool=True):
+    '''This function executes all steps needed to plot the
+        histograms for each sensor, including experimental and real.
+        This involves first getting the data and then plotting.'''
+
+    real_LT_data = pd.concat((get_synced_data(t, "LT") for t in range(3, 32, 2)), ignore_index=True)
+    real_CAM_data = pd.concat((get_synced_data(t, "CAM") for t in range(3, 32, 2)), ignore_index=True)
+    real_LLSA_data = pd.concat((get_synced_data(t, "LLS_A") for t in range(3, 32, 2)), ignore_index=True)
+    real_LSSB_data = pd.concat((get_synced_data(t, "LLS_B") for t in range(3, 32, 2)), ignore_index=True)
+
+    real_LT_data = real_LT_data["error_LT"]
+    real_CAM_data = real_CAM_data["error_CAM"]
+    real_LLSA_data = real_LLSA_data["error_LLS_A"]
+    real_LSSB_data = real_LSSB_data["error_LLS_B"]
+    print('experimental data has been collected.')
+
+    #if use_saved:
+    #    _save_path = "Script\\"
+    #    LT_short_name = 'LT_Dist_Data'
+    #    CAM_short_name = 'CAM_Dist_Data'
+    #    LLSA_short_name = 'LLSA_Dist_Data'
+    #    LLSB_short_name = 'LLSB_Dist_Data'
+#
+    #    if save_data:
+    #        save_distribution_data(_save_path, LT_short_name, CAM_short_name, LLSA_short_name, LLSB_short_name)
+    #    LT_dist = pd.read_pickle(_save_path + LT_short_name + ".pkl")
+    #    CAM_dist = pd.read_pickle(_save_path + CAM_short_name + ".pkl")
+    #    LLSA_dist = pd.read_pickle(_save_path + LLSA_short_name + ".pkl")
+    #    LLSB_dist = pd.read_pickle(_save_path + LLSB_short_name + ".pkl")
+
+    # -----code for creating the data with the D04-model---------
+    LT_generated_bins_mean_var = []
+    CAM_generated_bins_mean_var = []
+    LLSA_generated_bins_mean_var = []
+    LLSB_generated_bins_mean_var = []
+    generated_bins_mean_var = [LT_generated_bins_mean_var, CAM_generated_bins_mean_var, LLSA_generated_bins_mean_var, LLSB_generated_bins_mean_var]
+    for num_bins in range(130, 131, 5):
+        #num_bins = 30
+        rs = 42
+        LT_dist = consecutive_error('LT', used_tows=list(range(2, 32, 2)), num_bins=num_bins)
+        CAM_dist = consecutive_error('CAM', used_tows=list(range(2, 32, 2)), num_bins=num_bins)
+        LLSA_dist = consecutive_error('LLS_A', used_tows=list(range(2, 32, 2)), num_bins=num_bins)
+        LLSB_dist = consecutive_error('LLS_B', used_tows=list(range(2, 32, 2)), num_bins=num_bins)
+
+        # ------ This section generates the simulated data used for the comparison ------
+        n_runs = 50     # TODO: increase once finalising figures
+        total_data = []
+        n_steps = 320
+        total_D04_error = [[], [], [], []]
+        for run in range(n_runs):
+            # starting position data
+            start_cam = generate_starting_error("CAM")
+            start_lt = generate_starting_error("LT")
+            start_llsa = generate_starting_error("LLS_A")
+            start_llsb = generate_starting_error("LLS_B")
+
+            # generating data
+            LT_error_list = generate_error_path(start_lt, n_steps, LT_dist[0], LT_dist[1], LT_dist[2], LT_dist[-3], LT_dist[-2],
+                                                LT_dist[-1])
+            CAM_error_list = generate_error_path(start_cam, n_steps, CAM_dist[0], CAM_dist[1], CAM_dist[2], CAM_dist[-3], CAM_dist[-2],
+                                                 CAM_dist[-1])
+            LLSA_error_list = generate_error_path(start_llsa, n_steps,LLSA_dist[0], LLSA_dist[1], LLSA_dist[2], LLSA_dist[-3],
+                                                  LLSA_dist[-2], LLSA_dist[-1])
+            LLSB_error_list = generate_error_path(start_llsb, n_steps, LLSB_dist[0], LLSB_dist[1], LLSB_dist[2], LLSB_dist[-3],
+                                                  LLSB_dist[-2], LLSB_dist[-1])
+
+
+            total_D04_error[0] = (total_D04_error[0] + list(LT_error_list))
+            total_D04_error[1] = (total_D04_error[1] + list(CAM_error_list))
+            total_D04_error[2] = (total_D04_error[2] + list(LLSA_error_list))
+            total_D04_error[3] = (total_D04_error[3] + list(LLSB_error_list))
+
+
+            #generated_data = []
+            #x = 0
+            #for i in range(len(LT_error_list)):
+            #    centerline_error = LT_error_list[i] + CAM_error_list[i]
+            #    width_error = LLSB_error_list[i]
+            #    x +=dx
+            #    generated_data.append([x, centerline_error, width_error])
+            #
+            #generated_data = pd.DataFrame(generated_data, columns = ['x', 'error'])
+        print('DO4-model data has been generated.')
+
+        # ---------code for generating the random walk data----------
+        n_runs = 50     # TODO: increase once finalising figures
+        total_RW_error = [[], [], [], []]
+        for run in range(n_runs):
+            LT_RW_data = generate_random_walk("LT", 'RWM')
+            CAM_RW_data = generate_random_walk("CAM", 'RWM')
+            LLSA_RW_data = generate_random_walk("LLS_A", 'RWM')
+            LLSB_RW_data = generate_random_walk("LLS_B", 'RWM')
+
+            total_RW_error[0] = (total_RW_error[0] + list(LT_RW_data))
+            total_RW_error[1] = (total_RW_error[1] + list(CAM_RW_data))
+            total_RW_error[2] = (total_RW_error[2] + list(LLSA_RW_data))
+            total_RW_error[3] = (total_RW_error[3] + list(LLSB_RW_data))
+        print('Random walk data has been generated.')
+
+
+        plot_histograms(
+            [real_LLSA_data, real_LSSB_data, real_LT_data, real_CAM_data],
+            [total_D04_error[2], total_D04_error[3], total_D04_error[0], total_D04_error[1]],
+            [total_RW_error[2], total_RW_error[3], total_RW_error[0], total_RW_error[1]],
+            title="Sensor Error Histograms (ALL TOWS BUT NOT SPACE SYNCED), num_bins=" + str(num_bins),
+            bin_widths=[0.01, 0.01, 0.005, 0.03]
         )
-        tow_df = RS_all_tows_data[0]
-        return tow_df["x_mm"].to_numpy(), tow_df["centerline"].to_numpy()
-    return _run_with_seed(seed, _gen)
 
-# ======================================================================
-# Truly random per-tow row seed (RW + RS share it)
-# ======================================================================
-def random_row_seed_32bit() -> int:
-    return secrets.randbits(32)
+        for i in range(4):
+            mean = float(np.array(total_D04_error[i]).mean())
+            variance = float(np.array(total_D04_error[i]).std())
+            generated_bins_mean_var[i].append([num_bins, mean, variance])
 
-# ======================================================================
-# Batch metrics tables: EXP + RW + RS
-# ======================================================================
-def write_batch_metrics_exp_rw_rs(
-    tow_min=1,
-    tow_max=31,
-    rs_method="Sidd",
-    outdir="Outputs",
-    csv_exp="FFT_metrics_EXP_centerline.csv",
-    csv_rw="FFT_metrics_RW_centerline.csv",
-    csv_rs="FFT_metrics_RS_centerline.csv",
-):
-    os.makedirs(outdir, exist_ok=True)
-    out_exp = os.path.join(outdir, csv_exp)
-    out_rw  = os.path.join(outdir, csv_rw)
-    out_rs  = os.path.join(outdir, csv_rs)
+    print(f'LT errors: {LT_generated_bins_mean_var}')
+    print(f'CAM errors: {CAM_generated_bins_mean_var}')
+    print(f'LLSA errors: {LLSA_generated_bins_mean_var}')
+    print(f'LLSB errors: {LLSB_generated_bins_mean_var}')
 
-    x_grid_mm = np.arange(0.0, 1000.0 + 1.0, 1.0)
+    print('total number of data points = ', len(total_D04_error[0]))
+    #plt.subplot(223)
+    #plt.hist(total_error[0], bins=50)
+    #plt.title('LT')
+    #plt.subplot(224)
+    #plt.hist(total_error[1], bins=50)
+    #plt.title('CAM')
+    #plt.subplot(221)
+    #plt.hist(total_error[2], bins=50)
+    #plt.title('LLSA')
+    #plt.subplot(222)
+    #plt.hist(total_error[3], bins=50)
+    #plt.title('LLSB')
+#
+    #plt.tight_layout()
+    #plt.show()
+#
+    #real_hist()
 
-    exp_rows = []
-    rw_rows  = []
-    rs_rows  = []
+    # This generates plots to determine optimal bin number based on global mean and variance.
+    if generate_varying_bin_plots:
+        LT_generated_bins_mean_var = np.array(LT_generated_bins_mean_var)
+        CAM_generated_bins_mean_var = np.array(CAM_generated_bins_mean_var)
+        LLSA_generated_bins_mean_var = np.array(LLSA_generated_bins_mean_var)
+        LLSB_generated_bins_mean_var = np.array(LLSB_generated_bins_mean_var)
 
-    for tow in range(tow_min, tow_max + 1):
-        exp_data = extract_experimental_centerline(tow, normalize=True)
+        # plotting mean
+        plt.subplot(223)
+        plt.plot(LT_generated_bins_mean_var[:, 0], LT_generated_bins_mean_var[:, 1], label='mean')
+        plt.hlines(y=[-0.94], xmin=0, xmax=100, linestyle='dotted')
+        plt.title('LT')
+        # plt.ylim((min(LT_generated_bins_mean_var[:, 0]), max(LT_generated_bins_mean_var[:, 0])))
+        plt.legend()
 
-        if exp_data is None:
-            exp_rows.append([tow, np.nan, np.nan, np.nan])
-            rw_rows.append([tow, np.nan, np.nan, np.nan])
-            rs_rows.append([tow, np.nan, np.nan, np.nan])
-            print(f"Tow {tow}: missing/failed (traverse_tow_constructor returned None) -> filling NaNs")
-            continue
+        plt.subplot(224)
+        plt.plot(CAM_generated_bins_mean_var[:, 0], CAM_generated_bins_mean_var[:, 1], label='mean')
+        plt.hlines(y=[0.32], xmin=0, xmax=100, linestyle='dotted')
+        plt.title('CAM')
+        # plt.ylim((min(CAM_generated_bins_mean_var[:, 1]), max(CAM_generated_bins_mean_var[:, 1])))
+        plt.legend()
 
-        x_exp, y_exp = exp_data
+        plt.subplot(221)
+        plt.plot(LLSA_generated_bins_mean_var[:, 0], LLSA_generated_bins_mean_var[:, 1], label='mean')
+        plt.hlines(y=[-0.25], xmin=0, xmax=100, linestyle='dotted')
+        plt.title('LLSA')
+        # plt.ylim((min(LLSA_generated_bins_mean_var[:, 1]), max(LLSA_generated_bins_mean_var[:, 1])))
+        plt.legend()
 
-        # truly random per-tow seed; shared by RW and RS within the row
-        row_seed = random_row_seed_32bit()
+        plt.subplot(222)
+        plt.plot(LLSB_generated_bins_mean_var[:, 0], LLSB_generated_bins_mean_var[:, 1], label='mean')
+        plt.hlines(y=[-0.08], xmin=0, xmax=100, linestyle='dotted')
+        plt.title('LLSB')
+        # plt.ylim((min(LLSB_generated_bins_mean_var[:, 1]), max(LLSB_generated_bins_mean_var[:, 1])))
+        plt.legend()
 
-        x_rw, y_rw = extract_rw_centerline(seed=row_seed)
-        x_rs, y_rs = extract_rs_centerline(
-            n_steps=len(x_grid_mm),
-            tow_width_mm=6.35,
-            tow_length_mm=float(x_grid_mm[-1]),
-            method=rs_method,
-            seed=row_seed
-        )
+        plt.tight_layout()
+        plt.show()
 
-        f_exp, A_exp = resample_and_fft(x_exp, y_exp, x_grid_mm)
-        f_rw,  A_rw  = resample_and_fft(x_rw,  y_rw,  x_grid_mm)
-        f_rs,  A_rs  = resample_and_fft(x_rs,  y_rs,  x_grid_mm)
+        ###############
+        # plotting variance
+        plt.subplot(223)
+        plt.plot(LT_generated_bins_mean_var[:, 0], LT_generated_bins_mean_var[:, 2], label='variance')
+        plt.hlines(y=[0.05], xmin=0, xmax=100, linestyle='dotted')
+        plt.title('LT')
+        plt.legend()
 
-        dom_exp = dominant_frequency(f_exp, A_exp, fmin=FMIN_DOM, fmax=FMAX_METRICS)
-        dom_rw  = dominant_frequency(f_rw,  A_rw,  fmin=FMIN_DOM, fmax=FMAX_METRICS)
-        dom_rs  = dominant_frequency(f_rs,  A_rs,  fmin=FMIN_DOM, fmax=FMAX_METRICS)
+        plt.subplot(224)
+        plt.plot(CAM_generated_bins_mean_var[:, 0], CAM_generated_bins_mean_var[:, 2], label='variance')
+        plt.hlines(y=[0.18], xmin=0, xmax=100, linestyle='dotted')
+        plt.title('CAM')
+        plt.legend()
 
-        mse_rw, rho_rw = compute_mse_and_rho(f_exp, A_exp, f_rw, A_rw, fmax=FMAX_METRICS)
-        mse_rs, rho_rs = compute_mse_and_rho(f_exp, A_exp, f_rs, A_rs, fmax=FMAX_METRICS)
+        plt.subplot(221)
+        plt.plot(LLSA_generated_bins_mean_var[:, 0], LLSA_generated_bins_mean_var[:, 2], label='variance')
+        plt.hlines(y=[0.08], xmin=0, xmax=100, linestyle='dotted')
+        plt.title('LLSA')
+        plt.legend()
 
-        exp_rows.append([tow, 0.0, 1.0, dom_exp])
-        rw_rows.append([tow, mse_rw, rho_rw, dom_rw])
-        rs_rows.append([tow, mse_rs, rho_rs, dom_rs])
+        plt.subplot(222)
+        plt.plot(LLSB_generated_bins_mean_var[:, 0], LLSB_generated_bins_mean_var[:, 2], label='variance')
+        plt.hlines(y=[0.07], xmin=0, xmax=100, linestyle='dotted')
+        plt.title('LLSB')
+        plt.legend()
 
-    def append_avg(rows):
-        mse_vals = np.array([r[1] for r in rows], dtype=float)
-        rho_vals = np.array([r[2] for r in rows], dtype=float)
-        dom_vals = np.array([r[3] for r in rows], dtype=float)
+        plt.tight_layout()
+        plt.show()
 
-        avg_mse = float(np.nanmean(mse_vals)) if np.any(~np.isnan(mse_vals)) else np.nan
-        avg_rho = float(np.nanmean(rho_vals)) if np.any(~np.isnan(rho_vals)) else np.nan
-        avg_dom = float(np.nanmean(dom_vals)) if np.any(~np.isnan(dom_vals)) else np.nan
+        means = [-0.95, 0.31, -0.26, -0.09]
+        variances = [0.05, 0.18, 0.08, 0.07]
+        for i in range(len(LT_generated_bins_mean_var[:, 0])):
+            delta_mean = LT_generated_bins_mean_var - means[0]
 
-        rows.append(["AVG", avg_mse, avg_rho, avg_dom])
+    if return_data:
+        return total_D04_error
 
-    append_avg(exp_rows)
-    append_avg(rw_rows)
-    append_avg(rs_rows)
+def Gap_Histogram(tows_simulated: int, plot: bool=False):
+    # ------getting experimental data---------
+    real_gap_data = []
+    for i in range(1, 31):
+        added_gap_data = list(get_synced_data(i, 'Traverse')['Gap_gap'])
+        real_gap_data = real_gap_data + added_gap_data
+    #print(real_gap_data)
+    #print('real printed', len(real_gap_data))
+    experimental_mean = np.mean(real_gap_data)
+    experimental_std = np.std(real_gap_data)
+    # real_gap_data = filter(lambda x: 4 >= x >= 8, real_gap_data)
+    experimental_90th_percentile = np.percentile(real_gap_data, 90)
+    experimental_99th_percentile = np.percentile(real_gap_data, 99)
 
-    header = ["Tow #", "MSE", "rho", "dominant freq"]
+    # -------generating D04-model data--------
+    gap_overlap_df, _, _, _, _ = generate_multitow_layout(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    gap_overlap_df = np.array(gap_overlap_df)
+    D04_gap_data = []
+    for i in range (tows_simulated-1):
+        D04_gap_data = D04_gap_data + list(gap_overlap_df[:, i])
+    #print(D04_gap_data)
+    #print('D04 printed', len(D04_gap_data))
+    D04_mean = np.mean(gap_overlap_df)
+    D04_std = np.std(gap_overlap_df)
+    D04_90th_percentile = np.percentile(gap_overlap_df, 90)
+    D04_99th_percentile = np.percentile(gap_overlap_df, 99)
 
-    for path, rows in [(out_exp, exp_rows), (out_rw, rw_rows), (out_rs, rs_rows)]:
-        with open(path, "w", newline="") as f:
-            w = csv.writer(f)
-            w.writerow(header)
-            w.writerows(rows)
+    # -------generating Random Walk data--------
+    RW_gap_df, _, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RW_gap_df = np.array(RW_gap_df)
+    RW_gap_data = []
+    for i in range (tows_simulated-1):
+        RW_gap_data = RW_gap_data + list(RW_gap_df[:, i])
+        #print(RW_gap_data, i)
+    #print(RW_gap_data)
+    #print('RW printed', len(RW_gap_data))
+    RW_mean = np.mean(RW_gap_data)
+    RW_std = np.std(RW_gap_data)
+    RW_90th_percentile = np.percentile(RW_gap_data, 90)
+    RW_99th_percentile = np.percentile(RW_gap_data, 99)
 
-    print(f"Saved: {out_exp}")
-    print(f"Saved: {out_rw}")
-    print(f"Saved: {out_rs}")
+    # -------generating Random Sampling data--------
+    RS_gap_df, _ = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RS_gap_df = np.array(RS_gap_df)
+    RS_gap_data = []
+    for i in range (tows_simulated-1):
+        RS_gap_data = RS_gap_data + list(RS_gap_df[:, i])
+        #print(RS_gap_data, i)
+    #print(RS_gap_data)
+    #print('RS printed', len(RS_gap_data))
+    RS_mean = np.mean(RS_gap_data)
+    RS_std = np.std(RS_gap_data)
+    RS_90th_percentile = np.percentile(RS_gap_data, 90)
+    RS_99th_percentile = np.percentile(RS_gap_data, 99)
 
-# ======================================================================
-# CLI
-# ======================================================================
-def parse_args():
-    p = argparse.ArgumentParser(
-        description="Write EXP/RW/RS FFT metric tables (Tow 1..31 + AVG)."
-    )
-    p.add_argument("--tow-min", type=int, default=TOW_MIN, help="Minimum tow index (default: 1).")
-    p.add_argument("--tow-max", type=int, default=TOW_MAX, help="Maximum tow index (default: 31).")
-    p.add_argument("--rs-method", choices=["Sidd", "Random"], default=RS_METHOD,
-                   help="RS method (default: Sidd).")
-    return p.parse_args()
+    print(f'Experimental mean/std/90th/99th = {experimental_mean}/{experimental_std}/{experimental_90th_percentile}/{experimental_99th_percentile}')
+    print(f'D04 mean/std/90th/99th = {D04_mean}/{D04_std}/{D04_90th_percentile}/{D04_99th_percentile}')
+    print(f'RW mean/std/90th/99th = {RW_mean}/{RW_std}/{RW_90th_percentile}/{RW_99th_percentile}')
+    print(f'RS mean/std/90th/99th = {RS_mean}/{RS_std}/{RS_90th_percentile}/{RS_99th_percentile}')
+
+    gap_center = 12.5-6.35
+    bins = [0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10]
+
+    if plot:
+        # plots
+        fig, ax = plt.subplots(figsize=(8, 4))
+        
+        ax.hist(real_gap_data, label='Experimental', bins=bins, alpha=0.55, density=True)     # bins=[0]+list(np.linspace(6.15-1.2, 6.15+1.2, 80+1))+[10]
+        ax.hist(D04_gap_data, label='Model', bins=bins, alpha=0.55, density=True)
+        ax.hist(RW_gap_data, label='Random Walk', bins=bins, alpha=0.55, density=True, color='green')
+        ax.axvline(experimental_mean, color='purple', linestyle='-', label='Experimental Mean')
+        ax.axvline(D04_mean, color='red', linestyle='-', label='D04-Model Mean')
+        ax.axvline(RW_mean, color='darkgreen', linestyle='-', label='RW Mean')
+        ax.set_xlabel("Gap (mm)", fontsize=12)
+        ax.set_ylabel("Density", fontsize=12)
+        ax.axvline(gap_center, color='black', linestyle='dashed', label='Ideal Gap')
+        # plt.title(f"Gaps")
+        ax.set_xlim(gap_center-1.2, gap_center+1.2)
+        ax.axhline(0, color='gray', linestyle='--', linewidth=1)
+        ax.legend(fontsize=10)
+
+        plt.xticks(np.linspace(gap_center-1.2, gap_center+1.2, 9))
+        #plt.grid(True)
+        plt.tight_layout(rect=[0, 0, 1, 1])
+        plt.show()
+    
+    return real_gap_data, D04_gap_data, RW_gap_data, RS_gap_data, experimental_mean, D04_mean, RW_mean, RS_mean, gap_center, bins
+
+def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal: bool):
+    """
+    This function takes a list of dataframes that contains features of a tows and plots the corresponding tows in one figure, as well as the ideal tow. 
+    The data it takes from that dataframe are
+    the centerline, width and x-position. It is important that the columns in the dataframe are properly named.
+    For this, check that the centerline column is named "center_CAM", the width after compaction column is named
+    "width_LLS_B" and the x-position columns is called "x".
+    
+    Arguments are:
+    tows: list[pd.DataFrame], a list with dataframes of the tows
+    y_intended: list, a list of programmed centerline y-values of the tows, IMPORTANT: tows[i] HAS TO CORRESPOND WITH y_intended[i].
+    name: str, the name of the operation that was done to obtain the dataframes of the tows, will be the title of the graph.
+    ideal: bool, plots one ideal tow if true
+    
+    Author: Martijn
+    """
+    # Check if all elements are DataFrames
+    if not all(isinstance(tow, pd.DataFrame) for tow in tows):
+        raise TypeError("All elements in 'tows' must be pandas DataFrames.")
+    
+    #set figure size
+    #plt.figure(figsize=(15, 2))
+    
+    for i in range(len(y_intended)):
+        CAM_centerline = tows[i]["center_CAM"] #take the centerline from CAM
+        LT_y = tows[i]["y"] #take the y-position from LT
+        intended_centerline = y_intended[i] #take the programmed y-value for a straight line
+        centerline = CAM_centerline + LT_y + intended_centerline #calculate centerline in space by combining datatypes
+        width = tows[i]["width_LLS_B"] #take the width from LLS B
+        x = tows[i]["x"]  #take the x-position from LT
+        
+        
+        #make the plots
+        if i == 0:
+            plt.plot(x, centerline, label="actual centerline", linestyle='dashed', color='grey') #plots the centerline
+            plt.plot(x, centerline + 0.5 * width, label="actual tow", linestyle='solid', color='black') #plots the top edge
+            plt.plot(x, centerline - 0.5 * width, linestyle='solid', color='black') #plots the bottom edge
+        
+        else: #do not assign a label to all other tows as this would make the legend unreadable
+            plt.plot(x, centerline, linestyle='dashed', color='grey') #plots the centerline
+            plt.plot(x, centerline + 0.5 * width, linestyle='solid', color='black') #plots the top edge
+            plt.plot(x, centerline - 0.5 * width, linestyle='solid', color='black') #plots the bottom edge
+
+        #plots the start end endlines of the tow
+        plt.plot([x.iloc[0], x.iloc[0]], [centerline.iloc[0] - 0.5 * width.iloc[0], centerline.iloc[0] + 0.5 * width.iloc[0]], linestyle='solid', color='black')
+        plt.plot([x.iloc[-1], x.iloc[-1]], [centerline.iloc[-1] - 0.5 * width.iloc[-1], centerline.iloc[-1] + 0.5 * width.iloc[-1]],linestyle='solid', color='black')
+    
+    if ideal == True:
+        #plot the ideal tow (just a rectangle)
+        plt.plot([0,1000], [tow_width_specified * 0.5, tow_width_specified * 0.5], color='green', label='ideal tow')
+        plt.plot([0,1000], [-tow_width_specified * 0.5, -tow_width_specified * 0.5], color='green')
+        plt.plot([0,0], [tow_width_specified * 0.5, -tow_width_specified * 0.5], color='green')
+        plt.plot([1000,1000], [tow_width_specified * 0.5, -tow_width_specified * 0.5], color='green')
+        plt.plot([0,1000], [0,0], color='green', linestyle='dashed', label='ideal centerline')
+
+
+    # calculate the dimensions of the plots
+    x_min = min(min(tow["x"].min() for tow in tows) - 50, -50)
+    x_max = max(max(tow["x"].max() for tow in tows) + 50, 1050)
+    y_min = min(min(tow["y"].min() for tow in tows) - 100, -50)
+    y_max = max(max(tow["y"].max() for tow in tows) + 50, 1050)
+    
+    #plot info
+    plt.xlabel("x-position [mm]")
+    plt.ylabel("y-position [mm]")
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
+    plt.grid()
+    plt.title(name)
+    plt.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+    plt.tight_layout()
+    plt.show()
+
+def KDE_curves(tows_simulated: int):
+    """Function to plot probability density functions using KDE plotting.
+        Author: ChatGPT"""
+    # Obtain data
+    real_gap_data, D04_gap_data, RW_gap_data, RS_gap_data, real_mean, D04_mean, RW_mean, RS_mean, ideal_gap_center, bins = Gap_Histogram(tows_simulated)
+    
+    # In case we want to average over multiple laminates, not finished yet
+    # 
+    #RW_gap_data_list = []
+    #RS_gap_data_list = []
+    #RW_mean_list = []
+    #RS_mean_list = []
+    #for i in range(n_laminates):
+    #    _, _, RW_gap_data, RS_gap_data, _, _, RW_mean, RS_mean, _, _ = Gap_Histogram(tows_simulated)
+    #    RW_gap_data_list.append(RW_gap_data)
+    #    RS_gap_data_list.append(RS_gap_data)
+    #    RW_mean_list.append(RW_mean)
+    #    RS_mean_list.append(RS_mean)
+    
+    
+    plt.figure(figsize=(10,6))
+
+    # Plot histograms
+    plt.hist(real_gap_data, bins=bins, density=True, alpha=0.6, color="blue", label="Experimental")
+    #plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="D04", hatch='o')
+    plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.6, color="green", label="Random Walk")
+    plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.6, color="orange", label="Random Sampling")
+    
+    # Plot smooth KDE curves
+    #sns.kdeplot(real_gap_data, label="Experimental", color="blue", linewidth=2)
+    #sns.kdeplot(D04_gap_data, label="D04", color="orange", linewidth=2)
+    #sns.kdeplot(RW_gap_data, label="Random Walk", color="green", linewidth=2)
+    #sns.kdeplot(RS_gap_data, label="Random Sampling", color="orange", linewidth=2)
+
+    # Plot vertical lines for means and ideal gap
+    #plt.axvline(real_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+    #plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
+    #plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
+    #plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
+    plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+
+    # Labels and layout
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = ['Times New Roman']
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = 10
+    mpl.rcParams['ytick.labelsize'] = 10
+    plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+    plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+    plt.xlabel("Gap (mm)", fontsize=12, fontname='Times New Roman')
+    plt.ylabel("Probability Density", fontsize=12, fontname='Times New Roman')
+    plt.legend(fontsize=12, loc='lower center', bbox_to_anchor=(0.5, -0.35), ncols=4)
+    ax = plt.gca()
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
+        spine.set_edgecolor('black')
+    ax.xaxis.set_ticks_position('both')
+    ax.yaxis.set_ticks_position('both')
+    ax.tick_params(top=True, bottom=True, left=True, right=True, direction='in', length=8, width=1.2)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontname('Times New Roman')
+        label.set_fontsize(10)
+    plt.tight_layout()
+    plt.show()
+
+def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: bool=False):
+    """Generate 1 figure with 3 plots. 1: Experimental vs. D04. 2: Experimental vs. RW. 3: Experimental vs. Random Sampling.
+       Plottype can be "single", "single no D04, "separate" or "separate no D04".
+       Author: Martijn van der Voort"""
+    
+    print(f"DEBUG: plottype={repr(plottype)}")
+    # Check for plottype
+    if plottype != "single" and plottype != "single no D04" and plottype != "separate" and plottype != "separate no D04":
+        raise ValueError(f'The provided plottype does not exist. Choose "single", "single no D04", "separate" or "separate no D04"')
+
+    # ------getting experimental data---------
+    experimental_gap_data = []
+    for i in range(1, 31):
+        added_gap_data = list(get_synced_data(i, 'Traverse')['Gap_gap'])
+        experimental_gap_data = experimental_gap_data + added_gap_data
+    experimental_mean = np.mean(experimental_gap_data)
+    experimental_std = np.std(experimental_gap_data)
+    experimental_90th_percentile = np.percentile(experimental_gap_data, 90)
+    experimental_99th_percentile = np.percentile(experimental_gap_data, 99)
+
+    # -------generating D04-model data--------
+    gap_overlap_df, _, _, _, _ = generate_multitow_layout(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    gap_overlap_df = np.array(gap_overlap_df)
+    D04_gap_data = []
+    for i in range (tows_simulated-1):
+        D04_gap_data = D04_gap_data + list(gap_overlap_df[:, i])
+    D04_mean = np.mean(D04_gap_data)
+    D04_std = np.std(D04_gap_data)
+    D04_90th_percentile = np.percentile(D04_gap_data, 90)
+    D04_99th_percentile = np.percentile(D04_gap_data, 99)
+
+    # -------generating Random Walk data--------
+    RW_gap_df, _, _, _, _, _ = generate_RW_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RW_gap_df = np.array(RW_gap_df)
+    RW_gap_data = []
+    for i in range (tows_simulated-1):
+        RW_gap_data = RW_gap_data + list(RW_gap_df[:, i])
+    RW_mean = np.mean(RW_gap_data)
+    RW_std = np.std(RW_gap_data)
+    RW_90th_percentile = np.percentile(RW_gap_data, 90)
+    RW_99th_percentile = np.percentile(RW_gap_data, 99)
+
+    #-------generating Random Sampling data--------
+    RS_gap_df, _, _, _ = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RS_gap_df = np.array(RS_gap_df)
+    RS_gap_data = []
+    for i in range (tows_simulated-1):
+        RS_gap_data = RS_gap_data + list(RS_gap_df[:, i])
+    RS_mean = np.mean(RS_gap_data)
+    RS_std = np.std(RS_gap_data)
+    RS_90th_percentile = np.percentile(RS_gap_data, 90)
+    RS_99th_percentile = np.percentile(RW_gap_data, 99)
+
+    #-----print statements
+    print(f'Experimental mean/std/90th/99th = {experimental_mean}/{experimental_std}/{experimental_90th_percentile}/{experimental_99th_percentile}')
+    print(f'D04 mean/std/90th/99th = {D04_mean}/{D04_std}/{D04_90th_percentile}/{D04_99th_percentile}')
+    print(f'RW mean/std/90th/99th = {RW_mean}/{RW_std}/{RW_90th_percentile}/{RW_99th_percentile}')
+    print(f'RS mean/std/90th/99th = {RS_mean}/{RS_std}/{RS_90th_percentile}/{RS_99th_percentile}')
+
+    #-------calculating plot parameters---------
+    ideal_gap_center = 12.5-6.35
+    bins = [0]+list(np.linspace(ideal_gap_center-1.2, ideal_gap_center+1.2, 100+1))+[10]
+
+    #--------generating plot--------
+    if plottype == "single":
+        plt.figure(figsize=(12, 8))
+
+        plt.subplot(311)
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="D04")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(D04_gap_data, label="D04", color="orange", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.ylabel("Probability Density", fontsize=font_label)
+        plt.legend(fontsize=font_legend)
+        
+        plt.subplot(312)
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="red", label="RW")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(RW_gap_data, label="RW", color="red", linewidth=2)
+        #plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        #plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.ylabel("Probability Density", fontsize=font_label)
+        plt.legend(fontsize=font_legend)
+        
+        plt.subplot(313)
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="RS")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(RS_gap_data, label="RS", color="green", linewidth=2)
+        #plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        #plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.legend(fontsize=font_legend)
+        plt.xlabel("Gap (mm)", fontsize=font_label)
+        
+        plt.ylabel("Probability Density", fontsize=font_label)
+        plt.show()
+
+    if plottype == "single no D04":
+        mpl.rcParams['font.family'] = 'serif'
+        mpl.rcParams['font.serif'] = [font_TNR]
+        mpl.rcParams['mathtext.fontset'] = 'stix'
+        mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+        mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+        mpl.rcParams['axes.labelsize'] = font_label
+        mpl.rcParams['legend.fontsize'] = font_legend
+        mpl.rcParams['xtick.major.width'] = tick_width
+        mpl.rcParams['ytick.major.width'] = tick_width
+        mpl.rcParams['xtick.major.size'] = tick_length
+        mpl.rcParams['ytick.major.size'] = tick_length
+        mpl.rcParams['xtick.direction'] = 'in'
+        mpl.rcParams['ytick.direction'] = 'in'
+
+        # Esteblish the correct geometry
+        axes_units_per_box = 2
+        n_boxes = 2
+        total_axes_units = n_boxes * axes_units_per_box
+        figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                        + top_margin + bottom_margin + legend_margin)
+        fig = plt.figure(figsize=(figure_width, figure_height))
+        axes_left = left_margin / figure_width
+        axes_width = 1 - (left_margin + right_margin) / figure_width
+        axes_height = (axes_units_per_box * unit_box_height) / figure_height
+        axs = []
+        current_top = 1 - top_margin / figure_height
+        for i in range(n_boxes):
+            bottom = (current_top - axes_height)
+            ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
+            axs.append(ax)
+            current_top = bottom - inter_axes_gap / figure_height    
+
+        # Shift data so that ideal gap is at x = 0
+        bins = np.linspace(-1.3, 1.3, 101)
+        exp_shift = np.array(experimental_gap_data) - ideal_gap_center
+        rw_shift  = np.array(RW_gap_data) - ideal_gap_center
+        rs_shift  = np.array(RS_gap_data) - ideal_gap_center
+        
+        axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_exp, label="Experiment")
+        axs[0].hist(rw_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_RW, label="MCMC simulation")
+        #axs[0].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
+        axs[0].set_xlabel("Gap (mm)")
+        axs[0].set_ylabel("Density")
+        axs[0].set_xlim(-1.3, 1.3)
+        axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
+    
+        #leg0 = axs[0].legend(loc='upper left', ncol=1, fancybox=False)
+
+        axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_exp)
+        axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_RS, label="MC simulation")
+        #axs[1].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
+        axs[1].set_xlabel("Gap (mm)")
+        axs[1].set_ylabel("Density")
+        axs[1].set_xlim(-1.3, 1.3)
+        axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
+        #leg1 = axs[1].legend(loc='lower center', ncol=1, fancybox=False, borderaxespad=-7)
+
+        for i, ax in enumerate(axs):
+            ax.xaxis.set_ticks_position('both')
+            ax.yaxis.set_ticks_position('both')
+            ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
+            for spine in ax.spines.values():
+                spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+                spine.set_edgecolor(color_borders)
+            
+        legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                              axes_width, legend_margin/figure_height], frameon=False)
+        legend_ax.axis("off")
+        handles_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+        handles, labels = [sum(hol, []) for hol in zip(*handles_labels)]
+        legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+        fig.canvas.draw()
+        legend_bbox = legend.get_window_extent()
+        legend_height_fig = legend_bbox.height / fig.bbox.height
+        desired_gap = legend_drop / figure_height
+        legend_ax.set_position([axes_left, bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
+        for legobj in legend.legend_handles:
+            legobj.set_linewidth(legend_line_thickness)
+        frame = legend.get_frame()
+        frame.set_edgecolor(color_borders)
+        frame.set_linewidth(legend_box_thickness)
+        frame.set_facecolor('white')
+        
+        if save_PDF == True:
+            plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf", bbox_inches=None)
+        
+        plt.show()
+
+    if plottype == "separate":
+        
+        #D04
+        plt.figure(figsize=(10,6))
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(D04_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="D04")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(D04_gap_data, label="D04", color="orange", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(D04_mean, color="orange", linestyle="--", linewidth=1, label="D04 Mean")
+        plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=14)
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.legend(fontsize=10)
+        plt.tight_layout()
+        plt.show()
+
+        #RW
+        plt.figure(figsize=(10,6))
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="red", label="RW")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(RW_gap_data, label="RW", color="red", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(RW_mean, color="red", linestyle="--", linewidth=1, label="RW Mean")
+        plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=14)
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.legend(fontsize=10)
+        plt.tight_layout()
+        plt.show()
+
+        #RS
+        plt.figure(figsize=(10,6))
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="RS")
+        sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        sns.kdeplot(RS_gap_data, label="RS", color="green", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(RS_mean, color="green", linestyle="--", linewidth=1, label="RS Mean")
+        plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=14)
+        plt.ylabel("Probability Density", fontsize=14)
+        plt.legend(fontsize=10)
+        plt.tight_layout()
+        plt.show()
+    
+    if plottype == "separate no D04":
+
+        #RW
+        plt.figure(figsize=(10,6))
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RW_gap_data, bins=bins, density=True, alpha=0.2, color="green", label="RW")
+        #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        #sns.kdeplot(RW_gap_data, label="RW", color="green", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(RW_mean, color="green", linestyle="--", linewidth=1, label="RW Mean")
+        plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=font_label)
+        plt.ylabel("Probability Density", fontsize=font_label)
+        plt.legend(fontsize=10)
+        plt.tight_layout()
+        plt.show()
+
+        #RS
+        plt.figure(figsize=(10,6))
+        plt.hist(experimental_gap_data, bins=bins, density=True, alpha=0.2, color="blue", label="Experimental")
+        plt.hist(RS_gap_data, bins=bins, density=True, alpha=0.2, color="orange", label="RS")
+        #sns.kdeplot(experimental_gap_data, label="Experimental", color="blue", linewidth=2)
+        #sns.kdeplot(RS_gap_data, label="RS", color="orange", linewidth=2)
+        plt.axvline(experimental_mean, color="blue", linestyle="--", linewidth=1, label="Exp Mean")
+        plt.axvline(RS_mean, color="orange", linestyle="--", linewidth=1, label="RS Mean")
+        plt.axvline(ideal_gap_center, color="black", linestyle=":", linewidth=1, label="Ideal Gap")
+        plt.xlim(ideal_gap_center-1.2, ideal_gap_center+1.2)
+        plt.axhline(0, color='gray', linestyle='--', linewidth=1)
+        plt.xlabel("Gap (mm)", fontsize=font_label)
+        plt.ylabel("Probability Density", fontsize=font_label)
+        plt.legend(fontsize=10)
+        plt.tight_layout()
+        plt.show()
+
+##############################################################################################################
+"""Run this file"""
 
 def main():
-    args = parse_args()
-    write_batch_metrics_exp_rw_rs(
-        tow_min=args.tow_min,
-        tow_max=args.tow_max,
-        rs_method=args.rs_method,
-        outdir=OUTDIR,
-        csv_exp=CSV_EXP,
-        csv_rw=CSV_RW,
-        csv_rs=CSV_RS
-    )
+    #data = run_model()
+    #Gap_Histogram(30)
+    #KDE_curves(29)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
-    main()
-
+    main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
 
 
