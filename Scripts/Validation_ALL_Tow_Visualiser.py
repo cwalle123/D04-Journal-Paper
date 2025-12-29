@@ -288,27 +288,27 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     x_D04_centerline  = sim_df["x_mm"].to_numpy()
     y_D04_centerline  = sim_df["centerline"].to_numpy() + 2 * y_increment_programmed
 
-    # Extract RW tow
-    _, _, _, _, _, RW_df_list = generate_RW_multitow(num_tows=1)
-    print(RW_df_list)
-    RW_df = RW_df_list[0]
-    x_RW_right = RW_df["x_mm"].to_numpy() 
-    y_RW_right = RW_df["bottom_edge"].to_numpy() + y_increment_programmed
-    x_RW_left = RW_df["x_mm"].to_numpy()
-    y_RW_left = RW_df["top_edge"].to_numpy() + y_increment_programmed
-    x_RW_centerline  = RW_df["x_mm"].to_numpy()
-    y_RW_centerline  = RW_df["centerline"].to_numpy() + y_increment_programmed
-
     # Extract RS tow
     _, RS_df_list, _, _ = generate_RS_multitow(num_tows=1, n_steps=370)
     print(RS_df_list)
     RS_df = RS_df_list[0]
     x_RS_right = RS_df["x_mm"].to_numpy()
-    y_RS_right = RS_df["bottom_edge"].to_numpy()
+    y_RS_right = RS_df["bottom_edge"].to_numpy() + y_increment_programmed
     x_RS_left = RS_df["x_mm"].to_numpy()
-    y_RS_left = RS_df["top_edge"].to_numpy()
+    y_RS_left = RS_df["top_edge"].to_numpy() + y_increment_programmed
     x_RS_centerline  = RS_df["x_mm"].to_numpy()
-    y_RS_centerline  = RS_df["centerline"].to_numpy()
+    y_RS_centerline  = RS_df["centerline"].to_numpy() + y_increment_programmed
+
+    # Extract RW tow
+    _, _, _, _, _, RW_df_list = generate_RW_multitow(num_tows=1)
+    print(RW_df_list)
+    RW_df = RW_df_list[0]
+    x_RW_right = RW_df["x_mm"].to_numpy() 
+    y_RW_right = RW_df["bottom_edge"].to_numpy()
+    x_RW_left = RW_df["x_mm"].to_numpy()
+    y_RW_left = RW_df["top_edge"].to_numpy()
+    x_RW_centerline  = RW_df["x_mm"].to_numpy()
+    y_RW_centerline  = RW_df["centerline"].to_numpy()
 
     #Start of plotting
     mpl.rcParams['font.family'] = 'serif'
@@ -348,15 +348,15 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     #plt.plot(x_D04_left, y_D04_left, "-", color="orange", label="D04 edges")
     #plt.plot(x_D04_right, y_D04_right, "-", color="orange")
 
+    # Random Sampling tow
+    ax.plot(x_RS_centerline, y_RS_centerline, "--", color=color_RS, linewidth=graph_line_thickness)
+    ax.plot(x_RS_left, y_RS_left, "-", color=color_RS, linewidth=graph_line_thickness, label="MC simulation")
+    ax.plot(x_RS_right, y_RS_right, "-", color=color_RS, linewidth=graph_line_thickness)
+
     # Random Walk tow
     ax.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW, linewidth=graph_line_thickness)
     ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
     ax.plot(x_RW_right, y_RW_right, "-", color=color_RW, linewidth=graph_line_thickness)
-
-    # Random sampling tow
-    ax.plot(x_RS_centerline, y_RS_centerline, "--", color=color_RS, linewidth=graph_line_thickness)
-    ax.plot(x_RS_left, y_RS_left, "-", color=color_RS, linewidth=graph_line_thickness, label="MC simulation")
-    ax.plot(x_RS_right, y_RS_right, "-", color=color_RS, linewidth=graph_line_thickness)
 
     ax.set_xlabel("Tow Length (mm)")
     ax.set_ylabel("Position (mm)")
@@ -936,8 +936,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     mpl.rcParams['ytick.direction'] = 'in'
 
     # Establish correct geometry
-    inter_axes_gap_list = [inter_axes_gap, 0.2 * inter_axes_gap] # Only change the factor before the second entry
-    axes_units_per_box = [2, 0.5, 1.5]
+    inter_axes_gap_list = [0.2 * inter_axes_gap, inter_axes_gap] # Only change the factor before the second entry
+    axes_units_per_box = [0.5, 1.5, 2]
     n_boxes = 3
     total_axes_units = sum(axes_units_per_box)
     figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap
@@ -962,60 +962,41 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     #        ax.set_xscale("log")
 
     # ============================================================
-    # TOP SUBPLOT
-    # ============================================================
-    axs[0].hist(gap_RW, bins=shared_bins, color=color_RW, alpha=transparency, histtype='stepfilled', label="MCMC simulation")
-    axs[0].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, histtype='stepfilled', label="Experiment")
-
-    axs[0].set_xlim(*xlim)
-    axs[0].set_ylim(0, 160)
-
-    axs[0].set_xlabel("Gap length (mm)")
-    axs[0].set_ylabel("Frequency")
-    axs[0].tick_params(axis="both", top=True, right=True)
-    axs[0].xaxis.set_ticks_position("both")
-    axs[0].yaxis.set_ticks_position("both")
-
-    for spine in axs[0].spines.values():
-        spine.set_linewidth(graph_box_thickness)
-        spine.set_edgecolor(color_borders)
-
-    # ============================================================
-    # BOTTOM SUBPLOTS — BROKEN AXIS
+    # TOP SUBPLOTS — BROKEN AXIS
     # ============================================================
 
     peak_min = 900
     peak_max = 1100
 
     # Upper small range
-    axs[1].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, histtype='stepfilled', label="MC simulation")
+    axs[0].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, histtype='stepfilled', label="MC simulation")
+    axs[0].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, histtype='stepfilled', label="Experiment")
+    axs[0].set_ylim(peak_min, peak_max)
+    axs[0].set_xlim(*xlim)
+
+    for spine in axs[0].spines.values():
+        spine.set_linewidth(graph_box_thickness)
+        spine.set_edgecolor(color_borders)
+
+    # Lower full range
+    axs[1].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, histtype='stepfilled')
     axs[1].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, histtype='stepfilled')
-    axs[1].set_ylim(peak_min, peak_max)
+
+    axs[1].set_ylim(0, 140)
     axs[1].set_xlim(*xlim)
 
     for spine in axs[1].spines.values():
         spine.set_linewidth(graph_box_thickness)
         spine.set_edgecolor(color_borders)
 
-    # Lower full range
-    axs[2].hist(gap_RS, bins=shared_bins, color=color_RS, alpha=transparency, histtype='stepfilled')
-    axs[2].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, histtype='stepfilled')
-
-    axs[2].set_ylim(0, 140)
-    axs[2].set_xlim(*xlim)
-
-    for spine in axs[2].spines.values():
-        spine.set_linewidth(graph_box_thickness)
-        spine.set_edgecolor(color_borders)
-
     # Remove touching spines
-    axs[1].spines.bottom.set_visible(False)
-    axs[2].spines.top.set_visible(False)
+    axs[0].spines.bottom.set_visible(False)
+    axs[1].spines.top.set_visible(False)
 
     # Tick formatting
-    axs[1].tick_params(axis="x", bottom=False, labelbottom=False)
-    axs[1].tick_params(axis="both", right=True, top=True, left=True)
-    axs[2].tick_params(axis="both", right=True)
+    axs[0].tick_params(axis="x", bottom=False, labelbottom=False)
+    axs[0].tick_params(axis="both", right=True, top=True, left=True)
+    axs[1].tick_params(axis="both", right=True)
 
     # ============================================================
     # AXIS BREAK MARKERS (standard diagonal slashes)
@@ -1054,14 +1035,33 @@ def compare_real_vs_RS_RW_gap_length_distributions(
         ax.plot([1 - dx, 1 + dx], [y0 - dy, y0 + dy], **kwargs)
         ax.plot([1 - dx, 1 + dx], [y0 - dy, y0 + dy], **kwargs)
 
-    break_marker(axs[1], "bottom", pixel_slope=0.554)
-    break_marker(axs[2], "top", pixel_slope = 0.554)
+    break_marker(axs[0], "bottom", pixel_slope=0.554)
+    break_marker(axs[1], "top", pixel_slope = 0.554)
     
     # ============================================================
     # Bottom labels
     # ============================================================
-    axs[2].set_xlabel("Gap Length (mm)")
+    axs[1].set_xlabel("Gap Length (mm)")
+    axs[1].set_ylabel("Frequency")
+
+    # ============================================================
+    # BOTTOM SUBPLOT
+    # ============================================================
+    axs[2].hist(gap_RW, bins=shared_bins, color=color_RW, alpha=transparency, histtype='stepfilled', label="MCMC simulation")
+    axs[2].hist(gap_traverse, bins=shared_bins, color=color_exp, alpha=transparency, histtype='stepfilled')
+
+    axs[2].set_xlim(*xlim)
+    axs[2].set_ylim(0, 160)
+
+    axs[2].set_xlabel("Gap length (mm)")
     axs[2].set_ylabel("Frequency")
+    axs[2].tick_params(axis="both", top=True, right=True)
+    axs[2].xaxis.set_ticks_position("both")
+    axs[2].yaxis.set_ticks_position("both")
+
+    for spine in axs[2].spines.values():
+        spine.set_linewidth(graph_box_thickness)
+        spine.set_edgecolor(color_borders)
 
     legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
                               axes_width, legend_margin/figure_height], frameon=False)

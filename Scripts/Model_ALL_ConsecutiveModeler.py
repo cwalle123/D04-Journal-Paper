@@ -239,7 +239,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[0].imshow(im0, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
     axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
     axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
-    #axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, label="Distribution fits")
+    axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, linewidth=graph_line_thickness)
     annotate_mean_std(axs[0], LT_exp)
     axs[0].set_xlabel("Error, robot position")
     axs[0].set_ylabel("Density")
@@ -250,7 +250,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[1].imshow(im1, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
     axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
     axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
-    #axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits)
+    axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=graph_line_thickness)
     annotate_mean_std(axs[1], CAM_exp)
     axs[1].set_xlabel("Error, tape lateral movement")
     axs[1].set_ylabel("Density")
@@ -261,7 +261,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[2].imshow(im2, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
     axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
-    #axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits)
+    axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits, linewidth=graph_line_thickness)
     annotate_mean_std(axs[2], LLSA_exp)
     axs[2].set_xlabel("Error, tape width before compaction")
     axs[2].set_ylabel("Density")
@@ -272,7 +272,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     axs[3].imshow(im3, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
     axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
-    #axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits)
+    axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits, linewidth=graph_line_thickness)
     annotate_mean_std(axs[3], LLSB_exp)
     axs[3].set_xlabel("Error, tape width after compaction")
     axs[3].set_ylabel("Density")
@@ -1007,25 +1007,22 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         exp_shift = np.array(experimental_gap_data) - ideal_gap_center
         rw_shift  = np.array(RW_gap_data) - ideal_gap_center
         rs_shift  = np.array(RS_gap_data) - ideal_gap_center
-        
+
         axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_exp, label="Experiment")
-        axs[0].hist(rw_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_RW, label="MCMC simulation")
+        axs[0].hist(rs_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_RS, label="MC simulation")
         #axs[0].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
         axs[0].set_xlabel("Gap (mm)")
         axs[0].set_ylabel("Density")
         axs[0].set_xlim(-1.3, 1.3)
         axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
-    
-        #leg0 = axs[0].legend(loc='upper left', ncol=1, fancybox=False)
-
+        
         axs[1].hist(exp_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_exp)
-        axs[1].hist(rs_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_RS, label="MC simulation")
+        axs[1].hist(rw_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_RW, label="MCMC simulation")
         #axs[1].axvline(0, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness, label="Ideal gap")
         axs[1].set_xlabel("Gap (mm)")
         axs[1].set_ylabel("Density")
         axs[1].set_xlim(-1.3, 1.3)
         axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
-        #leg1 = axs[1].legend(loc='lower center', ncol=1, fancybox=False, borderaxespad=-7)
 
         for i, ax in enumerate(axs):
             ax.xaxis.set_ticks_position('both')
@@ -1154,7 +1151,7 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(1000, plottype="single no D04", save_PDF=False)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
     #plot_RW_vs_exp_histograms(RW_tows=310, save_PDF=True)
 
 if __name__ == "__main__":
