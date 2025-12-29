@@ -1,37 +1,5 @@
 #!/usr/bin/env python3
-"""
-Written By: Giovanni Zattoni
-
-RW 'Utility' Figure — Average defect area % vs. eliminated error source
-=======================================================================
-
-Changes in this version:
-- Programmed shift is a CONSTANT per scenario (set in SCENARIO_SHIFT_MM).
-- For the "No LLS_A" scenario ONLY, we impose:
-      compaction_error(x) = min( −(LLS_B(x) − LLS_A(x)), 0 )
-  and use:
-      w_NoLLSA(x) = NOMINAL + compaction_error(x)
-- For the "No LLS_B" scenario, width is FIXED at the nominal value:
-      w_NoLLSB(x) = NOMINAL  (constant over x)
-
-Elimination semantics (FINAL; no LB > LA anywhere):
-- "No <SOURCE>" means that source is set to ZERO in the model (perfect world).
-- Width construction rules (LA & LB aligned at the same x indices):
-    • All errors / No LT / No CAM: w = NOMINAL + LB
-    • No LLS_A:                    w = NOMINAL + min( −(LB − LA), 0 )
-    • No LLS_B:                    w = NOMINAL
-
-Programmed shift rule (constant per scenario):
-----------------------------------------------
-For every scenario, in every run:
-    programmed_shift = SCENARIO_SHIFT_MM[scenario_key]
-where scenario_key ∈ {None, "CAM", "LT", "LLS_A", "LLS_B"}.
-
-Outputs generated:
-------------------
-- rw_defect_barchart.png — bar chart comparing average Gap% and Overlap%
-- rw_defect_summary.csv — CSV summary with Gap%, Overlap%, and shift stats (std=0 here)
-"""
+"RW 'Utility' Figure — Average defect area % vs. eliminated error source"
 
 ##############################################################################################################
 
