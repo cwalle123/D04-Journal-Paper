@@ -27,6 +27,12 @@ if PROJECT_ROOT not in sys.path:
 from Model_ALL_RandomWalk import generate_RW_multitow
 from Data_ALL_traverse import traverse_tow_constructor
 from Model_ALL_RandomSampling import generate_RS_multitow
+from constants import (tow_width_specified, font_label, font_axis_ticks, figure_width, 
+                        color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, graph_box_thickness, font_legend,
+                        legend_box_thickness, color_borders, color_annotations, color_PDF_fits, transparency,
+                        legend_space, annotation_thickness, annotation_stripe_height, legend_line_thickness, graph_line_thickness,
+                        color_ideal_gap, transparency, left_margin, right_margin, top_margin, bottom_margin, 
+                        legend_drop, legend_margin, inter_axes_gap, unit_box_height)
 
 ##############################################################################################################
 # FFT processing toggles (EDIT THESE)
@@ -47,41 +53,6 @@ TOW_MIN_BATCH   = 2
 TOW_MAX_BATCH   = 30
 OUTDIR          = "Outputs"
 CSV_NAME        = "FFT_metrics_alltows_centerline.csv"  # saved in Outputs/
-
-##############################################################################################################
-# Local plotting constants (so you don't depend on constants.py)
-
-figure_width = 9.5
-min_figure_height = 2.4
-
-color_exp = "#0072B2"   # blue
-color_RW  = "#009E73"   # green
-color_RS  = "#F1B047"   # orange
-
-font_TNR = "Times New Roman"
-
-graph_box_thickness = 1.0
-tick_length = 5
-tick_width = 1.0
-graph_line_thickness = 1.6
-
-color_borders = "black"
-
-legend_line_thickness = 1.6
-legend_box_thickness = 1.0
-font_legend = 11
-
-# ----------------- Global plot formatting -----------------
-plt.rcParams.update({
-    "font.family": "serif",
-    "font.serif": ["Times New Roman", "Times", "Nimbus Roman No9 L"],
-    "mathtext.fontset": "stix",
-    "axes.grid": False,
-    "axes.edgecolor": "black",
-    "axes.linewidth": 1.0,
-    "savefig.bbox": "tight",
-    "savefig.dpi": 300,
-})
 
 ##############################################################################################################
 """Functions"""
@@ -297,33 +268,58 @@ def run_fft_compare(
     print("  RS model:  MSE={:.6e}, rho={}".format(mse_rs, "nan" if np.isnan(rho_rs) else f"{rho_rs:.6f}"))
 
     def plot_linear(f_exp, A_exp, f_rw, A_rw, f_rs, A_rs):
-        fig, ax = plt.subplots(1, 1, figsize=(figure_width, 2 * min_figure_height))
-        ax.plot(f_exp, A_exp, label="Experimental",    color=color_exp, linewidth=graph_line_thickness, linestyle="-")
-        ax.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=graph_line_thickness, linestyle="-")
+        mpl.rcParams['font.family'] = 'serif'
+        mpl.rcParams['font.serif'] = [font_TNR]
+        mpl.rcParams['mathtext.fontset'] = 'stix'
+        mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+        mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+        mpl.rcParams['axes.labelsize'] = font_label
+        mpl.rcParams['legend.fontsize'] = font_legend
+        mpl.rcParams['xtick.major.width'] = tick_width
+        mpl.rcParams['ytick.major.width'] = tick_width
+        mpl.rcParams['xtick.major.size'] = tick_length
+        mpl.rcParams['ytick.major.size'] = tick_length
+        mpl.rcParams['xtick.direction'] = 'in'
+        mpl.rcParams['ytick.direction'] = 'in'
+
+        # Establish correct geometry
+        axes_units_per_box = 2
+        n_boxes = 1
+        total_axes_units = n_boxes * axes_units_per_box
+        figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                        + top_margin + bottom_margin + legend_margin)
+        fig = plt.figure(figsize=(figure_width, figure_height))
+        axes_left = left_margin / figure_width
+        axes_width = 1 - (left_margin + right_margin) / figure_width
+        axes_bottom = (bottom_margin + legend_margin) / figure_height
+        axes_height = (axes_units_per_box * unit_box_height) / figure_height
+        ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
+
+        ax.plot(f_exp, A_exp, label="Experiment",    color=color_exp, linewidth=graph_line_thickness, linestyle="-")
         ax.plot(f_rs,  A_rs,  label="MC simulation",   color=color_RS,  linewidth=graph_line_thickness, linestyle="-")
+        ax.plot(f_rw,  A_rw,  label="MCMC simulation", color=color_RW,  linewidth=graph_line_thickness, linestyle="-")
         ax.set_xlabel("Spatial frequency (cycles/m)")
         ax.set_ylabel("Amplitude (mm)")
         ax.grid(False)
         ax.set_xlim(0, 50)
 
-        mpl.rcParams['font.family'] = 'serif'
-        mpl.rcParams['font.serif'] = [font_TNR]
-        mpl.rcParams['mathtext.fontset'] = 'stix'
-
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
-        ax.tick_params(
-            top=True, bottom=True, left=True, right=True, direction='in',
-            length=tick_length, width=tick_width
-        )
-
+        ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
         for spine in ax.spines.values():
-            spine.set_linewidth(graph_box_thickness)
+            spine.set_linewidth(graph_box_thickness)                                    # black box around figure
             spine.set_edgecolor(color_borders)
 
+        legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                                axes_width, legend_margin/figure_height], frameon=False)
+        legend_ax.axis("off")
         handles, labels = ax.get_legend_handles_labels()
-        fig.subplots_adjust(bottom=0.30)
-        legend = fig.legend(handles, labels, loc='lower center', ncol=1, fontsize=font_legend, fancybox=False)
+        legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+        fig.canvas.draw()
+        legend_bbox = legend.get_window_extent()
+        legend_height_fig = legend_bbox.height / fig.bbox.height
+        desired_gap = legend_drop / figure_height
+        legend_ax.set_position([axes_left, axes_bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
         for legobj in legend.legend_handles:
             legobj.set_linewidth(legend_line_thickness)
         frame = legend.get_frame()
