@@ -326,7 +326,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
     mpl.rcParams['ytick.direction'] = 'in'
 
     # Establish correct geometry
-    axes_units_per_box = 1
+    axes_units_per_box = 2
     n_boxes = 1
     total_axes_units = n_boxes * axes_units_per_box
     figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
@@ -378,7 +378,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
     wrapped = _wrap_labels(labels, width=18)
     ax.set_xticks(x)
     ax.set_xticklabels(wrapped, rotation=0, ha="center")
-    ax.set_ylim(0, 3)
+    ax.set_ylim(0, 5)
     ax.yaxis.set_major_locator(MultipleLocator(Y_MAJOR_STEP))
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
 

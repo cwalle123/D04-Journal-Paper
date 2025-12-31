@@ -557,23 +557,31 @@ def compare_real_vs_RW_gaps_overlaps():
     # Get real gap/overlap data from traverse layout
     _, _, _, real_gap_percent, real_overlap_percent = traverse_tow_gaps_and_overlaps(plot=False)
 
-    # Generate a full simulated layout (like multitow layout generation)
-    print("=== Calculating Simulated Percentages (May take 3-5 minutes) ===")
-    _, _, _, sim_gap_percent, sim_overlap_percent, _ = generate_RW_multitow(num_tows=30)
+    # Generate a full RW simulated layout (like multitow layout generation)
+    print("=== Calculating RW simulated Percentages (May take 3-5 minutes) ===")
+    _, _, _, RW_sim_gap_percent, RW_sim_overlap_percent, _ = generate_RW_multitow(num_tows=30)
+
+    # Generate a full RS simulated layout (like multitow layout generation)
+    print("=== Calculating RS simulated Percentages (May take 3-5 minutes) ===")
+    _, _, RS_sim_gap_percent, RS_sim_overlap_percent = generate_RS_multitow(num_tows=30)
 
     # --- Print comparison ---
     print("\n=== Comparison Summary ===")
     print(f"Real   Gap Percentage:      {real_gap_percent:.2f}%")
-    print(f"Simulated Gap Percentage:   {sim_gap_percent:.2f}%")
+    print(f"RW simulated Gap Percentage:   {RW_sim_gap_percent:.2f}%")
+    print(f"RS simulated Gap Percentage:   {RS_sim_gap_percent:.2f}%")
     print(f"Real   Overlap Percentage:  {real_overlap_percent:.2f}%")
-    print(f"Simulated Overlap Percentage: {sim_overlap_percent:.2f}%")
+    print(f"RW simulated Overlap Percentage: {RW_sim_overlap_percent:.2f}%")
+    print(f"RS simulated Overlap Percentage: {RS_sim_overlap_percent:.2f}%")
 
     # --- Return structured data for further analysis ---
     return {
         "real_gap_percent": real_gap_percent,
         "real_overlap_percent": real_overlap_percent,
-        "sim_gap_percent": sim_gap_percent,
-        "sim_overlap_percent": sim_overlap_percent}
+        "RW_sim_gap_percent": RW_sim_gap_percent,
+        "RW_sim_overlap_percent": RW_sim_overlap_percent,
+        "RS_sim_gap_percent": RS_sim_gap_percent,
+        "RS_sim_overlap_percent": RS_sim_overlap_percent}
 
 def compare_real_vs_D04_gaps_overlaps_lengths(histogram_bins=100, force_steps=False):
     """
@@ -1308,7 +1316,7 @@ def main():
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
     #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
-    #compare_real_vs_RW_gaps_overlaps()
+    compare_real_vs_RW_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
 
@@ -1318,7 +1326,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
+    #compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
 
 if __name__ == "__main__":
     main()

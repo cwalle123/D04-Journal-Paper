@@ -734,7 +734,7 @@ def analyze_tow_spacing_effect(
     mpl.rcParams['ytick.direction'] = 'in'
 
     # Establish correct geometry
-    axes_units_per_box = 1
+    axes_units_per_box = 2
     n_boxes = 1
     total_axes_units = n_boxes * axes_units_per_box
     figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
@@ -1250,10 +1250,10 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-    #                          error_areas=True, error_bars=False, save_PDF=True)
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+                              error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
-    generate_virtual_lamina_figure(save_PDF=True)
+    #generate_virtual_lamina_figure(save_PDF=True)
     #find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
