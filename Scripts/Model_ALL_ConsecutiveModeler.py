@@ -155,8 +155,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
         axs.append(ax)
         current_top = bottom - inter_axes_gap / figure_height
     
-    x_labels = ["Error, robot position", "Error, tape lateral movement", 
-                "Error, tape width before compaction", "Error, tape width after compaction"]
+    x_labels = ["Error, robot position", "Error, tow lateral movement", 
+                "Error, tow width before compaction", "Error, tow width after compaction"]
     for i, ax in enumerate(axs):
         if i < n_boxes - 1:
             ax.tick_params(labelbottom=True)
@@ -308,7 +308,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     frame.set_facecolor('white')
 
     if save_PDF == True:
-        plt.savefig("source wise validation_310 tows with legend.pdf", format="pdf", bbox_inches=None, dpi=600)
+        plt.savefig("source wise validation_31 tows with legend.pdf", format="pdf", bbox_inches=None, dpi=600)
 
     plt.show()
 
@@ -739,7 +739,7 @@ def tow_visualizer(tows: list[pd.DataFrame], y_intended: list, name: str, ideal:
     name: str, the name of the operation that was done to obtain the dataframes of the tows, will be the title of the graph.
     ideal: bool, plots one ideal tow if true
     
-    Author: Martijn
+    Author: Martijn van der Voort
     """
     # Check if all elements are DataFrames
     if not all(isinstance(tow, pd.DataFrame) for tow in tows):
