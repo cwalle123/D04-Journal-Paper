@@ -543,7 +543,7 @@ def compare_real_vs_D04_gaps_overlaps(tow_length_mm=1000):
         "sim_gap_percent": sim_gap_percent,
         "sim_overlap_percent": sim_overlap_percent}
 
-def compare_real_vs_RW_gaps_overlaps():
+def compare_real_vs_RW_vs_RS_gaps_overlaps():
     """
     Compare real traverse tow layout gap/overlap percentages 
     with simulated tow layout percentages (no plotting).
@@ -1311,12 +1311,12 @@ def main():
     # plot_real_tow(6)
 
     # real_df, sim_df = plot_real_vs_RW_tow(6, plot = True, force_steps = False)
-    # compare_real_vs_RW_gaps_overlaps()
+    # compare_real_vs_RW_vs_RS_gaps_overlaps()
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
     #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
-    compare_real_vs_RW_gaps_overlaps()
+    compare_real_vs_RW_vs_RS_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
 
