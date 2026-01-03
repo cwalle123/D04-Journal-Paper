@@ -54,8 +54,9 @@ def fit_random_walk(sensor: str, bins=40):
     if sensor != "CAM":
         best = best_fit_distribution(np.array(data), bins=bins, weights=np.array(weights))
     elif sensor == "CAM":
-        best = best_fit_distribution(np.array(data), weights=np.array(weights), use_all_dist=True, shrink_scale_factor=0.9)
+        best = best_fit_distribution(np.array(data), weights=np.array(weights), use_all_dist=True)
     dist, params = best['dist'], best['params']
+    print(f"for {sensor}, the dist is: {dist}")
     target_distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
 
     proposal_std = get_proposal_distribution(sensor)
@@ -291,8 +292,13 @@ def get_proposal_distribution(sensor, plot: bool=False):
         weights.append(weight)
 
     # determining the normal distribution which fits:
-    mean = np.average(data, weights= weights)
-    variance = np.average((data-mean)**2, weights=weights)
+    mean = np.average(data)
+    variance = np.var(data)
+    ### old code for weighted distributions against Bias ###
+    #weighted_mean = np.average(data, weights= weights)
+    #weighted_variance = np.average((data-mean)**2, weights=weights)
+    #print(f"Mean: {mean}, Variance: {variance} \n"
+    #      f"weighted: Mean: {weighted_mean}, Variance: {weighted_variance}")
     std = np.sqrt(variance)
 
     if plot:
@@ -1228,9 +1234,9 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
 """Run this file"""
 
 def main():
-    # LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("CAM")
-    #LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
-    #                            proposal_type="RWM", plot_histogram=True, plot_path=True)
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
+                                proposal_type="RWM", plot_histogram=True, plot_path=True)
     #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM", plot=True)
     #plot_animated_walk_hist("CAM", 100)
@@ -1250,8 +1256,8 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-                              error_areas=True, error_bars=False, save_PDF=True)
+    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+    #                          error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(save_PDF=True)
     #find_RW_statistics(n_tows=1000)

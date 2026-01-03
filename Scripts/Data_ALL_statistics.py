@@ -249,7 +249,7 @@ def plot_LLSA_vs_LLSB(data: pd.DataFrame, title:str, bin_widths: list[float] =No
         plt.show()
 
 # Functions for fitting and collecting data:
-def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_all_dist=False, plot=False, print_statement=False, shrink_scale_factor=1.0): 
+def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_all_dist=False, plot=False, print_statement=False):
     '''This function fits the best probability distribution to the four error types automatically, for the weighted data''' 
     # Compute the histogram of the data 
     y, bin_edges = np.histogram(data, bins=bins, density=True, weights=weights) 
@@ -260,65 +260,66 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
     
     # If no distribution list given, use a broad default set 
     if distributions is None and use_all_dist is True: 
-        distributions = [skewnorm] 
+        distributions = [skewnorm]
     elif distributions is None and use_all_dist is False: 
-        distributions = [norm, logistic] 
+        distributions = [logistic, norm]
     
     best = {'dist': None, 'params': None, 'mse': np.inf} 
-    # Iterate over each candidate distribution 
-    for dist in distributions: 
+    # Iterate over each candidate distribution
+    for dist in distributions:
         # Skip distributions that require non-negative data if data has negatives 
         #if data.min() < 0 and dist in (gamma, beta, expon, lognorm, skewnorm, gumbel_r, genextreme): 
         # continue 
-        with warnings.catch_warnings(): 
-            warnings.filterwarnings('ignore') 
-            try: 
-                # Fit the best distribution to the data 
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore')
+            try:
+                # Fit the best distribution to the data
                 params = dist.fit(data)
-                params = list(params) 
-                params[-1] = params[-1] * shrink_scale_factor 
-                params = tuple(params)
-                
-                # Evaluate its PDF at the bin centers 
-                pdf = dist.pdf(x_mid, *params[:-2], loc=params[-2], scale=params[-1]) 
-                # Compute sum of squared errors between histogram and PDF to check accuracy 
-                mse = sklearn.mean_squared_error(y, pdf) 
-                # If this fit is better (lower MSE), use it 
-                if mse < best['mse']: 
-                    best.update(dist=dist, params=params, mse=mse) 
-            except Exception: 
-                # If fitting fails for any reason, skip to the next distribution 
-                continue 
+                # params = list(params)         # These 3 lines are old code to improve CAM fit which we are NOT using
+                # params[-1] = params[-1] * 1
+                # params = tuple(params)
+
+                # Evaluate its PDF at the bin centers
+                pdf = dist.pdf(x_mid, *params[:-2], loc=params[-2], scale=params[-1])
+                # Compute sum of squared errors between histogram and PDF to check accuracy
+                mse = sklearn.mean_squared_error(y, pdf)
+                # If this fit is better (lower MSE), use it
+                if mse < best['mse']:
+                    best.update(dist=dist, params=params, mse=mse)
+
+            except Exception:
+                # If fitting fails for any reason, skip to the next distribution
+                continue
         
-        best_dist = best['dist'] 
-        params = best['params'] 
-        mse = best['mse'] 
-        
-        # shape parameters (can be empty) 
-        shapes = params[:-2] 
-        loc = params[-2] 
-        scale = params[-1] 
-        
-        params = (*shapes, loc, scale) 
-        
-        if print_statement == True: 
-            print("Best:", best_dist.name) 
-            print("Shape parameters:", shapes) 
-            print("loc:", loc, "scale:", scale) 
-            print("MSE:", mse) 
-        
-        # Return the distribution with the lowest error (MSE) 
-        
-        if plot: 
-            x = np.linspace(best_dist.ppf(0.001, *shapes, loc=loc, scale=scale), best_dist.ppf(0.999, *shapes, loc=loc, scale=scale), 200) 
-            plt.hist(data, bins=bins, density=True, alpha=0.5) 
-            plt.plot(x, best_dist.pdf(x, *shapes, loc=loc, scale=scale), linewidth=2) 
-            plt.title(f"Best fit: {best_dist.name}") 
-            plt.xlabel("Value") 
-            plt.ylabel("Density") 
-            plt.show() 
-        
-        return best
+    best_dist = best['dist']
+    params = best['params']
+    mse = best['mse']
+
+    # shape parameters (can be empty)
+    shapes = params[:-2]
+    loc = params[-2]
+    scale = params[-1]
+
+    params = (*shapes, loc, scale)
+
+    if print_statement == True:
+        print("Best:", best_dist.name)
+        print("Shape parameters:", shapes)
+        print("loc:", loc, "scale:", scale)
+        print("MSE:", mse)
+
+    # Return the distribution with the lowest error (MSE)
+
+    if plot:
+        x = np.linspace(best_dist.ppf(0.001, *shapes, loc=loc, scale=scale), best_dist.ppf(0.999, *shapes, loc=loc, scale=scale), 200)
+        plt.hist(data, bins=bins, density=True, alpha=0.5)
+        plt.plot(x, best_dist.pdf(x, *shapes, loc=loc, scale=scale), linewidth=2)
+        plt.title(f"Best fit: {best_dist.name}")
+        plt.xlabel("Value")
+        plt.ylabel("Density")
+        plt.show()
+
+    return best
 
 def build_all_sensors_df(tow_range=range(2, 31), time_key=None):
     """Returns a dataframe with columns:
@@ -474,7 +475,7 @@ def main():
         bins = 100
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
-    best = best_fit_distribution(data=data, bins=bins, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True, shrink_scale_factor=shrink_scale_factor)
+    best = best_fit_distribution(data=data, bins=bins, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True)
     print(best)
 
 if __name__ == "__main__":

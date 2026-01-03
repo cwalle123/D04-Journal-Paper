@@ -31,7 +31,7 @@ from Model_ALL_RandomSampling import generate_RS_multitow
 ##############################################################################################################
 """Functions"""
 
-def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
+def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit: bool=False):
     """This function creates the plot of Random Walk vs Experimental Data for each individual sensor.
     This is equivalent to plot 2 in the paper atm."""
 
@@ -47,6 +47,11 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A", bins=100)
     LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B", bins=100)
 
+    print(f"LT distribution = {LT_dist} \n"
+          f"CAM distribution = {CAM_dist} \n"
+          f"LLS_A distribution = {LLS_A_dist} \n"
+          f"LLS_B distribution = {LLS_B_dist}")
+
     LT_walk_data, CAM_walk_data, LLSA_walk_data, LLSB_walk_data = [], [], [], []
     for tow in range(RW_tows):
         LT_walk_data += generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
@@ -57,7 +62,6 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
                                               LLS_A_params, proposal_type="RWM")
         LLSB_walk_data += generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist,
                                               LLS_B_params, proposal_type="RWM")
-    print(LT_exp, len(LT_exp))
 
 
     distribution_label_names = {
@@ -80,47 +84,54 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True):
     x_pdf_LLS_A = np.linspace(-0.6, 0, 75)
     x_pdf_LLS_B = np.linspace(-0.3, 0.3, 75)
 
-    #LT
-    best_LT = best_fit_distribution(LT_exp, bins=100)
-    best_LT_dist = best_LT['dist']
-    params_LT = best_LT['params']
-    mse_LT = best_LT['mse']
-    shapes_LT = params_LT[:-2]    
-    loc_LT = params_LT[-2]
-    scale_LT = params_LT[-1]
-    y_pdf_LT = best_LT_dist.pdf(x_pdf_LT, *shapes_LT, loc=loc_LT, scale=scale_LT)
+    if use_RW_fit:
+        y_pdf_LT = LT_target_dist(x_pdf_LT)
+        y_pdf_CAM = CAM_target_dist(x_pdf_CAM)
+        y_pdf_LLS_A = LLS_A_target_dist(x_pdf_LLS_A)
+        y_pdf_LLS_B = LLS_B_target_dist(x_pdf_LLS_B)
 
-    #CAM
-    shrink_scale_factor_CAM = 0.9 # This factor is used to artifically stretch the skewnorm distribution to visually better fit the histogram
-    best_CAM = best_fit_distribution(CAM_exp, bins=250, use_all_dist=True, shrink_scale_factor=shrink_scale_factor_CAM)
-    best_CAM_dist = best_CAM['dist']
-    params_CAM = best_CAM['params']
-    mse_CAM = best_CAM['mse']
-    shapes_CAM = params_CAM[:-2] 
-    loc_CAM = params_CAM[-2]
-    scale_CAM = params_CAM[-1]
-    print(f'Scale_CAM: {scale_CAM}')
-    y_pdf_CAM = best_CAM_dist.pdf(x_pdf_CAM, *shapes_CAM, loc=loc_CAM, scale=scale_CAM)
+    else:
+        #LT
+        best_LT = best_fit_distribution(LT_exp, bins=100)
+        best_LT_dist = best_LT['dist']
+        params_LT = best_LT['params']
+        mse_LT = best_LT['mse']
+        shapes_LT = params_LT[:-2]
+        loc_LT = params_LT[-2]
+        scale_LT = params_LT[-1]
+        y_pdf_LT = best_LT_dist.pdf(x_pdf_LT, *shapes_LT, loc=loc_LT, scale=scale_LT)
 
-    #LSS A
-    best_LLSA = best_fit_distribution(LLSA_exp, bins=100)
-    best_LLSA_dist = best_LLSA['dist']
-    params_LLSA = best_LLSA['params']
-    mse_LLSA = best_LLSA['mse']
-    shapes_LLSA = params_LLSA[:-2]    
-    loc_LLSA = params_LLSA[-2]
-    scale_LLSA = params_LLSA[-1]
-    y_pdf_LLS_A = best_LLSA_dist.pdf(x_pdf_LLS_A, *shapes_LLSA, loc=loc_LLSA, scale=scale_LLSA)
+        #CAM
+        #DON'T USE: shrink_scale_factor_CAM =  0.9 # This factor is used to artifically stretch the skewnorm distribution to visually better fit the histogram
+        best_CAM = best_fit_distribution(CAM_exp, bins=250, use_all_dist=True)
+        best_CAM_dist = best_CAM['dist']
+        params_CAM = best_CAM['params']
+        mse_CAM = best_CAM['mse']
+        shapes_CAM = params_CAM[:-2]
+        loc_CAM = params_CAM[-2]
+        scale_CAM = params_CAM[-1]
+        print(f'Scale_CAM: {scale_CAM}')
+        y_pdf_CAM = best_CAM_dist.pdf(x_pdf_CAM, *shapes_CAM, loc=loc_CAM, scale=scale_CAM)
 
-    #LLS B
-    best_LLSB = best_fit_distribution(LLSB_exp, bins=100)
-    best_LLSB_dist = best_LLSB['dist']
-    params_LLSB = best_LLSB['params']
-    mse_LLSB = best_LLSB['mse']
-    shapes_LLSB = params_LLSB[:-2]    
-    loc_LLSB = params_LLSB[-2]
-    scale_LLSB = params_LLSB[-1]
-    y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf_LLS_B, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
+        #LSS A
+        best_LLSA = best_fit_distribution(LLSA_exp, bins=100)
+        best_LLSA_dist = best_LLSA['dist']
+        params_LLSA = best_LLSA['params']
+        mse_LLSA = best_LLSA['mse']
+        shapes_LLSA = params_LLSA[:-2]
+        loc_LLSA = params_LLSA[-2]
+        scale_LLSA = params_LLSA[-1]
+        y_pdf_LLS_A = best_LLSA_dist.pdf(x_pdf_LLS_A, *shapes_LLSA, loc=loc_LLSA, scale=scale_LLSA)
+
+        #LLS B
+        best_LLSB = best_fit_distribution(LLSB_exp, bins=100)
+        best_LLSB_dist = best_LLSB['dist']
+        params_LLSB = best_LLSB['params']
+        mse_LLSB = best_LLSB['mse']
+        shapes_LLSB = params_LLSB[:-2]
+        loc_LLSB = params_LLSB[-2]
+        scale_LLSB = params_LLSB[-1]
+        y_pdf_LLS_B = best_LLSB_dist.pdf(x_pdf_LLS_B, *shapes_LLSB, loc=loc_LLSB, scale=scale_LLSB)
 
     #Start of plotting
     mpl.rcParams['font.family'] = 'serif'
@@ -1152,7 +1163,7 @@ def main():
     #Gap_Histogram(30)
     #KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=False)
+    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True, use_RW_fit=False)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
