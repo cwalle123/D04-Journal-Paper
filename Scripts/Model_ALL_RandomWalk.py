@@ -327,6 +327,8 @@ def find_RW_statistics(n_tows: int=1000, proposal_type: str="RWM"):
     '''This function runs a number of tows and determines the mean and variance
     for each error type's generated RW data.'''
 
+    print(f'Running find_RW_statistics. For 1000 simulated tows this takes a couple minutes')
+
     # fitting random walk to experimental data
     LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
     CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM")
@@ -1234,9 +1236,9 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
 """Run this file"""
 
 def main():
-    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
-    LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
-                                proposal_type="RWM", plot_histogram=True, plot_path=True)
+    #LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    #LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
+    #                            proposal_type="RWM", plot_histogram=True, plot_path=True)
     #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM", plot=True)
     #plot_animated_walk_hist("CAM", 100)
@@ -1256,11 +1258,11 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-    #                          error_areas=True, error_bars=False, save_PDF=True)
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+                              error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(save_PDF=True)
-    find_RW_statistics(n_tows=1000)
+    #find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

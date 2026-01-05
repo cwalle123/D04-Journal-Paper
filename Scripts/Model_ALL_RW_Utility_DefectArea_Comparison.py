@@ -56,45 +56,6 @@ Y_MAJOR_STEP = 1.0
 Y_DECIMALS = 2
 
 # ---------------------------------------------------------------------
-# Global plotting style (Times New Roman, journal-style)
-# ---------------------------------------------------------------------
-"""plt.rcParams.update({
-    # Fonts
-    "font.family": "serif",
-    "font.serif": ["Times New Roman", "Times", "Nimbus Roman No9 L"],
-    "mathtext.fontset": "stix",
-
-    # Axes & layout
-    "axes.grid": False,
-    "axes.edgecolor": "black",
-    "axes.linewidth": 1.0,
-    "figure.figsize": (9.5, 4.8),
-    "axes.labelsize": 12,
-    "xtick.labelsize": 11,
-    "ytick.labelsize": 11,
-    "legend.fontsize": 11,
-
-    # Tick appearance
-    "xtick.direction": "in",
-    "ytick.direction": "in",
-    "xtick.major.size": 4.5,
-    "ytick.major.size": 4.5,
-    "xtick.minor.size": 0.0,  # not used (minors off)
-    "ytick.minor.size": 0.0,  # not used (minors off)
-
-    # Legend styling
-    "legend.frameon": True,
-    "legend.edgecolor": "black",
-})
-
-# Color constants for Gap and Overlap bars
-PASTEL_BLUE = "#A7C7E7"   # Gap
-PASTEL_RED  = "#F4A6A6"   # Overlap
-# Thin reference line colors (darker)
-LINE_BLUE = "#1f77b4"
-LINE_RED  = "#d62728"
-"""
-# ---------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------
 def _interp_to(arr: np.ndarray, m: int) -> np.ndarray:

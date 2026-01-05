@@ -464,19 +464,26 @@ def main():
     #    bin_widths=[0.005, 0.005],
     #    run = False)
     
-    sensor = "LLS_B"
-    if sensor == "CAM":
-        use_all_dist = True
-        shrink_scale_factor = 0.9
-        bins = 250
-    else:
-        use_all_dist = False
-        shrink_scale_factor = 1.0
-        bins = 100
-    data, weights = np.array(get_data(sensor, format="merged"))
-    print(f"Sensor: {sensor}")
-    best = best_fit_distribution(data=data, bins=bins, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True)
-    print(best)
+    sensor = "CAM"
+    
+    # Get best fit distributions
+    #if sensor == "CAM":
+    #    use_all_dist = True
+    #    bins = 250
+    #else:
+    #    use_all_dist = False
+    #    bins = 100
+    #data, weights = np.array(get_data(sensor, format="merged"))
+    #print(f"Sensor: {sensor}")
+    #best = best_fit_distribution(data=data, bins=bins, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True)
+    #rint(best)
+
+    # Get raw statistics
+    data = get_data(sensor=sensor)
+    mu, std = weighted_mean_std(data)
+    print(f'The chosen sensor is {sensor}')
+    print(f'The mean is {mu}')
+    print(f'The standard deviation is {std}')
 
 if __name__ == "__main__":
     main()

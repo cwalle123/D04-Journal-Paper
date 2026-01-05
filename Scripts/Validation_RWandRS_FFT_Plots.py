@@ -37,9 +37,9 @@ from constants import (tow_width_specified, font_label, font_axis_ticks, figure_
 ##############################################################################################################
 # FFT processing toggles (EDIT THESE)
 
-USE_DETREND  = True     # True / False
-USE_WINDOW   = True     # True / False  (Tukey alpha=0.05 if True)
-USE_PADDING  = True     # True / False
+USE_DETREND  = False     # True / False
+USE_WINDOW   = False     # True / False  (Tukey alpha=0.05 if True)
+USE_PADDING  = False     # True / False
 PAD_FACTOR   = 4        # Only used if USE_PADDING = True
 TUKEY_ALPHA  = 0.05     # Tukey alpha if USE_WINDOW = True
 
@@ -446,7 +446,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=True
+        save_PDF=False
     )
 
     # Batch metrics CSV (Tow 2..30) + AVG row
