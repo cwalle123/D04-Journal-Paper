@@ -51,6 +51,10 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
           f"CAM distribution = {CAM_dist} \n"
           f"LLS_A distribution = {LLS_A_dist} \n"
           f"LLS_B distribution = {LLS_B_dist}")
+    print(f"LT params = {LT_params} \n"
+          f"CAM params = {CAM_params} \n"
+          f"LLS_A params = {LLS_A_params} \n"
+          f"LLS_B params = {LLS_B_params}")
 
     LT_walk_data, CAM_walk_data, LLSA_walk_data, LLSB_walk_data = [], [], [], []
     for tow in range(RW_tows):
@@ -259,8 +263,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
 
     # CAM plot
     axs[1].imshow(im1, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
-    axs[1].hist(CAM_exp, color=color_exp, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
-    axs[1].hist(CAM_walk_data, color=color_RW, bins=250, density=True, alpha=transparency, histtype="stepfilled",)
+    axs[1].hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled",)   # pls keep at 245, this avoids over/under-binning
+    axs[1].hist(CAM_walk_data, color=color_RW, bins=160, density=True, alpha=transparency, histtype="stepfilled",)
     axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
     annotate_mean_std(axs[1], CAM_exp)
     axs[1].set_xlabel("Error, tow lateral movement")

@@ -1260,7 +1260,7 @@ def main():
     #                          error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(save_PDF=True)
-    #find_RW_statistics(n_tows=1000)
+    find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
