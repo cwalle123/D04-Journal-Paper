@@ -31,7 +31,7 @@ from Model_ALL_RandomSampling import generate_RS_multitow
 ##############################################################################################################
 """Functions"""
 
-def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit: bool=False):
+def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit: bool=False, show_data: bool=False):
     """This function creates the plot of Random Walk vs Experimental Data for each individual sensor.
     This is equivalent to plot 2 in the paper atm."""
 
@@ -106,7 +106,6 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
         y_pdf_LT = best_LT_dist.pdf(x_pdf_LT, *shapes_LT, loc=loc_LT, scale=scale_LT)
 
         #CAM
-        #DON'T USE: shrink_scale_factor_CAM =  0.9 # This factor is used to artifically stretch the skewnorm distribution to visually better fit the histogram
         best_CAM = best_fit_distribution(CAM_exp, bins=250, use_all_dist=True)
         best_CAM_dist = best_CAM['dist']
         params_CAM = best_CAM['params']
@@ -179,7 +178,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
         else:
             ax.set_xlabel(x_labels[-1])
  
-    def annotate_mean_std(ax, data, stripe_height=annotation_stripe_height, lw=annotation_thickness, show_debug=False):
+    def annotate_mean_std(ax, data, sensor, stripe_height=annotation_stripe_height, lw=annotation_thickness, show_data=False):
         """
         Annotate `ax` with:
         - Hollow red circle at mean (y=0 in data coordinates)
@@ -228,8 +227,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
         disp_x0, disp_y0 = ax.transData.transform((mean, 0))
         _, y0_axes = ax.transAxes.inverted().transform((disp_x0, disp_y0))
 
-        if show_debug:
-            print(f"mean={mean:.4g}, std={std:.4g}, y0_axes={y0_axes:.4g}")
+        if show_data:
+            print(f"sensor={sensor}, mean={mean:.4g}, std={std:.4g}, y0_axes={y0_axes:.4g}")
 
         # 4) Compute stripe top/bottom in axes fraction around y0_axes
         half = stripe_height / 2.0
@@ -255,7 +254,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
     axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
     axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[0], LT_exp, show_debug=True)
+    annotate_mean_std(axs[0], LT_exp, sensor="LT", show_data=show_data)
     axs[0].set_xlabel("Error, robot position")
     axs[0].set_ylabel("Density")
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -266,7 +265,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     axs[1].hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled",)   # pls keep at 245, this avoids over/under-binning
     axs[1].hist(CAM_walk_data, color=color_RW, bins=160, density=True, alpha=transparency, histtype="stepfilled",)
     axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[1], CAM_exp, show_debug=True)
+    annotate_mean_std(axs[1], CAM_exp, sensor="CAM", show_data=show_data)
     axs[1].set_xlabel("Error, tow lateral movement")
     axs[1].set_ylabel("Density")
     axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -277,7 +276,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[2], LLSA_exp, show_debug=True)
+    annotate_mean_std(axs[2], LLSA_exp, sensor="LLS_A", show_data=show_data)
     axs[2].set_xlabel("Error, tow width before compaction")
     axs[2].set_ylabel("Density")
     axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -288,7 +287,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[3], LLSB_exp, show_debug=True)
+    annotate_mean_std(axs[3], LLSB_exp, sensor="LLS_B", show_data=show_data)
     axs[3].set_xlabel("Error, tow width after compaction")
     axs[3].set_ylabel("Density")
     axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -1167,7 +1166,7 @@ def main():
     #Gap_Histogram(30)
     #KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=False, use_RW_fit=False)
+    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True, use_RW_fit=False, show_data=True)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
