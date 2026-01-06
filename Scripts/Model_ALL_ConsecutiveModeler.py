@@ -255,7 +255,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
     axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
     axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[0], LT_exp)
+    annotate_mean_std(axs[0], LT_exp, show_debug=True)
     axs[0].set_xlabel("Error, robot position")
     axs[0].set_ylabel("Density")
     axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -266,7 +266,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     axs[1].hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled",)   # pls keep at 245, this avoids over/under-binning
     axs[1].hist(CAM_walk_data, color=color_RW, bins=160, density=True, alpha=transparency, histtype="stepfilled",)
     axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[1], CAM_exp)
+    annotate_mean_std(axs[1], CAM_exp, show_debug=True)
     axs[1].set_xlabel("Error, tow lateral movement")
     axs[1].set_ylabel("Density")
     axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -277,7 +277,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[2], LLSA_exp)
+    annotate_mean_std(axs[2], LLSA_exp, show_debug=True)
     axs[2].set_xlabel("Error, tow width before compaction")
     axs[2].set_ylabel("Density")
     axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -288,7 +288,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[3], LLSB_exp)
+    annotate_mean_std(axs[3], LLSB_exp, show_debug=True)
     axs[3].set_xlabel("Error, tow width after compaction")
     axs[3].set_ylabel("Density")
     axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -1166,8 +1166,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    #plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True, use_RW_fit=False)
+    #model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=False, use_RW_fit=False)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

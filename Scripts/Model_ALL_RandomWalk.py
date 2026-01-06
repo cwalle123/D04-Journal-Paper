@@ -12,10 +12,9 @@ import functools
 import matplotlib.colors as mcolors
 from matplotlib import cm
 from dataclasses import dataclass
-from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme
+from scipy.stats import norm, logistic, gamma, beta, expon, lognorm, skewnorm, gumbel_r, gumbel_l, genextreme, pareto
 from tqdm import tqdm
 import os
-from scipy.stats import pareto
 import matplotlib as mpl
 
 # Internal imports
