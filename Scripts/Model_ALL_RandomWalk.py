@@ -1248,7 +1248,7 @@ def main():
 
     # generate_RW_multitow(num_tows=10)
     #plot_RW_tows(2, plot_individual_histograms=True)
-    analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
+    #analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
     #analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv", error_areas=True) # Only plots data
     # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31) #Seems to converge at 120 sims
     #plot_LLS_hist()
@@ -1257,8 +1257,8 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-    #                          error_areas=True, error_bars=False, save_PDF=True)
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+                              error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(save_PDF=True)
     #find_RW_statistics(n_tows=1000)
