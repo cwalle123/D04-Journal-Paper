@@ -261,6 +261,17 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 
             data.append(tow_data[:, 0])
             weights.append(tow_data[:, 1])
 
+        elif format == "paired":
+            """This option puts the data into pairs with their weights: 
+            format = np.array([[1st_data_point, 2nd, weight], [2nd, 3rd, weight], ...])"""
+            pairs = []
+            for i in range(len(tow_data[:-1, 0])):
+                point_0 = tow_data[i, 0]  # x_values in plot
+                point_1 = tow_data[i + 1, 0]  # y_values in plot
+                weight = 0.5 * tow_data[i, 1] + 0.5 * tow_data[i + 1, 1]
+                pairs.append([point_0, point_1, weight])
+            return np.array(pairs)
+
         else: print('Invalid format. Possible values are "merged" and "separated".')
     return data, weights   
 
@@ -268,7 +279,7 @@ def get_data(sensor: str, tows: list = list(np.arange(2, 32, 1)), format: str = 
 """Run this file"""
 
 def main():
-    x = get_synced_data(5, "Traverse", overwrite=False)
+    # x = get_synced_data(5, "Traverse", overwrite=False)
 
     # Just to check if the new data with weights is correct (it is)
     # for tow in range(1,32):
@@ -276,7 +287,9 @@ def main():
     #     print(np.shape(x))
 
     #print("Columns:", x.columns.tolist())
-    print(get_synced_data(10, "TRAVERSE_LT"))
+    data, weights = get_data("CAM", format="separated")
+    print(weights)
+    print(get_synced_data(2, "LLS_B"))
     
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
