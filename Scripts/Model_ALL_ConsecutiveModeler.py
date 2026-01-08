@@ -21,10 +21,10 @@ from constants import (tow_width_specified, font_label, font_axis_ticks, figure_
                         legend_space, annotation_thickness, annotation_stripe_height, legend_line_thickness, graph_line_thickness,
                         color_ideal_gap, transparency, left_margin, right_margin, top_margin, bottom_margin, 
                         legend_drop, legend_margin, inter_axes_gap, unit_box_height)
-from Handling_ALL_Functions import get_synced_data
+from Handling_ALL_Functions import get_synced_data, get_data
 from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error
 from Data_ALL_statistics import main as real_hist, plot_histograms_separated, best_fit_distribution
-from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow, get_data
+from Model_ALL_RandomWalk import fit_random_walk, generate_random_walk, generate_RW_multitow
 from D04_Model.Model_ALL_Simulation import generate_multitow_layout
 from Model_ALL_RandomSampling import generate_RS_multitow
 
@@ -36,10 +36,10 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     This is equivalent to plot 2 in the paper atm."""
 
     # getting the experimental data per sensor
-    LT_exp = get_data("LT", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
-    CAM_exp = get_data("CAM", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
-    LLSA_exp = get_data("LLS_A", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
-    LLSB_exp = get_data("LLS_B", tows = list(np.arange(2, 32, 1)), format = "merged")[0]
+    LT_exp, LT_exp_weights = get_data("LT", tows = list(np.arange(2, 32, 1)), format = "merged")
+    CAM_exp, CAM_exp_weights = get_data("CAM", tows = list(np.arange(2, 32, 1)), format = "merged")
+    LLSA_exp, LLSA_exp_weights = get_data("LLS_A", tows = list(np.arange(2, 32, 1)), format = "merged")
+    LLSB_exp, LLSB_exp_weights = get_data("LLS_B", tows = list(np.arange(2, 32, 1)), format = "merged")
 
     # getting RW data per sensor
     LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT", bins=100)
@@ -96,7 +96,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
 
     else:
         #LT
-        best_LT = best_fit_distribution(LT_exp, bins=100)
+        best_LT = best_fit_distribution(LT_exp, bins=100, weights=LT_exp_weights)
         best_LT_dist = best_LT['dist']
         params_LT = best_LT['params']
         mse_LT = best_LT['mse']
@@ -106,7 +106,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
         y_pdf_LT = best_LT_dist.pdf(x_pdf_LT, *shapes_LT, loc=loc_LT, scale=scale_LT)
 
         #CAM
-        best_CAM = best_fit_distribution(CAM_exp, bins=250, use_all_dist=True)
+        best_CAM = best_fit_distribution(CAM_exp, bins=250, use_all_dist=True, weights=CAM_exp_weights)
         best_CAM_dist = best_CAM['dist']
         params_CAM = best_CAM['params']
         mse_CAM = best_CAM['mse']
@@ -117,7 +117,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
         y_pdf_CAM = best_CAM_dist.pdf(x_pdf_CAM, *shapes_CAM, loc=loc_CAM, scale=scale_CAM)
 
         #LSS A
-        best_LLSA = best_fit_distribution(LLSA_exp, bins=100)
+        best_LLSA = best_fit_distribution(LLSA_exp, bins=100, weights=LLSA_exp_weights)
         best_LLSA_dist = best_LLSA['dist']
         params_LLSA = best_LLSA['params']
         mse_LLSA = best_LLSA['mse']
@@ -127,7 +127,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
         y_pdf_LLS_A = best_LLSA_dist.pdf(x_pdf_LLS_A, *shapes_LLSA, loc=loc_LLSA, scale=scale_LLSA)
 
         #LLS B
-        best_LLSB = best_fit_distribution(LLSB_exp, bins=100)
+        best_LLSB = best_fit_distribution(LLSB_exp, bins=100, weights=LLSB_exp_weights)
         best_LLSB_dist = best_LLSB['dist']
         params_LLSB = best_LLSB['params']
         mse_LLSB = best_LLSB['mse']
@@ -262,7 +262,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
 
     # CAM plot
     axs[1].imshow(im1, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
-    axs[1].hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled",)   # pls keep at 245, this avoids over/under-binning
+    axs[1].hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled")   # pls keep at 245, this avoids over/under-binning
     axs[1].hist(CAM_walk_data, color=color_RW, bins=160, density=True, alpha=transparency, histtype="stepfilled",)
     axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
     annotate_mean_std(axs[1], CAM_exp, sensor="CAM", show_data=show_data)
@@ -273,7 +273,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
 
     # LLS_A 
     axs[2].imshow(im2, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
-    axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+    axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
     axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits, linewidth=annotation_thickness)
     annotate_mean_std(axs[2], LLSA_exp, sensor="LLS_A", show_data=show_data)
@@ -284,7 +284,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
 
     # LLS_B plot
     axs[3].imshow(im3, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
-    axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+    axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
     axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
     axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits, linewidth=annotation_thickness)
     annotate_mean_std(axs[3], LLSB_exp, sensor="LLS_B", show_data=show_data)
