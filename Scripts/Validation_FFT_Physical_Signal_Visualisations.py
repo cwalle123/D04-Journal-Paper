@@ -76,8 +76,8 @@ except Exception:
 # Processing settings (fixed per your requirements)
 
 TUKEY_ALPHA = 0.05   # same alpha used in FFT code when window enabled
-X_START_MM  = 0.0
-X_END_MM    = 1000.0
+X_START_MM  = -50.0
+X_END_MM    = 1050.0
 DX_MM       = 1.0    # x_grid_mm like-for-like
 
 ##############################################################################################################
@@ -179,7 +179,7 @@ def treated_signals_on_grid(x_src_mm, y_src_mm, x_grid_mm):
     yg = interp_to_grid(x_src_mm, y_src_mm, x_grid_mm)   # raw resampled
     yd = linear_detrend(yg, x_grid_mm * 1e-3)            # exact same detrend (x in meters)
     w  = tukey(len(yd), alpha=TUKEY_ALPHA)
-    yw = yg * w                                          # physical window effect
+    yw = yd * w                                          # physical window effect
     return yg, yd, yw
 
 def plot_spatial_triptych(x_grid_mm, yg, yd, yw, title, color, outpath_pdf):
@@ -208,22 +208,24 @@ def plot_spatial_triptych(x_grid_mm, yg, yd, yw, title, color, outpath_pdf):
         ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
         axs.append(ax)
         current_top = bottom - inter_axes_gap / figure_height
+    
+    mask = (x_grid_mm >= 0) & (x_grid_mm <= 1000)
 
-    axs[0].plot(x_grid_mm, yg, color=color, linewidth=graph_line_thickness)
+    axs[0].plot(x_grid_mm[mask], yg[mask], color=color, linewidth=graph_line_thickness)
     axs[0].set_ylabel("Position (mm)")
     #axs[0].set_title("1) Raw (resampled) centerline: yg")
     axs[0].set_ylim(*y_lim)
     axs[0].set_xlabel("Tow length (mm)")
     axs[0].set_xlim(X_START_MM, X_END_MM)
 
-    axs[1].plot(x_grid_mm, yd, color=color, linewidth=graph_line_thickness)
+    axs[1].plot(x_grid_mm[mask], yd[mask], color=color, linewidth=graph_line_thickness)
     axs[1].set_ylabel("Position (mm)")
     #axs[1].set_title("2) Detrended (D1P0W0): linear_detrend(yg, x[m])")
     axs[1].set_ylim(*y_lim)
     axs[1].set_xlabel("Tow length (mm)")
     axs[1].set_xlim(X_START_MM, X_END_MM)
 
-    axs[2].plot(x_grid_mm, yw, color=color, linewidth=graph_line_thickness)
+    axs[2].plot(x_grid_mm[mask], yw[mask], color=color, linewidth=graph_line_thickness)
     axs[2].set_ylabel("Position (mm)")
     #axs[2].set_title(f"3) Tukey window applied (D0P0W1): yg * tukey(alpha={TUKEY_ALPHA})")
     axs[2].set_ylim(*y_lim)
@@ -237,8 +239,6 @@ def plot_spatial_triptych(x_grid_mm, yg, yd, yw, title, color, outpath_pdf):
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
         ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
-        ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))                        # Format ticks with one decimal place (pad zeros)
-        ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         for spine in ax.spines.values():
             spine.set_linewidth(graph_box_thickness)                                    # black box around figure
             spine.set_edgecolor(color_borders)
