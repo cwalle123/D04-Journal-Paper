@@ -1213,7 +1213,7 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
 
 
     # --- Axes and grid ---
-    ax.set_xlabel("Tow Length (mm)")
+    ax.set_xlabel("Tow length (mm)")
     ax.set_ylabel("Position (mm)")
     ax.grid(False)  # This removes the horizontal dashed lines
     ax.xaxis.set_ticks_position('both')
@@ -1232,9 +1232,9 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
 """Run this file"""
 
 def main():
-    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
-    LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
-                                proposal_type="RWM", plot_histogram=True, plot_path=True)
+    #LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT")
+    #LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params,
+    #                            proposal_type="RWM", plot_histogram=True, plot_path=True)
     #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM", plot=True)
     #plot_animated_walk_hist("CAM", 100)
@@ -1254,8 +1254,8 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-    #                          error_areas=True, error_bars=False, save_PDF=True)
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+                              error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(save_PDF=True)
     #find_RW_statistics(n_tows=1000)

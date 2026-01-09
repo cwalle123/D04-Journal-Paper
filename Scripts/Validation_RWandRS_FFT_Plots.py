@@ -302,6 +302,7 @@ def run_fft_compare(
         ax.set_ylabel("Amplitude (mm)")
         ax.grid(False)
         ax.set_xlim(0, 50)
+        ax.set_ylim(0, 0.15)
 
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
@@ -446,7 +447,7 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=False
+        save_PDF=True
     )
 
     # Batch metrics CSV (Tow 2..30) + AVG row

@@ -22,9 +22,9 @@ from Data_ALL_traverse import traverse_tow_constructor
 # Settings / config
 
 # Processing toggles
-USE_DETREND      = False
-USE_TUKEY_WINDOW = False
-USE_PADDING      = False
+USE_DETREND      = True
+USE_TUKEY_WINDOW = True
+USE_PADDING      = True
 
 TUKEY_ALPHA = 0.05
 PAD_FACTOR  = 4

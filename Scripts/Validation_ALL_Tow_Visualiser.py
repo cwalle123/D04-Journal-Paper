@@ -358,7 +358,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
     ax.plot(x_RW_right, y_RW_right, "-", color=color_RW, linewidth=graph_line_thickness)
 
-    ax.set_xlabel("Tow Length (mm)")
+    ax.set_xlabel("Tow length (mm)")
     ax.set_ylabel("Position (mm)")
 
     ax.xaxis.set_ticks_position('both')
@@ -1049,7 +1049,7 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     # ============================================================
     # Bottom labels
     # ============================================================
-    axs[1].set_xlabel("Gap Length (mm)")
+    axs[1].set_xlabel("Gap length (mm)")
     axs[1].set_ylabel("Frequency")
 
     # ============================================================
