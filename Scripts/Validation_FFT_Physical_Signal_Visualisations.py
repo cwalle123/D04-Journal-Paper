@@ -35,6 +35,8 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal.windows import tukey
+import matplotlib as mpl
+from matplotlib.ticker import FormatStrFormatter
 
 ##############################################################################################################
 # Path setup (match your pattern)
@@ -55,10 +57,12 @@ from Model_ALL_RandomSampling import generate_RS_multitow
 
 # Optional styling constants (fallback if not available)
 try:
-    from constants import (
-        font_TNR, font_label, font_axis_ticks, font_legend,
-        color_exp, color_RS, color_RW,
-    )
+    from constants import (tow_width_specified, font_label, font_axis_ticks, figure_width, 
+                        color_exp, color_RS, color_RW, font_TNR, tick_length, tick_width, graph_box_thickness, font_legend,
+                        legend_box_thickness, color_borders, color_annotations, color_PDF_fits, transparency,
+                        legend_space, annotation_thickness, annotation_stripe_height, legend_line_thickness, graph_line_thickness,
+                        color_ideal_gap, transparency, left_margin, right_margin, top_margin, bottom_margin, 
+                        legend_drop, legend_margin, inter_axes_gap, unit_box_height)
 except Exception:
     font_TNR = "Times New Roman"
     font_label = 12
@@ -151,13 +155,19 @@ def extract_experimental_centerline(tow, normalize=True):
 # Plotting + preprocessing
 
 def setup_matplotlib():
-    plt.rcParams["font.family"] = "serif"
-    plt.rcParams["font.serif"] = [font_TNR]
-    plt.rcParams["mathtext.fontset"] = "stix"
-    plt.rcParams["axes.labelsize"] = font_label
-    plt.rcParams["xtick.labelsize"] = font_axis_ticks
-    plt.rcParams["ytick.labelsize"] = font_axis_ticks
-    plt.rcParams["legend.fontsize"] = font_legend
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = [font_TNR]
+    mpl.rcParams['mathtext.fontset'] = 'stix'
+    mpl.rcParams['xtick.labelsize'] = font_axis_ticks
+    mpl.rcParams['ytick.labelsize'] = font_axis_ticks
+    mpl.rcParams['axes.labelsize'] = font_label
+    mpl.rcParams['legend.fontsize'] = font_legend
+    mpl.rcParams['xtick.major.width'] = tick_width
+    mpl.rcParams['ytick.major.width'] = tick_width
+    mpl.rcParams['xtick.major.size'] = tick_length
+    mpl.rcParams['ytick.major.size'] = tick_length
+    mpl.rcParams['xtick.direction'] = 'in'
+    mpl.rcParams['ytick.direction'] = 'in'
 
 def treated_signals_on_grid(x_src_mm, y_src_mm, x_grid_mm):
     """
@@ -168,7 +178,7 @@ def treated_signals_on_grid(x_src_mm, y_src_mm, x_grid_mm):
     """
     yg = interp_to_grid(x_src_mm, y_src_mm, x_grid_mm)   # raw resampled
     yd = linear_detrend(yg, x_grid_mm * 1e-3)            # exact same detrend (x in meters)
-    w  = tukey(len(yg), alpha=TUKEY_ALPHA)
+    w  = tukey(len(yd), alpha=TUKEY_ALPHA)
     yw = yg * w                                          # physical window effect
     return yg, yd, yw
 
@@ -182,30 +192,57 @@ def plot_spatial_triptych(x_grid_mm, yg, yd, yw, title, color, outpath_pdf):
     pad = 0.05 * (y_max - y_min) if y_max > y_min else 1.0
     y_lim = (y_min - pad, y_max + pad)
 
-    fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(10, 8), sharex=True)
-    fig.suptitle(title, y=0.98)
+    axes_units_per_box = 1
+    n_boxes = 3
+    total_axes_units = n_boxes * axes_units_per_box
+    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                     + top_margin + bottom_margin + legend_margin)
+    fig = plt.figure(figsize=(figure_width, figure_height))
+    axes_left = left_margin / figure_width
+    axes_width = 1 - (left_margin + right_margin) / figure_width
+    axes_height = unit_box_height / figure_height
+    axs = []
+    current_top = 1 - top_margin / figure_height
+    for i in range(n_boxes):
+        bottom = (current_top - axes_height)
+        ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
+        axs.append(ax)
+        current_top = bottom - inter_axes_gap / figure_height
 
-    axes[0].plot(x_grid_mm, yg, color=color, linewidth=1.2)
-    axes[0].set_ylabel("y (mm)")
-    axes[0].set_title("1) Raw (resampled) centerline: yg")
-    axes[0].set_ylim(*y_lim)
+    axs[0].plot(x_grid_mm, yg, color=color, linewidth=graph_line_thickness)
+    axs[0].set_ylabel("Position (mm)")
+    #axs[0].set_title("1) Raw (resampled) centerline: yg")
+    axs[0].set_ylim(*y_lim)
+    axs[0].set_xlabel("Tow length (mm)")
+    axs[0].set_xlim(X_START_MM, X_END_MM)
 
-    axes[1].plot(x_grid_mm, yd, color=color, linewidth=1.2)
-    axes[1].set_ylabel("y (mm)")
-    axes[1].set_title("2) Detrended (D1P0W0): linear_detrend(yg, x[m])")
-    axes[1].set_ylim(*y_lim)
+    axs[1].plot(x_grid_mm, yd, color=color, linewidth=graph_line_thickness)
+    axs[1].set_ylabel("Position (mm)")
+    #axs[1].set_title("2) Detrended (D1P0W0): linear_detrend(yg, x[m])")
+    axs[1].set_ylim(*y_lim)
+    axs[1].set_xlabel("Tow length (mm)")
+    axs[1].set_xlim(X_START_MM, X_END_MM)
 
-    axes[2].plot(x_grid_mm, yw, color=color, linewidth=1.2)
-    axes[2].set_ylabel("y (mm)")
-    axes[2].set_title(f"3) Tukey window applied (D0P0W1): yg * tukey(alpha={TUKEY_ALPHA})")
-    axes[2].set_ylim(*y_lim)
-    axes[2].set_xlabel("x (mm)")
-    axes[2].set_xlim(X_START_MM, X_END_MM)
+    axs[2].plot(x_grid_mm, yw, color=color, linewidth=graph_line_thickness)
+    axs[2].set_ylabel("Position (mm)")
+    #axs[2].set_title(f"3) Tukey window applied (D0P0W1): yg * tukey(alpha={TUKEY_ALPHA})")
+    axs[2].set_ylim(*y_lim)
+    axs[2].set_xlabel("Tow length (mm)")
+    axs[2].set_xlim(X_START_MM, X_END_MM)
 
-    for ax in axes:
+    for ax in axs:
         ax.grid(False)
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    for i, ax in enumerate(axs):
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
+        ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))                        # Format ticks with one decimal place (pad zeros)
+        ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+        for spine in ax.spines.values():
+            spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+            spine.set_edgecolor(color_borders)
+
     fig.savefig(outpath_pdf, format="pdf")
     return fig
 
