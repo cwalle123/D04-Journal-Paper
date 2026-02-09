@@ -695,6 +695,7 @@ def analyze_tow_spacing_effect(
     # -------- Compute intersection --------
     gap_arr = np.array(results_df["Average Gap (%)"])
     overlap_arr = np.array(results_df["Average Overlap (%)"])
+    gap_plus_overlap = gap_arr + overlap_arr
     spacing_arr = np.array(results_df["Tow Spacing (mm)"])
     diff = gap_arr - overlap_arr
 
@@ -753,6 +754,7 @@ def analyze_tow_spacing_effect(
     # Lines
     ax.plot(spacing_arr, gap_arr, color=color_gap, label="Gap", linewidth=graph_line_thickness)
     ax.plot(spacing_arr, overlap_arr, color=color_overlap, label="Overlap", linewidth=graph_line_thickness)
+    ax.plot(spacing_arr, gap_plus_overlap, color='black', label="Gap + Overlap", linewidth=graph_line_thickness)
 
     # ----- Error Display Logic -----
     # ----- Error areas (shaded regions) -----
@@ -799,7 +801,17 @@ def analyze_tow_spacing_effect(
     
     # Axis limits (original)
     ax.set_xlim(5, 7.5)
-    ax.set_ylim(0, 5)
+    ax.set_ylim(0, 8)
+
+    ax.axvline(6.35, color='grey', linestyle=':', linewidth=annotation_thickness)
+
+    ax.annotate("Nominal tow width",
+            xy=(6.35, 5.5),             # point on the line to point to
+            xytext=(5.88, 7.2),          # where the text should appear
+            color='grey',
+            fontsize=font_label-2,
+            ha='left',                   # horizontal alignment of text
+            va='bottom')                 # vertical alignment of text
 
     # Formatting
     ax.xaxis.set_ticks_position('both')
