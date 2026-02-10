@@ -32,7 +32,7 @@ from constants import (font_label, font_axis_ticks, figure_width, color_exp, col
 # ---------------------------------------------------------------------
 # Simulation configuration
 # ---------------------------------------------------------------------
-N_RUNS = 2                 # Number of simulations per scenario (for averaging)
+N_RUNS = 100                # Number of simulations per scenario (for averaging)
 NUM_TOWS = 31               # Number of parallel tows across the lane
 NOMINAL_WIDTH_MM = 6.35     # Nominal tow width [mm]
 PROPOSAL_TYPE = "RWM"       # Proposal type for random walk sampling
@@ -236,11 +236,20 @@ def run_experiment(n_runs=100, num_tows=6):
     summary = {}
     for label, _ in scenarios:
         v = results[label]
+
         gap_avg = np.mean(v["gap"]) if v["gap"] else 0.0
         ovl_avg = np.mean(v["ovl"]) if v["ovl"] else 0.0
+
+        # NEW — standard deviation across runs (variability of outcomes)
+        gap_std = np.std(v["gap"], ddof=1) if len(v["gap"]) > 1 else 0.0
+        ovl_std = np.std(v["ovl"], ddof=1) if len(v["ovl"]) > 1 else 0.0
+
         shift_avg = np.mean(v["shift"]) if v["shift"] else SCENARIO_SHIFT_MM[None]
         shift_std = 0.0  # constant per run
-        summary[label] = (gap_avg, ovl_avg, shift_avg, shift_std)
+
+        # store std for plotting (CSV remains untouched)
+        summary[label] = (gap_avg, ovl_avg, shift_avg, shift_std, gap_std, ovl_std)
+
     return scenarios, summary
 
 # ---------------------------------------------------------------------
@@ -250,6 +259,11 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
     labels = [s[0] for s in scenarios]
     gap_means = [summary[l][0] for l in labels]
     ovl_means = [summary[l][1] for l in labels]
+    
+    #standard deviation error bars
+    gap_err = [summary[l][4] for l in labels]
+    ovl_err = [summary[l][5] for l in labels]
+
     x = np.arange(len(labels))
     width = 0.30  # bar width
 
@@ -329,11 +343,37 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
             )
     # ------------------------------------------------------------
 
+    # Error bar styling (I-shaped, color-matched & lighter)
+    err_kw_gap = dict(
+        ecolor="#b7cff8",  # lighter Gap color
+        elinewidth=graph_line_thickness,
+        capthick=graph_line_thickness,
+        linewidth=graph_line_thickness,
+        zorder=3
+    )
+
+    err_kw_ovl = dict(
+        ecolor="#e7aead",  # lighter Overlap color
+        elinewidth=graph_line_thickness,
+        capthick=graph_line_thickness,
+        linewidth=graph_line_thickness,
+        zorder=3
+    )
+
+    cap = 4
+
     # Bars (give them higher zorder so they’re in front of lines)
-    ax.bar(x - width/2, gap_means, width,
-           label="Gap", color=color_gap, zorder=2)
-    ax.bar(x + width/2, ovl_means, width,
-           label="Overlap", color=color_overlap, zorder=2)
+    ax.bar(
+        x - width/2, gap_means, width,
+        yerr=gap_err, capsize=cap, error_kw=err_kw_gap,
+        label="Gap", color=color_gap, zorder=2
+    )
+
+    ax.bar(
+        x + width/2, ovl_means, width,
+        yerr=ovl_err, capsize=cap, error_kw=err_kw_ovl,
+        label="Overlap", color=color_overlap, zorder=2
+)
 
     ax.set_ylabel("Defect area %")
     wrapped = _wrap_labels(labels, width=18)
@@ -373,7 +413,7 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
     
     if save_PDF == True:
-        fig.savefig("rw_defect_barchart.pdf", bbox_inches=None, format="pdf")
+        fig.savefig(save_path, bbox_inches=None, format="pdf")
 
     plt.show()
 
