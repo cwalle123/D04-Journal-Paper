@@ -354,9 +354,9 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     ax.plot(x_RS_right, y_RS_right, "-", color=color_RS, linewidth=graph_line_thickness)
 
     # Random Walk tow
-    ax.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW, linewidth=graph_line_thickness)
-    ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
-    ax.plot(x_RW_right, y_RW_right, "-", color=color_RW, linewidth=graph_line_thickness)
+    #ax.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW, linewidth=graph_line_thickness)
+    #ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
+    #ax.plot(x_RW_right, y_RW_right, "-", color=color_RW, linewidth=graph_line_thickness)
 
     ax.set_xlabel("Tow length (mm)")
     ax.set_ylabel("Position (mm)")
@@ -1315,7 +1315,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
+    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
     #compare_real_vs_RW_vs_RS_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
@@ -1326,7 +1326,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    #compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
+    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
 
 if __name__ == "__main__":
     main()

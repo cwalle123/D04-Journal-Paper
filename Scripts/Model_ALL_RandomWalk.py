@@ -1184,7 +1184,7 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
 
     # Establish correct geometry
     legend_margin = 0                   # Remove this line when adding a legend below the figure
-    axes_units_per_box = 3
+    axes_units_per_box = 1.8            # For paper set to axes_units_per_box = 3
     n_boxes = 1
     total_axes_units = n_boxes * axes_units_per_box
     figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
@@ -1206,8 +1206,10 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
         x = tow_df["x_mm"]
         top_edge = tow_df["top_edge"]
         bottom_edge = tow_df["bottom_edge"]
+        #center = tow_df["centerline"] # For paper remove this line
         ax.plot(x, top_edge, color=color, lw=0)
         ax.plot(x, bottom_edge, color=color, lw=0)
+        #ax.hlines(y=center[0], xmin=x.min(), xmax=x.max(), color="black", lw=0.8, ls="dashed") # For paper remove this line
         ax.fill_between(x, bottom_edge, top_edge, color=color, alpha=0.8, label=f"Tow {i+1}" if i == 0 else "", 
                         linewidth=0, edgecolor=None)
     
@@ -1269,6 +1271,7 @@ def main():
     analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
                               error_areas=True, error_bars=False, save_PDF=True)
     #test_LLS_A_B_condition()
+    #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
     #generate_virtual_lamina_figure(save_PDF=True)
     #find_RW_statistics(n_tows=1000)
 

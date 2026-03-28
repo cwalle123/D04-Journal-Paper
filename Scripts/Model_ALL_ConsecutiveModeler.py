@@ -31,9 +31,11 @@ from Model_ALL_RandomSampling import generate_RS_multitow
 ##############################################################################################################
 """Functions"""
 
-def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit: bool=False, show_data: bool=False):
+def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit: bool=False, show_data: bool=False, style: str="paper"):
     """This function creates the plot of Random Walk vs Experimental Data for each individual sensor.
     This is equivalent to plot 2 in the paper atm."""
+    if style not in ["paper", "presentation", "single_error"]:
+        raise ValueError("Invalid style. Choose from 'paper', 'presentation', or 'single_error'.")
 
     # getting the experimental data per sensor
     LT_exp, LT_exp_weights = get_data("LT", tows = list(np.arange(2, 32, 1)), format = "merged")
@@ -155,29 +157,14 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
     axes_units_per_box = 1
     n_boxes = 4
     total_axes_units = n_boxes * axes_units_per_box
-    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
-                     + top_margin + bottom_margin + legend_margin)
-    fig = plt.figure(figsize=(figure_width, figure_height))
-    axes_left = left_margin / figure_width
-    axes_width = 1 - (left_margin + right_margin) / figure_width
-    axes_height = unit_box_height / figure_height
-    axs = []
-    current_top = 1 - top_margin / figure_height
-    for i in range(n_boxes):
-        bottom = (current_top - axes_height)
-        ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
-        axs.append(ax)
-        current_top = bottom - inter_axes_gap / figure_height
-    
+
     x_labels = ["Error, robot position", "Error, tow lateral movement", 
                 "Error, tow width before compaction", "Error, tow width after compaction"]
-    for i, ax in enumerate(axs):
-        if i < n_boxes - 1:
-            ax.tick_params(labelbottom=True)
-            ax.set_xlabel(x_labels[i])
-        else:
-            ax.set_xlabel(x_labels[-1])
- 
+    im0 = image.imread('Figures/robotinacc.png')
+    im1 = image.imread('Figures/tapelatmvmt.png')
+    im2 = image.imread('Figures/tape width.png')
+    im3 = image.imread('Figures/tapecompaction.png')
+
     def annotate_mean_std(ax, data, sensor, stripe_height=annotation_stripe_height, lw=annotation_thickness, show_data=False):
         """
         Annotate `ax` with:
@@ -243,83 +230,182 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
                     color=color_annotations, linewidth=lw,
                     zorder=950, clip_on=False)
 
-    # --------PLotting----------
-    im0 = image.imread('Figures/robotinacc.png')
-    im1 = image.imread('Figures/tapelatmvmt.png')
-    im2 = image.imread('Figures/tape width.png')
-    im3 = image.imread('Figures/tapecompaction.png')
+    if style == "paper":
+        figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                        + top_margin + bottom_margin + legend_margin)
+        fig = plt.figure(figsize=(figure_width, figure_height))
+        axes_left = left_margin / figure_width
+        axes_width = 1 - (left_margin + right_margin) / figure_width
+        axes_height = unit_box_height / figure_height
+        axs = []
+        current_top = 1 - top_margin / figure_height
+        for i in range(n_boxes):
+            bottom = (current_top - axes_height)
+            ax = fig.add_axes([axes_left, bottom, axes_width, axes_height])
+            axs.append(ax)
+            current_top = bottom - inter_axes_gap / figure_height
+        
+        for i, ax in enumerate(axs):
+            if i < n_boxes - 1:
+                ax.tick_params(labelbottom=True)
+                ax.set_xlabel(x_labels[i])
+            else:
+                ax.set_xlabel(x_labels[-1])
 
-    # LT plot
-    axs[0].imshow(im0, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
-    axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
-    axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
-    axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[0], LT_exp, sensor="LT", show_data=show_data)
-    axs[0].set_xlabel("Error, robot position")
-    axs[0].set_ylabel("Density")
-    axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
-    axs[0].xaxis.set_tick_params(labelbottom=True)
+        # LT plot
+        axs[0].imshow(im0, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
+        axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
+        axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
+        axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, linewidth=annotation_thickness)
+        annotate_mean_std(axs[0], LT_exp, sensor="LT", show_data=show_data)
+        axs[0].set_xlabel("Error, robot position")
+        axs[0].set_ylabel("Density")
+        axs[0].set_xticks(np.linspace(-1.2, 1.2, 9))
+        axs[0].xaxis.set_tick_params(labelbottom=True)
 
-    # CAM plot
-    axs[1].imshow(im1, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
-    axs[1].hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled")   # pls keep at 245, this avoids over/under-binning
-    axs[1].hist(CAM_walk_data, color=color_RW, bins=160, density=True, alpha=transparency, histtype="stepfilled",)
-    axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[1], CAM_exp, sensor="CAM", show_data=show_data)
-    axs[1].set_xlabel("Error, tow lateral movement")
-    axs[1].set_ylabel("Density")
-    axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
-    axs[1].xaxis.set_tick_params(labelbottom=True)
+        # CAM plot
+        axs[1].imshow(im1, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
+        axs[1].hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled")   # pls keep at 245, this avoids over/under-binning
+        axs[1].hist(CAM_walk_data, color=color_RW, bins=160, density=True, alpha=transparency, histtype="stepfilled",)
+        axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
+        annotate_mean_std(axs[1], CAM_exp, sensor="CAM", show_data=show_data)
+        axs[1].set_xlabel("Error, tow lateral movement")
+        axs[1].set_ylabel("Density")
+        axs[1].set_xticks(np.linspace(-1.2, 1.2, 9))
+        axs[1].xaxis.set_tick_params(labelbottom=True)
 
-    # LLS_A 
-    axs[2].imshow(im2, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
-    axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
-    axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
-    axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[2], LLSA_exp, sensor="LLS_A", show_data=show_data)
-    axs[2].set_xlabel("Error, tow width before compaction")
-    axs[2].set_ylabel("Density")
-    axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
-    axs[2].xaxis.set_tick_params(labelbottom=True)
+        # LLS_A 
+        axs[2].imshow(im2, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
+        axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
+        axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+        axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits, linewidth=annotation_thickness)
+        annotate_mean_std(axs[2], LLSA_exp, sensor="LLS_A", show_data=show_data)
+        axs[2].set_xlabel("Error, tow width before compaction")
+        axs[2].set_ylabel("Density")
+        axs[2].set_xticks(np.linspace(-1.2, 1.2, 9))
+        axs[2].xaxis.set_tick_params(labelbottom=True)
 
-    # LLS_B plot
-    axs[3].imshow(im3, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
-    axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
-    axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
-    axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits, linewidth=annotation_thickness)
-    annotate_mean_std(axs[3], LLSB_exp, sensor="LLS_B", show_data=show_data)
-    axs[3].set_xlabel("Error, tow width after compaction")
-    axs[3].set_ylabel("Density")
-    axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
-    axs[3].xaxis.set_tick_params(labelbottom=True)
+        # LLS_B plot
+        axs[3].imshow(im3, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
+        axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
+        axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
+        axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits, linewidth=annotation_thickness)
+        annotate_mean_std(axs[3], LLSB_exp, sensor="LLS_B", show_data=show_data)
+        axs[3].set_xlabel("Error, tow width after compaction")
+        axs[3].set_ylabel("Density")
+        axs[3].set_xticks(np.linspace(-1.2, 1.2, 9))
+        axs[3].xaxis.set_tick_params(labelbottom=True)
 
-    for i, ax in enumerate(axs):
-        ax.xaxis.set_ticks_position('both')
-        ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
-        ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))                        # Format ticks with one decimal place (pad zeros)
-        ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-        for spine in ax.spines.values():
-            spine.set_linewidth(graph_box_thickness)                                    # black box around figure
-            spine.set_edgecolor(color_borders)
+        for i, ax in enumerate(axs):
+            ax.xaxis.set_ticks_position('both')
+            ax.yaxis.set_ticks_position('both')
+            ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
+            ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))                        # Format ticks with one decimal place (pad zeros)
+            ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+            for spine in ax.spines.values():
+                spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+                spine.set_edgecolor(color_borders)
+        
+        legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                                axes_width, legend_margin/figure_height], frameon=False)
+        legend_ax.axis("off")
+        handles, labels = axs[0].get_legend_handles_labels()
 
-    legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
-                              axes_width, legend_margin/figure_height], frameon=False)
-    legend_ax.axis("off")
-    handles, labels = axs[0].get_legend_handles_labels()
+        legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+        fig.canvas.draw()
+        legend_bbox = legend.get_window_extent()
+        legend_height_fig = legend_bbox.height / fig.bbox.height
+        desired_gap = legend_drop / figure_height
+        legend_ax.set_position([axes_left, bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
+        for legobj in legend.legend_handles:
+            legobj.set_linewidth(legend_line_thickness)
+        frame = legend.get_frame()
+        frame.set_edgecolor(color_borders)
+        frame.set_linewidth(legend_box_thickness)
+        frame.set_facecolor('white')
+    
+    elif style == "presentation":
+        fig = plt.figure(figsize=(5.5, 3.5), layout="compressed")
+        spec = fig.add_gridspec(ncols=2, nrows=2)
+        ax0 = fig.add_subplot(spec[0, 0])
+        ax1 = fig.add_subplot(spec[1, 0])
+        ax2 = fig.add_subplot(spec[0, 1])
+        ax3 = fig.add_subplot(spec[1, 1])
+        ax0.tick_params(labelbottom=True)
+        ax1.tick_params(labelbottom=True)
+        ax0.set_xlabel(x_labels[0])
+        ax1.set_xlabel(x_labels[1])
+        ax2.set_xlabel(x_labels[2])
+        ax3.set_xlabel(x_labels[3])
+        
+        # LT plot
+        ax0.imshow(im0, aspect='auto', extent=(0.775, 0.967, 0.625, 0.925), transform=ax0.transAxes)
+        #ax0.hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
+        ax0.hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
+        ax0.plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, linewidth=annotation_thickness)
+        annotate_mean_std(ax0, LT_exp, sensor="LT", show_data=show_data)
+        ax0.vlines(0, *ax0.get_ylim(), color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
+        ax0.set_xlabel("Error, robot position")
+        ax0.set_ylabel("Density")
+        ax0.set_xticks(np.linspace(-1.2, 1.2, 9))
+        ax0.xaxis.set_tick_params(labelbottom=True)
 
-    legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
-    fig.canvas.draw()
-    legend_bbox = legend.get_window_extent()
-    legend_height_fig = legend_bbox.height / fig.bbox.height
-    desired_gap = legend_drop / figure_height
-    legend_ax.set_position([axes_left, bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
-    for legobj in legend.legend_handles:
-        legobj.set_linewidth(legend_line_thickness)
-    frame = legend.get_frame()
-    frame.set_edgecolor(color_borders)
-    frame.set_linewidth(legend_box_thickness)
-    frame.set_facecolor('white')
+        # CAM plot
+        ax1.imshow(im1, aspect='auto', extent=(0.775, 0.967, 0.625, 0.925), transform=ax1.transAxes)
+        #ax1.hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled")   # pls keep at 245, this avoids over/under-binning
+        ax1.hist(CAM_walk_data, color=color_RW, bins=245, density=True, alpha=transparency, histtype="stepfilled")
+        ax1.plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
+        annotate_mean_std(ax1, CAM_exp, sensor="CAM", show_data=show_data)
+        ax1.vlines(0, *ax1.get_ylim(), color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
+        ax1.set_xlabel("Error, tow lateral movement")
+        ax1.set_ylabel("Density")
+        ax1.set_xticks(np.linspace(-1.2, 1.2, 9))
+        ax1.xaxis.set_tick_params(labelbottom=True)
+
+        # LLS_A 
+        ax2.imshow(im2, aspect='auto', extent=(0.775, 0.967, 0.625, 0.925), transform=ax2.transAxes)
+        #ax2.hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
+        ax2.hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled")
+        ax2.plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits, linewidth=annotation_thickness)
+        annotate_mean_std(ax2, LLSA_exp, sensor="LLS_A", show_data=show_data)
+        ax2.vlines(0, *ax2.get_ylim(), color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
+        ax2.set_xlabel("Error, tow width before compaction")
+        ax2.set_ylabel("Density")
+        ax2.set_xticks(np.linspace(-1.2, 1.2, 9))
+        ax2.xaxis.set_tick_params(labelbottom=True)
+
+        # LLS_B plot
+        ax3.imshow(im3, aspect='auto', extent=(0.775, 0.967, 0.625, 0.925), transform=ax3.transAxes)
+        #ax3.hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
+        ax3.hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled")
+        ax3.plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits, linewidth=annotation_thickness)
+        annotate_mean_std(ax3, LLSB_exp, sensor="LLS_B", show_data=show_data)
+        ax3.vlines(0, *ax3.get_ylim(), color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
+        ax3.set_xlabel("Error, tow width after compaction")
+        ax3.set_ylabel("Density")
+        ax3.set_xticks(np.linspace(-1.2, 1.2, 9))
+        ax3.xaxis.set_tick_params(labelbottom=True)
+
+        for ax in [ax0, ax1, ax2, ax3]:
+            ax.xaxis.set_ticks_position('both')
+            ax.yaxis.set_ticks_position('both')
+            ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
+            ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))                        # Format ticks with one decimal place (pad zeros)
+            ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+            for spine in ax.spines.values():
+                spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+                spine.set_edgecolor(color_borders)
+    
+    elif style == "single_error":
+        fig, ax = plt.subplots(figsize=(figure_width, figure_width * 0.5))
+        ax.imshow(im1, aspect='auto', extent=(0.825, 0.967, 0.675, 0.925), transform=ax.transAxes)
+        ax.hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
+        #ax.hist(CAM_walk_data, color=color_RW, bins=245, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
+        ax.plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
+        ax.set_xlabel("Error, tow lateral movement")
+        ax.set_ylabel("Density")
+        ax.set_xticks(np.linspace(-1.2, 1.2, 9))
+        ax.xaxis.set_tick_params(labelbottom=True)
 
     if save_PDF == True:
         plt.savefig("source wise validation_31 tows with legend.pdf", format="pdf", bbox_inches=None, dpi=600)
@@ -1165,8 +1251,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True, use_RW_fit=False, show_data=True)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
+    #plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True, use_RW_fit=False, show_data=True, style="single_error")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

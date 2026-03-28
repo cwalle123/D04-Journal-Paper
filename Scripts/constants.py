@@ -39,7 +39,7 @@ frame_width_traverse = 12.5 #mm
 ##############################################################################################################
 """Figure Formatting"""
 
-font_TNR = "Times New Roman"
+font_TNR = "Arial" #"Times New Roman"
 font_label = 8         #points
 font_axis_ticks = 6    #points
 font_legend = 8        #points
