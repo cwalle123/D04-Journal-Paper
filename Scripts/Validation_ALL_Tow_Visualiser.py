@@ -249,7 +249,7 @@ def plot_real_vs_RW_tow(tow: int, tow_length_mm=1000, scaled: bool = False, plot
 
     return real_data, RW_data
 
-def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: bool = False, offset: float=y_increment_programmed, save_PDF=False):
+def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, style: str = "paper", force_steps: bool = False, offset: float=y_increment_programmed, save_PDF=False, save_SVG=False):
     """
     Make a figure with tows below each other obtained from the 4 different methods for visual comparison.
     """
@@ -325,68 +325,138 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, force_steps: 
     mpl.rcParams['xtick.direction'] = 'in'
     mpl.rcParams['ytick.direction'] = 'in'
 
-    # Establish correct geometry
-    axes_units_per_box = 2
-    n_boxes = 1
-    total_axes_units = n_boxes * axes_units_per_box
-    figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
-                     + top_margin + bottom_margin + legend_margin)
-    fig = plt.figure(figsize=(figure_width, figure_height))
-    axes_left = left_margin / figure_width
-    axes_width = 1 - (left_margin + right_margin) / figure_width
-    axes_bottom = (bottom_margin + legend_margin) / figure_height
-    axes_height = (axes_units_per_box * unit_box_height) / figure_height
-    ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
+    if style == "paper":
+        # Establish correct geometry
+        axes_units_per_box = 2
+        n_boxes = 1
+        total_axes_units = n_boxes * axes_units_per_box
+        figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                        + top_margin + bottom_margin + legend_margin)
+        fig = plt.figure(figsize=(figure_width, figure_height))
+        axes_left = left_margin / figure_width
+        axes_width = 1 - (left_margin + right_margin) / figure_width
+        axes_bottom = (bottom_margin + legend_margin) / figure_height
+        axes_height = (axes_units_per_box * unit_box_height) / figure_height
+        ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
 
-    # Real tow
-    ax.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp, linewidth=graph_line_thickness)
-    ax.plot(x_real_left, y_real_left, "-", color=color_exp, linewidth=graph_line_thickness, label="Experiment")
-    ax.plot(x_real_right, y_real_right, "-", color=color_exp, linewidth=graph_line_thickness)
+        # Real tow
+        ax.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp, linewidth=graph_line_thickness)
+        ax.plot(x_real_left, y_real_left, "-", color=color_exp, linewidth=graph_line_thickness, label="Experiment")
+        ax.plot(x_real_right, y_real_right, "-", color=color_exp, linewidth=graph_line_thickness)
 
-    # Simulated tow
-    #plt.plot(x_D04_centerline, y_D04_centerline, "--", color="orange", label="D04 centerline")
-    #plt.plot(x_D04_left, y_D04_left, "-", color="orange", label="D04 edges")
-    #plt.plot(x_D04_right, y_D04_right, "-", color="orange")
+        # Simulated tow
+        #plt.plot(x_D04_centerline, y_D04_centerline, "--", color="orange", label="D04 centerline")
+        #plt.plot(x_D04_left, y_D04_left, "-", color="orange", label="D04 edges")
+        #plt.plot(x_D04_right, y_D04_right, "-", color="orange")
 
-    # Random Sampling tow
-    ax.plot(x_RS_centerline, y_RS_centerline, "--", color=color_RS, linewidth=graph_line_thickness)
-    ax.plot(x_RS_left, y_RS_left, "-", color=color_RS, linewidth=graph_line_thickness, label="MC simulation")
-    ax.plot(x_RS_right, y_RS_right, "-", color=color_RS, linewidth=graph_line_thickness)
+        # Random Sampling tow
+        ax.plot(x_RS_centerline, y_RS_centerline, "--", color=color_RS, linewidth=graph_line_thickness)
+        ax.plot(x_RS_left, y_RS_left, "-", color=color_RS, linewidth=graph_line_thickness, label="MC simulation")
+        ax.plot(x_RS_right, y_RS_right, "-", color=color_RS, linewidth=graph_line_thickness)
 
-    # Random Walk tow
-    #ax.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW, linewidth=graph_line_thickness)
-    #ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
-    #ax.plot(x_RW_right, y_RW_right, "-", color=color_RW, linewidth=graph_line_thickness)
+        # Random Walk tow
+        ax.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW, linewidth=graph_line_thickness)
+        ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
+        ax.plot(x_RW_right, y_RW_right, "-", color=color_RW, linewidth=graph_line_thickness)
 
-    ax.set_xlabel("Tow length (mm)")
-    ax.set_ylabel("Position (mm)")
+        ax.set_xlabel("Tow length (mm)")
+        ax.set_ylabel("Position (mm)")
 
-    ax.xaxis.set_ticks_position('both')
-    ax.yaxis.set_ticks_position('both')
-    ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
-    for spine in ax.spines.values():
-        spine.set_linewidth(graph_box_thickness)                                    # black box around figure
-        spine.set_edgecolor(color_borders)
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
+        for spine in ax.spines.values():
+            spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+            spine.set_edgecolor(color_borders)
 
-    legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
-                              axes_width, legend_margin/figure_height], frameon=False)
-    legend_ax.axis("off")
-    handles, labels = ax.get_legend_handles_labels()
-    legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
-    fig.canvas.draw()
-    legend_bbox = legend.get_window_extent()
-    legend_height_fig = legend_bbox.height / fig.bbox.height
-    desired_gap = legend_drop / figure_height
-    legend_ax.set_position([axes_left, axes_bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
-    for legobj in legend.legend_handles:
-        legobj.set_linewidth(legend_line_thickness)
-    frame = legend.get_frame()
-    frame.set_edgecolor(color_borders)
-    frame.set_linewidth(legend_box_thickness)
-    frame.set_facecolor('white')
+        legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                                axes_width, legend_margin/figure_height], frameon=False)
+        legend_ax.axis("off")
+        handles, labels = ax.get_legend_handles_labels()
+        legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+        fig.canvas.draw()
+        legend_bbox = legend.get_window_extent()
+        legend_height_fig = legend_bbox.height / fig.bbox.height
+        desired_gap = legend_drop / figure_height
+        legend_ax.set_position([axes_left, axes_bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
+        for legobj in legend.legend_handles:
+            legobj.set_linewidth(legend_line_thickness)
+        frame = legend.get_frame()
+        frame.set_edgecolor(color_borders)
+        frame.set_linewidth(legend_box_thickness)
+        frame.set_facecolor('white')
+    
+    elif style == "presentation":
+        n_tows = 2
+        tow_data_height = 1.0 # Fixed vertical data span per tow
+        tow_plot_height = 1.8 # Fixed physical height per tow (inches)
+        axes_height_in = n_tows * tow_plot_height
+
+        figure_height = (axes_height_in + top_margin + bottom_margin + legend_margin)
+
+        fig = plt.figure(figsize=(figure_width, figure_height))
+
+        axes_left = left_margin / figure_width
+        axes_width = 1 - (left_margin + right_margin) / figure_width
+        axes_bottom = (bottom_margin + legend_margin) / figure_height
+        axes_height = axes_height_in / figure_height
+
+        ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
+
+        # Set total y-range so scale stays identical
+        ax.set_ylim(0, n_tows * tow_data_height)
+
+        # Real tow
+        offset = 0
+        ax.plot(x_real_y_centerline, y_real_y_centerline + offset, "--", color=color_exp, linewidth=graph_line_thickness)
+        ax.plot(x_real_left, y_real_left + offset, "-", color=color_exp, linewidth=graph_line_thickness, label="Experiment")
+        ax.plot(x_real_right, y_real_right + offset, "-", color=color_exp, linewidth=graph_line_thickness)
+
+        # Random Sampling tow
+        offset = tow_data_height
+        ax.plot(x_RS_centerline, y_RS_centerline + offset, "--", color=color_RS, linewidth=graph_line_thickness)
+        ax.plot(x_RS_left, y_RS_left + offset, "-", color=color_RS, linewidth=graph_line_thickness, label="MC simulation")
+        ax.plot(x_RS_right, y_RS_right + offset, "-", color=color_RS, linewidth=graph_line_thickness)
+
+        # Random Walk tow
+        offset = 2 * tow_data_height
+        #ax.plot(x_RW_centerline, y_RW_centerline + offset, "--", color=color_RW, linewidth=graph_line_thickness)
+        #ax.plot(x_RW_left, y_RW_left + offset, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
+        #ax.plot(x_RW_right, y_RW_right + offset, "-", color=color_RW, linewidth=graph_line_thickness)
+
+        ax.set_xlabel("Tow length (mm)")
+        ax.set_ylabel("Position (mm)")
+
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
+        for spine in ax.spines.values():
+            spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+            spine.set_edgecolor(color_borders)
+
+        legend_ax = fig.add_axes([axes_left, (bottom_margin - legend_drop) / figure_height, 
+                                axes_width, legend_margin/figure_height], frameon=False)
+        legend_ax.axis("off")
+        handles, labels = ax.get_legend_handles_labels()
+        legend = legend_ax.legend(handles, labels, loc='center', ncol=1, fancybox=False) #create legend with black box
+        fig.canvas.draw()
+        legend_bbox = legend.get_window_extent()
+        legend_height_fig = legend_bbox.height / fig.bbox.height
+        desired_gap = legend_drop / figure_height
+        legend_ax.set_position([axes_left, axes_bottom - desired_gap - legend_height_fig, axes_width, legend_margin / figure_height])
+        for legobj in legend.legend_handles:
+            legobj.set_linewidth(legend_line_thickness)
+        frame = legend.get_frame()
+        frame.set_edgecolor(color_borders)
+        frame.set_linewidth(legend_box_thickness)
+        frame.set_facecolor('white')
     
     if save_PDF == True:
         plt.savefig("Tow comparison of 3 methods.pdf", format="pdf", bbox_inches=None)
+
+    if save_SVG == True:
+        plt.savefig("Tow comparison of 3 methods.svg", format="svg", bbox_inches=None)    
+
     plt.show()
 
 # Functions to compare tow values and model parameters
@@ -1315,7 +1385,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True)
+    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=False, save_SVG=True, style="presentation")
     #compare_real_vs_RW_vs_RS_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
@@ -1326,7 +1396,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
+    #compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
 
 if __name__ == "__main__":
     main()

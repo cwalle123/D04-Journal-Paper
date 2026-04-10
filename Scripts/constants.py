@@ -60,7 +60,7 @@ annotation_stripe_height = 0.04                 #points
 break_marker_thickness = 1                      #points
 tick_width = 0.5                                #points
 tick_length = 3                                 #points
-graph_box_thickness = 0.5                       #points
+graph_box_thickness = 0.25                      #points, for paper = 0.5, for presentation = 0.25
 legend_box_thickness = graph_box_thickness      #points, has to be the same as graph box thickness
 
 color_exp = (0, 0.4470, 0.7410)                 # AKA Experiment, blue

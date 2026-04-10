@@ -31,7 +31,7 @@ from Model_ALL_RandomSampling import generate_RS_multitow
 ##############################################################################################################
 """Functions"""
 
-def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit: bool=False, show_data: bool=False, style: str="paper"):
+def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, save_SVG: bool=False, use_RW_fit: bool=False, show_data: bool=False, style: str="paper"):
     """This function creates the plot of Random Walk vs Experimental Data for each individual sensor.
     This is equivalent to plot 2 in the paper atm."""
     if style not in ["paper", "presentation", "single_error"]:
@@ -325,8 +325,8 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
         frame.set_facecolor('white')
     
     elif style == "presentation":
-        fig = plt.figure(figsize=(5.5, 3.5), layout="compressed")
-        spec = fig.add_gridspec(ncols=2, nrows=2)
+        fig = plt.figure(figsize=(7.0, 3.5))
+        spec = fig.add_gridspec(ncols=2, nrows=2, wspace=0.3, hspace=0.45)
         ax0 = fig.add_subplot(spec[0, 0])
         ax1 = fig.add_subplot(spec[1, 0])
         ax2 = fig.add_subplot(spec[0, 1])
@@ -339,50 +339,58 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
         ax3.set_xlabel(x_labels[3])
         
         # LT plot
-        ax0.imshow(im0, aspect='auto', extent=(0.775, 0.967, 0.625, 0.925), transform=ax0.transAxes)
+        ax0.imshow(im0, aspect='auto', extent=(0.815, 0.967, 0.625, 0.925), transform=ax0.transAxes)
         #ax0.hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
         ax0.hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
         ax0.plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, linewidth=annotation_thickness)
         annotate_mean_std(ax0, LT_exp, sensor="LT", show_data=show_data)
         ax0.vlines(0, *ax0.get_ylim(), color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
-        ax0.set_xlabel("Error, robot position")
+        ax0.set_xlabel("Error, robot position (mm)")
         ax0.set_ylabel("Density")
+        ax0.set_xlim(-1.2, 1.2)
+        ax0.set_ylim(0, 7.6)  # Ensure y=0 is visible
         ax0.set_xticks(np.linspace(-1.2, 1.2, 9))
         ax0.xaxis.set_tick_params(labelbottom=True)
 
         # CAM plot
-        ax1.imshow(im1, aspect='auto', extent=(0.775, 0.967, 0.625, 0.925), transform=ax1.transAxes)
+        ax1.imshow(im1, aspect='auto', extent=(0.815, 0.967, 0.625, 0.925), transform=ax1.transAxes)
         #ax1.hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled")   # pls keep at 245, this avoids over/under-binning
         ax1.hist(CAM_walk_data, color=color_RW, bins=245, density=True, alpha=transparency, histtype="stepfilled")
         ax1.plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
         annotate_mean_std(ax1, CAM_exp, sensor="CAM", show_data=show_data)
         ax1.vlines(0, *ax1.get_ylim(), color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
-        ax1.set_xlabel("Error, tow lateral movement")
+        ax1.set_xlabel("Error, tow lateral movement (mm)")
         ax1.set_ylabel("Density")
+        ax1.set_xlim(-1.2, 1.2)
+        ax1.set_ylim(0, 2.6)
         ax1.set_xticks(np.linspace(-1.2, 1.2, 9))
         ax1.xaxis.set_tick_params(labelbottom=True)
 
         # LLS_A 
-        ax2.imshow(im2, aspect='auto', extent=(0.775, 0.967, 0.625, 0.925), transform=ax2.transAxes)
+        ax2.imshow(im2, aspect='auto', extent=(0.815, 0.967, 0.625, 0.925), transform=ax2.transAxes)
         #ax2.hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
         ax2.hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled")
         ax2.plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits, linewidth=annotation_thickness)
         annotate_mean_std(ax2, LLSA_exp, sensor="LLS_A", show_data=show_data)
         ax2.vlines(0, *ax2.get_ylim(), color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
-        ax2.set_xlabel("Error, tow width before compaction")
+        ax2.set_xlabel("Error, tow width before compaction (mm)")
         ax2.set_ylabel("Density")
+        ax2.set_xlim(-1.2, 1.2)
+        ax2.set_ylim(0, 6.4)
         ax2.set_xticks(np.linspace(-1.2, 1.2, 9))
         ax2.xaxis.set_tick_params(labelbottom=True)
 
         # LLS_B plot
-        ax3.imshow(im3, aspect='auto', extent=(0.775, 0.967, 0.625, 0.925), transform=ax3.transAxes)
+        ax3.imshow(im3, aspect='auto', extent=(0.815, 0.967, 0.625, 0.925), transform=ax3.transAxes)
         #ax3.hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
         ax3.hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled")
         ax3.plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits, linewidth=annotation_thickness)
         annotate_mean_std(ax3, LLSB_exp, sensor="LLS_B", show_data=show_data)
         ax3.vlines(0, *ax3.get_ylim(), color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
-        ax3.set_xlabel("Error, tow width after compaction")
+        ax3.set_xlabel("Error, tow width after compaction (mm)")
         ax3.set_ylabel("Density")
+        ax3.set_xlim(-1.2, 1.2)
+        ax3.set_ylim(0, 8.8)
         ax3.set_xticks(np.linspace(-1.2, 1.2, 9))
         ax3.xaxis.set_tick_params(labelbottom=True)
 
@@ -397,18 +405,21 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, use_RW_fit:
                 spine.set_edgecolor(color_borders)
     
     elif style == "single_error":
-        fig, ax = plt.subplots(figsize=(figure_width, figure_width * 0.5))
-        ax.imshow(im1, aspect='auto', extent=(0.825, 0.967, 0.675, 0.925), transform=ax.transAxes)
+        fig, ax = plt.subplots(figsize=(figure_width, figure_width * 0.55))
+        ax.imshow(im1, aspect='auto', extent=(0.815, 0.967, 0.675, 0.925), transform=ax.transAxes)
         ax.hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
         #ax.hist(CAM_walk_data, color=color_RW, bins=245, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
-        ax.plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
-        ax.set_xlabel("Error, tow lateral movement")
+        #ax.plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
+        ax.set_xlabel("Error, tow lateral movement (mm)")
         ax.set_ylabel("Density")
         ax.set_xticks(np.linspace(-1.2, 1.2, 9))
         ax.xaxis.set_tick_params(labelbottom=True)
 
     if save_PDF == True:
         plt.savefig("source wise validation_31 tows with legend.pdf", format="pdf", bbox_inches=None, dpi=600)
+    
+    if save_SVG == True:
+        plt.savefig("source wise validation_31 tows with legend.svg", format="svg", bbox_inches=None, dpi=600)
 
     plt.show()
 
@@ -963,7 +974,7 @@ def KDE_curves(tows_simulated: int):
     plt.tight_layout()
     plt.show()
 
-def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: bool=False):
+def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: bool=False, save_SVG: bool=False):
     """Generate 1 figure with 3 plots. 1: Experimental vs. D04. 2: Experimental vs. RW. 3: Experimental vs. Random Sampling.
        Plottype can be "single", "single no D04, "separate" or "separate no D04".
        Author: Martijn van der Voort"""
@@ -1153,6 +1164,9 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         if save_PDF == True:
             plt.savefig("KDE histograms of 2 algorithms.pdf", format="pdf", bbox_inches=None)
         
+        if save_SVG == True:
+            plt.savefig("KDE histograms of 2 algorithms.svg", format="svg", bbox_inches=None)
+        
         plt.show()
 
     if plottype == "separate":
@@ -1251,8 +1265,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     #KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=True)
-    #plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True, use_RW_fit=False, show_data=True, style="single_error")
+    #model_distribution_figures(29, plottype="single no D04", save_PDF=False, save_SVG=True)
+    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=False, save_SVG=True, use_RW_fit=False, show_data=True, style="presentation")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
