@@ -606,7 +606,8 @@ def analyze_tow_spacing_effect(
     error_bars: bool = True,    # show error bars
     minmax: bool = True,        # use min/max instead of std for error bars
     error_areas: bool = False,  # Fill error regions
-    save_PDF: bool = False):
+    save_PDF: bool = False,
+    save_SVG: bool = False):
 
     """
     Analyzes the effect of tow spacing on gap and overlap percentage.
@@ -842,6 +843,9 @@ def analyze_tow_spacing_effect(
     # Save PDF
     if save_PDF == True:
         fig.savefig("defect occurrence from varying values of programmed shift areas.pdf", format="pdf", bbox_inches=None)
+    
+    if save_SVG == True:
+        fig.savefig("defect occurrence from varying values of programmed shift areas.svg", format="svg", bbox_inches=None)
 
     plt.show()
 
@@ -1385,13 +1389,13 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-    #                          error_areas=True, error_bars=False, save_PDF=True)
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+                              error_areas=True, error_bars=False, save_PDF=False, save_SVG=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
     #generate_virtual_lamina_figure(save_PDF=False)
     #generate_virtual_lamina_figure(save_PDF=False, style="presentation")
-    generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=False, style="presentation_3_tows")
+    #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=False, style="presentation_3_tows")
     #find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":

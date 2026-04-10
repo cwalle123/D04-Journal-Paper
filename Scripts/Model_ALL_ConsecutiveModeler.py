@@ -409,7 +409,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, save_SVG: b
         ax.imshow(im1, aspect='auto', extent=(0.815, 0.967, 0.675, 0.925), transform=ax.transAxes)
         ax.hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
         #ax.hist(CAM_walk_data, color=color_RW, bins=245, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
-        #ax.plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
+        ax.plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
         ax.set_xlabel("Error, tow lateral movement (mm)")
         ax.set_ylabel("Density")
         ax.set_xticks(np.linspace(-1.2, 1.2, 9))
@@ -1266,7 +1266,7 @@ def main():
     #Gap_Histogram(30)
     #KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04", save_PDF=False, save_SVG=True)
-    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=False, save_SVG=True, use_RW_fit=False, show_data=True, style="presentation")
+    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=False, save_SVG=True, use_RW_fit=False, show_data=True, style="single_error")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else

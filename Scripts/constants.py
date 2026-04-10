@@ -58,7 +58,7 @@ legend_line_thickness = 2                       #points
 annotation_thickness = 0.75                     #points
 annotation_stripe_height = 0.04                 #points
 break_marker_thickness = 1                      #points
-tick_width = 0.5                                #points
+tick_width = 0.25                                #points, can be set equal to graph box thickness, for paper = 0.5, for presentation = 0.25
 tick_length = 3                                 #points
 graph_box_thickness = 0.25                      #points, for paper = 0.5, for presentation = 0.25
 legend_box_thickness = graph_box_thickness      #points, has to be the same as graph box thickness

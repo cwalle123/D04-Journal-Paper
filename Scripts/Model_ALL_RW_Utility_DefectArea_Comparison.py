@@ -255,7 +255,7 @@ def run_experiment(n_runs=100, num_tows=6):
 # ---------------------------------------------------------------------
 # Plotting function (adds thin reference lines at tallest Gap & Overlap bars)
 # ---------------------------------------------------------------------
-def plot_barchart(scenarios, summary, save_path, save_PDF=True):
+def plot_barchart(scenarios, summary, save_path, save_PDF=True, save_SVG=False):
     labels = [s[0] for s in scenarios]
     gap_means = [summary[l][0] for l in labels]
     ovl_means = [summary[l][1] for l in labels]
@@ -414,6 +414,9 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True):
     
     if save_PDF == True:
         fig.savefig(save_path, bbox_inches=None, format="pdf")
+    
+    if save_SVG == True:
+        fig.savefig(save_path.replace(".pdf", ".svg"), bbox_inches=None, format="svg")
 
     plt.show()
 
@@ -451,7 +454,7 @@ def main():
 
     # Run experiment and generate figure
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
-    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=True)
+    plot_barchart(scenarios, summary, FIG_PATH, save_PDF=False, save_SVG=True)
     #save_csv(scenarios, summary, CSV_PATH)
 
 if __name__ == "__main__":

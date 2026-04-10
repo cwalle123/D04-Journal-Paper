@@ -233,7 +233,8 @@ def run_fft_compare(
     rs_method="Sidd",
     show_plots=True,
     show_loglog=False,
-    save_PDF=True
+    save_PDF=True,
+    save_SVG=False
 ):
     x_grid_mm = np.arange(0.0, 1000.0 + 1.0, 1.0)
 
@@ -350,6 +351,9 @@ def run_fft_compare(
 
     if save_PDF:
         plt.savefig("FFT_RS_RW_2.pdf", format="pdf", bbox_inches=None)
+    
+    if save_SVG:
+        plt.savefig("FFT_RS_RW_2.svg", format="svg", bbox_inches=None)
 
     if show_plots or show_loglog:
         plt.show()
@@ -447,7 +451,8 @@ def main():
         rs_method=args.rs_method,
         show_plots=True,
         show_loglog=args.loglog,
-        save_PDF=True
+        save_PDF=True,
+        save_SVG=True
     )
 
     # Batch metrics CSV (Tow 2..30) + AVG row

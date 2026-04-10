@@ -387,42 +387,33 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, style: str = 
         frame.set_facecolor('white')
     
     elif style == "presentation":
-        n_tows = 2
-        tow_data_height = 1.0 # Fixed vertical data span per tow
-        tow_plot_height = 1.8 # Fixed physical height per tow (inches)
-        axes_height_in = n_tows * tow_plot_height
-
-        figure_height = (axes_height_in + top_margin + bottom_margin + legend_margin)
-
-        fig = plt.figure(figsize=(figure_width, figure_height))
-
+        # Establish correct geometry
+        axes_units_per_box = 1.2         # 1.2 for 2 tows, 2 for 3 tows
+        n_boxes = 1
+        total_axes_units = n_boxes * axes_units_per_box
+        figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
+                        + top_margin + bottom_margin + legend_margin)
+        fig = plt.figure(figsize=(1.2 * figure_width, figure_height))
         axes_left = left_margin / figure_width
         axes_width = 1 - (left_margin + right_margin) / figure_width
         axes_bottom = (bottom_margin + legend_margin) / figure_height
-        axes_height = axes_height_in / figure_height
-
+        axes_height = (axes_units_per_box * unit_box_height) / figure_height
         ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
 
-        # Set total y-range so scale stays identical
-        ax.set_ylim(0, n_tows * tow_data_height)
-
         # Real tow
-        offset = 0
-        ax.plot(x_real_y_centerline, y_real_y_centerline + offset, "--", color=color_exp, linewidth=graph_line_thickness)
-        ax.plot(x_real_left, y_real_left + offset, "-", color=color_exp, linewidth=graph_line_thickness, label="Experiment")
-        ax.plot(x_real_right, y_real_right + offset, "-", color=color_exp, linewidth=graph_line_thickness)
+        ax.plot(x_real_y_centerline, y_real_y_centerline, "--", color=color_exp, linewidth=graph_line_thickness)
+        ax.plot(x_real_left, y_real_left, "-", color=color_exp, linewidth=graph_line_thickness, label="Experiment")
+        ax.plot(x_real_right, y_real_right, "-", color=color_exp, linewidth=graph_line_thickness)
 
         # Random Sampling tow
-        offset = tow_data_height
-        ax.plot(x_RS_centerline, y_RS_centerline + offset, "--", color=color_RS, linewidth=graph_line_thickness)
-        ax.plot(x_RS_left, y_RS_left + offset, "-", color=color_RS, linewidth=graph_line_thickness, label="MC simulation")
-        ax.plot(x_RS_right, y_RS_right + offset, "-", color=color_RS, linewidth=graph_line_thickness)
+        ax.plot(x_RS_centerline, y_RS_centerline, "--", color=color_RS, linewidth=graph_line_thickness)
+        ax.plot(x_RS_left, y_RS_left, "-", color=color_RS, linewidth=graph_line_thickness, label="MC simulation")
+        ax.plot(x_RS_right, y_RS_right, "-", color=color_RS, linewidth=graph_line_thickness)
 
         # Random Walk tow
-        offset = 2 * tow_data_height
-        #ax.plot(x_RW_centerline, y_RW_centerline + offset, "--", color=color_RW, linewidth=graph_line_thickness)
-        #ax.plot(x_RW_left, y_RW_left + offset, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
-        #ax.plot(x_RW_right, y_RW_right + offset, "-", color=color_RW, linewidth=graph_line_thickness)
+        #ax.plot(x_RW_centerline, y_RW_centerline, "--", color=color_RW, linewidth=graph_line_thickness)
+        #ax.plot(x_RW_left, y_RW_left, "-", color=color_RW, linewidth=graph_line_thickness, label="MCMC simulation")
+        #ax.plot(x_RW_right, y_RW_right, "-", color=color_RW, linewidth=graph_line_thickness)
 
         ax.set_xlabel("Tow length (mm)")
         ax.set_ylabel("Position (mm)")
@@ -958,7 +949,8 @@ def compare_real_vs_RS_RW_gap_length_distributions(
     xlim=(0, 100),
     stack_graphs=False,
     log: bool=False,
-    save_PDF=False):
+    save_PDF=False,
+    save_SVG=False):
 
     # ============================================================
     # Load data
@@ -1163,6 +1155,9 @@ def compare_real_vs_RS_RW_gap_length_distributions(
 
     if save_PDF:
         fig.savefig("RWandRSdefectlength2.pdf", format="pdf", dpi=300, bbox_inches=None)
+    
+    if save_SVG:
+        fig.savefig("RWandRSdefectlength2.svg", format="svg", dpi=300, bbox_inches=None)
 
     plt.show()
 
@@ -1396,7 +1391,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    #compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True)
+    #compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False, save_SVG=True)
 
 if __name__ == "__main__":
     main()
