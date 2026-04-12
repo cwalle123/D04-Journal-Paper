@@ -5,9 +5,12 @@
 # External imports
 import pandas as pd
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.image as image
 import matplotlib.animation as animation
 import random
+from matplotlib.ticker import FormatStrFormatter
 import functools
 import matplotlib.colors as mcolors
 from matplotlib import cm, style
@@ -24,8 +27,8 @@ from constants import (font_label, font_axis_ticks, figure_width, color_exp, col
                        graph_line_thickness, legend_box_thickness, legend_line_thickness, legend_space,
                        annotation_stripe_height, annotation_thickness, color_annotations, color_borders, color_ideal_gap,
                        transparency, left_margin, right_margin, top_margin, bottom_margin, legend_drop, legend_margin,
-                       unit_box_height, inter_axes_gap)
-from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
+                       unit_box_height, inter_axes_gap, color_PDF_fits)
+# from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
 
 ##############################################################################################################
@@ -572,19 +575,43 @@ def plot_animated_walk_hist(sensor: str, n_tows: int, proposal_type: str='RWM', 
 
     # Output generated via `matplotlib.animation.Animation.to_jshtml`.
 
-    fig, ax = plt.subplots()
-    _, _, bar_container = ax.hist(data, HIST_BINS, lw=1, ec="yellow", fc="green", alpha=0.5)
+    fig, ax = plt.subplots(figsize=(7.0, 4.5))
+    _, _, bar_container = ax.hist(data, HIST_BINS, color=color_RW, alpha=transparency, label='Generated data')
 
     # Plot the static function once (does not change during animation)
-    ax.plot(x_pdf, y_pdf, 'r-', lw=1.5, label="Reference PDF", alpha=0.5)
+    im1 = image.imread('Figures/tapelatmvmt.png')
+    ax.imshow(im1, aspect='auto', extent=(0.815, 0.967, 0.625, 0.925), transform=ax.transAxes)
+
+    ax.plot(x_pdf, y_pdf, lw=1.5, color=color_PDF_fits, label="Probability density function", alpha=1)
     ax.set_ylim(top=max(y_pdf)+1)  # set safe limit to ensure that all data is visible.
+    ax.set_xlabel("Error, tow lateral movement (mm)")
+    ax.set_ylabel("Density")
+    ax.set_xlim(-1.2, 1.2)
+    ax.set_ylim(0, 2.6)
+    ax.set_xticks(np.linspace(-1.2, 1.2, 9))
+    ax.xaxis.set_tick_params(labelbottom=True)
+    ax.vlines(0, 0, 2.6, color=color_ideal_gap, linestyle='--', linewidth=graph_line_thickness)
+
+    ax.xaxis.set_ticks_position('both')
+    ax.yaxis.set_ticks_position('both')
+    ax.tick_params(top=True, bottom=True, left=True, right=True)  # tick locations
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%.1f'))  # Format ticks with one decimal place (pad zeros)
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+    for spine in ax.spines.values():
+        spine.set_linewidth(graph_box_thickness)  # black box around figure
+        spine.set_edgecolor(color_borders)
+    ax.legend(fontsize=font_legend, loc='lower center', bbox_to_anchor=(0.5, -0.3),
+               fancybox=False, shadow=False, ncol=1)
+    fig.tight_layout(rect=[0, 0.05, 1, 1])
 
     anim = functools.partial(animate, bar_container=bar_container)
     ani = animation.FuncAnimation(fig, anim, n_tows, repeat=False, blit=True)
     #plt.show()
 
-    FFwriter = animation.HTMLWriter(fps=10)
-    ani.save('animation.html', writer=FFwriter)
+    matplotlib.rcParams['animation.ffmpeg_path'] = r"C:\Users\seanm\ffmpeg-8.1"
+
+    FFwriter = animation.FFMpegWriter(fps=5)
+    ani.save('animation.gif', writer="pillow")
 
 def plot_LLS_hist():
     """This function is used to check the LLS histograms"""
@@ -1372,7 +1399,7 @@ def main():
     #                            proposal_type="RWM", plot_histogram=True, plot_path=True)
     #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM", plot=True)
-    #plot_animated_walk_hist("CAM", 100)
+    plot_animated_walk_hist("CAM", 31)
     #print(get_n_steps("CAM"))
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)
@@ -1389,8 +1416,8 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-                              error_areas=True, error_bars=False, save_PDF=False, save_SVG=True)
+    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+    #                          error_areas=True, error_bars=False, save_PDF=False, save_SVG=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
     #generate_virtual_lamina_figure(save_PDF=False)
