@@ -1270,23 +1270,33 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
             spine.set_edgecolor(color_borders)
     
     elif style == "presentation":
-        # Establish correct geometry
-        legend_margin = 0                 # Remove this line when adding a legend below the figure
-        axes_units_per_box = 3            # For paper set to axes_units_per_box = 3
-        n_boxes = 1
-        total_axes_units = n_boxes * axes_units_per_box
-        figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
-                        + top_margin + bottom_margin + legend_margin)
-        fig = plt.figure(figsize=(1.2 * figure_width, figure_height))               # For paper remove 1.2 factor
-        axes_left = left_margin / figure_width
-        axes_width = 1 - (left_margin + right_margin) / figure_width
-        axes_bottom = (bottom_margin + legend_margin) / figure_height
-        axes_height = (axes_units_per_box * unit_box_height) / figure_height
+        # --- Choose resolution ---
+        dpi = 300  # good for presentations/screenshots
+
+        # Toggle this:
+        resolution = "4k"   # "hd" or "4k"
+
+        if resolution == "hd":
+            fig_width_in = 1920 / dpi
+            fig_height_in = 1080 / dpi
+        elif resolution == "4k":
+            fig_width_in = 3840 / dpi
+            fig_height_in = 2160 / dpi
+
+        fig = plt.figure(figsize=(fig_width_in, fig_height_in), dpi=dpi)
+
+        # Keep your layout logic (scaled properly now)
+        axes_left = 0.08
+        axes_width = 0.88
+        axes_bottom = 0.12
+        axes_height = 0.80
+
         ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
 
         colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]
         x_vals = RW_all_tows_data[0]["x_mm"]
         tow_indices = range(num_tows)
+
         ax.set_xlim(-50, 1050)
         ax.set_ylim(-5, 30)
 
@@ -1296,36 +1306,42 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
             x = tow_df["x_mm"]
             top_edge = tow_df["top_edge"]
             bottom_edge = tow_df["bottom_edge"]
-            #center = tow_df["centerline"] # For paper remove this line
-            ax.plot(x, top_edge, color=color, lw=0)
-            ax.plot(x, bottom_edge, color=color, lw=0)
-            #ax.hlines(y=center[0], xmin=x.min(), xmax=x.max(), color="black", lw=0.8, ls="dashed") # For paper remove this line
-            ax.fill_between(x, bottom_edge, top_edge, color=color, alpha=0.8, label=f"Tow {i+1}" if i == 0 else "", 
-                            linewidth=0, edgecolor=None)
-        
+
+            ax.fill_between(
+                x, bottom_edge, top_edge,
+                color=color, alpha=0.8,
+                linewidth=0, edgecolor=None
+            )
 
         # --- Gaps and overlaps ---
-
         for i in range(num_tows - 1):
             top_edge_prev = RW_all_tows_data[i]["top_edge"]
             bottom_edge_next = RW_all_tows_data[i + 1]["bottom_edge"]
             diff = bottom_edge_next - top_edge_prev
-            ax.fill_between(x_vals, top_edge_prev, bottom_edge_next, where=(diff > 0),
-                            color="white", alpha=0.3, linewidth=0, edgecolor=None)
-            ax.fill_between(x_vals, top_edge_prev, bottom_edge_next, where=(diff < 0),
-                            color="black", alpha=0.3, linewidth=0, edgecolor=None)
 
+            ax.fill_between(x_vals, top_edge_prev, bottom_edge_next,
+                            where=(diff > 0),
+                            color="white", alpha=0.3, linewidth=0)
 
-        # --- Axes and grid ---
+            ax.fill_between(x_vals, top_edge_prev, bottom_edge_next,
+                            where=(diff < 0),
+                            color="black", alpha=0.3, linewidth=0)
+
+        # --- Axes ---
         ax.set_xlabel("Tow length (mm)")
         ax.set_ylabel("Position (mm)")
-        ax.grid(False)  # This removes the horizontal dashed lines
-        ax.xaxis.set_ticks_position('both')
-        ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
+        ax.grid(False)
+
+        ax.tick_params(top=True, bottom=True, left=True, right=True)
+
         for spine in ax.spines.values():
-            spine.set_linewidth(graph_box_thickness)                                    # black box around figure
+            spine.set_linewidth(graph_box_thickness)
             spine.set_edgecolor(color_borders)
+
+        # --- Save high-res ---
+        if save_PDF == True:
+            plt.savefig("virtual_lamina_4k.png", dpi=dpi, bbox_inches="tight")
+            save_PDF = False
 
     elif style == "presentation_3_tows":
 
@@ -1421,7 +1437,7 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
     if save_PDF == True:
         plt.savefig("virtual lamina.svg", format="svg", bbox_inches=None)
     
-    plt.show()
+    # plt.show()
 
 ##############################################################################################################
 """Run this file"""
@@ -1454,8 +1470,8 @@ def main():
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
     #generate_virtual_lamina_figure(save_PDF=False)
-    # generate_virtual_lamina_figure(save_PDF=True, style="presentation")
-    generate_virtual_lamina_figure(num_tows=3, save_PDF=True, style="presentation_3_tows")
+    generate_virtual_lamina_figure(save_PDF=True, style="presentation")
+    # generate_virtual_lamina_figure(num_tows=3, save_PDF=True, style="presentation_3_tows")
     #find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
