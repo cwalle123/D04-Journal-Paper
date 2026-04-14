@@ -1332,7 +1332,7 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
         num_tows = 3
 
         # --- spacing variations (mm) ---
-        spacing_variations = [-0.6 -0.3, 0, 0.3, 0.6]
+        spacing_variations = [-0.6, -0.3, 0, 0.3, 0.6]
 
         colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]
         x_vals = RW_all_tows_data[0]["x_mm"]
@@ -1454,8 +1454,8 @@ def main():
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
     #generate_virtual_lamina_figure(save_PDF=False)
-    generate_virtual_lamina_figure(save_PDF=True, style="presentation")
-    # generate_virtual_lamina_figure(num_tows=3, save_PDF=False, style="presentation_3_tows")
+    # generate_virtual_lamina_figure(save_PDF=True, style="presentation")
+    generate_virtual_lamina_figure(num_tows=3, save_PDF=True, style="presentation_3_tows")
     #find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
