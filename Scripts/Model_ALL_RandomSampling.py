@@ -150,6 +150,92 @@ def generate_RS_multitow(
 
     return gap_overlap_df, RS_all_tows_data, gap_percent, overlap_percent
 
+def user_interface_only_generate_RS_multitow(
+    num_tows: int,
+    n_steps: int = 400,
+    tow_spacing_mm: float = 6.35,
+    tow_width_mm: float = 6.35,
+    tow_length_mm: float = 1000,
+    method: str = "Sidd",
+    print_statement: bool = False):
+    """
+    Generate random sampling (RS) multitow layout and compute gap/overlap areas and percentages.
+
+    Returns (matched to RW function):
+        gap_overlap_df
+        gap_df
+        overlap_df
+        gap_percent
+        overlap_percent
+        RS_all_tows_data
+    """
+
+    top_edge_paths, bottom_edge_paths = [], []
+    RS_all_tows_data = []
+
+    x_vals = np.linspace(0, tow_length_mm, n_steps)
+
+    # --- Generate random sampling data for each parameter ---
+    LT_RS_data = generate_random_sampling_data("LT", steps=n_steps, tows=num_tows)
+    CAM_RS_data = generate_random_sampling_data("CAM", steps=n_steps, tows=num_tows)
+
+    if method == "Sidd":
+        LLSB_RS_data = generate_siddharth_width(steps=n_steps, tows=num_tows)
+    else:
+        LLSB_RS_data = generate_random_sampling_data("LLS_B", steps=n_steps, tows=num_tows)
+
+    # --- Construct each tow geometry ---
+    tow_offset = 0
+    for tow in range(num_tows):
+        tow_centerline_data = tow_offset + np.array(CAM_RS_data[tow, :]) + np.array(LT_RS_data[tow, :])
+        tow_width_data = tow_width_mm + np.array(LLSB_RS_data[tow, :])
+
+        tow_top_edge = tow_centerline_data + 0.5 * tow_width_data
+        tow_bottom_edge = tow_centerline_data - 0.5 * tow_width_data
+
+        top_edge_paths.append(tow_top_edge)
+        bottom_edge_paths.append(tow_bottom_edge)
+        tow_offset += tow_spacing_mm
+
+        RS_data = pd.DataFrame({
+            "x_mm": x_vals,
+            "centerline": tow_centerline_data,
+            "top_edge": tow_top_edge,
+            "bottom_edge": tow_bottom_edge
+        })
+        RS_all_tows_data.append(RS_data)
+
+    # --- Compute gap/overlap distances (match RW naming exactly) ---
+    gap_overlap_dict = {
+        f"Gap/overlap_Tow{t+1}_Tow{t+2}": bottom_edge_paths[t+1] - top_edge_paths[t]
+        for t in range(num_tows - 1)
+    }
+    gap_overlap_df = pd.DataFrame(gap_overlap_dict)
+
+    # --- Match RW: create gap_df and overlap_df ---
+    gap_df = gap_overlap_df.where(gap_overlap_df > 0)
+    overlap_df = gap_overlap_df.where(gap_overlap_df < 0)
+
+    # --- Area calculations (unchanged) ---
+    highest_tow_edge = top_edge_paths[-1]
+    lowest_tow_edge = bottom_edge_paths[0]
+    total_layout_area = np.trapezoid(highest_tow_edge - lowest_tow_edge, x_vals)
+
+    total_gap_area = sum(np.trapezoid(np.clip(values, 0, None), x_vals) for values in gap_overlap_df.values.T)
+    total_overlap_area = sum(np.trapezoid(np.clip(-values, 0, None), x_vals) for values in gap_overlap_df.values.T)
+
+    gap_percent = (total_gap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
+    overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
+
+    # --- Print summary (unchanged) ---
+    if print_statement:
+        print(f"\nTotal layout area: {total_layout_area:.2f} mm²")
+        print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
+        print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
+
+    # --- Return signature MATCHES RW ---
+    return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent, RS_all_tows_data
+
 def generate_siddharth_width(steps: int=400, tows: int=1, plot_histogram=False):
     LLS_A_data = generate_random_sampling_data("LLS_A", steps=steps, tows=tows)
     modified_data = np.zeros_like(LLS_A_data)

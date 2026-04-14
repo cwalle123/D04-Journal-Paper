@@ -12,7 +12,3 @@ This means that many of the syncing and files relates to the syncing is no longe
 and means that we are continuing with the assumptions that there is no correlation between
 different error types.
 
-Specific tasks and updates are to be added/completed in the TODO file.
-
-If you have any questions, dont hesitate to ask!
-

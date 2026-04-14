@@ -30,6 +30,7 @@ from constants import (font_label, font_axis_ticks, figure_width, color_exp, col
                        unit_box_height, inter_axes_gap, color_PDF_fits)
 # from D04_Model.Model_ALL_ConsecutiveErrorTheo import consecutive_error, generate_error_path, generate_starting_error, get_data_pairs
 from Data_ALL_statistics import plot_histograms_separated, best_fit_distribution
+from Model_ALL_RandomSampling import user_interface_only_generate_RS_multitow
 
 ##############################################################################################################
 """Functions"""
@@ -353,7 +354,6 @@ def find_RW_statistics(n_tows: int=1000, proposal_type: str="RWM"):
         mean = np.average(data[i])
         standard_deviation = np.std(data[i])
         print(f"for {names[i]} the mean is {mean}, the standard deviation is {standard_deviation}")
-
 
 def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000,
                          proposal_type: str="RWM", print_statement: bool=False, starting_mods: list=[None, 1, 1], alternate_start: list=[None, "params"], override: bool=False):
@@ -1328,65 +1328,98 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
             spine.set_edgecolor(color_borders)
 
     elif style == "presentation_3_tows":
-        # Establish correct geometry
-        legend_margin = 0                 # Remove this line when adding a legend below the figure
-        axes_units_per_box = 3          # For paper set to axes_units_per_box = 3
-        n_boxes = 1
-        total_axes_units = n_boxes * axes_units_per_box
-        figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
-                        + top_margin + bottom_margin + legend_margin)
-        fig = plt.figure(figsize=(1.2 * figure_width, figure_height))               # For paper remove 1.2 factor
-        axes_left = left_margin / figure_width
-        axes_width = 1 - (left_margin + right_margin) / figure_width
-        axes_bottom = (bottom_margin + legend_margin) / figure_height
-        axes_height = (axes_units_per_box * unit_box_height) / figure_height
-        ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
+
+        num_tows = 3
+
+        # --- spacing variations (mm) ---
+        spacing_variations = [-0.6 -0.3, 0, 0.3, 0.6]
 
         colors = [(0.6, 0.6, 0.6), (0.7, 0.7, 0.7)]
         x_vals = RW_all_tows_data[0]["x_mm"]
-        tow_indices = range(num_tows)
-        ax.set_xlim(-50, 1050)
-        ax.set_ylim(-5, 30)
 
-        for i in tow_indices:
-            tow_df = RW_all_tows_data[i]
-            color = colors[i % 2]
-            x = tow_df["x_mm"]
-            top_edge = tow_df["top_edge"]
-            bottom_edge = tow_df["bottom_edge"]
-            center = tow_df["centerline"] # For paper remove this line
-            ax.plot(x, top_edge, color=color, lw=0)
-            ax.plot(x, bottom_edge, color=color, lw=0)
-            ax.hlines(y=center[0], xmin=x.min(), xmax=x.max(), color="black", lw=0.8, ls="dashed") # For paper remove this line
-            ax.fill_between(x, bottom_edge, top_edge, color=color, alpha=0.8, label=f"Tow {i+1}" if i == 0 else "", 
-                            linewidth=0, edgecolor=None)
-        
+        for idx, extra_spacing in enumerate(spacing_variations):
 
-        # --- Gaps and overlaps ---
+            # --- Figure setup (same as before) ---
+            legend_margin = 0
+            axes_units_per_box = 3
+            n_boxes = 1
+            total_axes_units = n_boxes * axes_units_per_box
 
-        for i in range(num_tows - 1):
-            top_edge_prev = RW_all_tows_data[i]["top_edge"]
-            bottom_edge_next = RW_all_tows_data[i + 1]["bottom_edge"]
-            diff = bottom_edge_next - top_edge_prev
-            ax.fill_between(x_vals, top_edge_prev, bottom_edge_next, where=(diff > 0),
-                            color="white", alpha=0.3, linewidth=0, edgecolor=None)
-            ax.fill_between(x_vals, top_edge_prev, bottom_edge_next, where=(diff < 0),
-                            color="black", alpha=0.3, linewidth=0, edgecolor=None)
+            figure_height = (
+                total_axes_units * unit_box_height
+                + (n_boxes - 1) * inter_axes_gap
+                + top_margin + bottom_margin + legend_margin
+            )
 
+            fig = plt.figure(figsize=(1.2 * figure_width, figure_height))
+            axes_left = left_margin / figure_width
+            axes_width = 1 - (left_margin + right_margin) / figure_width
+            axes_bottom = (bottom_margin + legend_margin) / figure_height
+            axes_height = (axes_units_per_box * unit_box_height) / figure_height
 
-        # --- Axes and grid ---
-        #ax.set_xlabel("Tow length (mm)")
-        #ax.set_ylabel("Position (mm)")
-        ax.grid(False)  # This removes the horizontal dashed lines
-        #ax.xaxis.set_ticks_position('both')
-        #ax.yaxis.set_ticks_position('both')
-        ax.tick_params(top=False, bottom=False, left=False, right=False, labelbottom=False, labelleft=False)                    # tick locations
-        for spine in ax.spines.values():
-            spine.set_linewidth(0)                                    # black box around figure
-            spine.set_edgecolor(color_borders)
+            ax = fig.add_axes([axes_left, axes_bottom, axes_width, axes_height])
+
+            ax.set_xlim(-50, 1050)
+            ax.set_ylim(-5, 30)
+
+            # --- Plot with modified spacing ---
+            for i in range(num_tows):
+                tow_df = RW_all_tows_data[i]
+
+                # apply vertical offset ONLY during plotting
+                offset = i * extra_spacing
+
+                x = tow_df["x_mm"]
+                top_edge = tow_df["top_edge"] + offset
+                bottom_edge = tow_df["bottom_edge"] + offset
+                center = tow_df["centerline"] + offset
+
+                color = colors[i % 2]
+
+                ax.fill_between(x, bottom_edge, top_edge,
+                                color=color, alpha=0.8,
+                                linewidth=0, edgecolor=None)
+
+                ax.hlines(y=center[0],
+                        xmin=x.min(), xmax=x.max(),
+                        color="black", lw=0.8, ls="dashed")
+
+            # --- Gaps and overlaps (WITH same offset logic) ---
+            for i in range(num_tows - 1):
+                offset_i = i * extra_spacing
+                offset_next = (i + 1) * extra_spacing
+
+                top_edge_prev = RW_all_tows_data[i]["top_edge"] + offset_i
+                bottom_edge_next = RW_all_tows_data[i + 1]["bottom_edge"] + offset_next
+
+                diff = bottom_edge_next - top_edge_prev
+
+                ax.fill_between(x_vals, top_edge_prev, bottom_edge_next,
+                                where=(diff > 0),
+                                color="white", alpha=0.3, linewidth=0)
+
+                ax.fill_between(x_vals, top_edge_prev, bottom_edge_next,
+                                where=(diff < 0),
+                                color="black", alpha=0.3, linewidth=0)
+
+            # --- Clean look (no axes) ---
+            ax.grid(False)
+            ax.tick_params(top=False, bottom=False, left=False, right=False,
+                        labelbottom=False, labelleft=False)
+
+            for spine in ax.spines.values():
+                spine.set_linewidth(0)
+
+            # --- Save each figure with unique name ---
+            if save_PDF == True:
+                plt.savefig(f"virtual_lamina_spacing_{idx}.pdf", format="pdf", bbox_inches=None)
+                print(f"Saved: virtual_lamina_spacing_{idx}.pdf")
+
+        plt.close(fig)
+        save_PDF = False
 
     if save_PDF == True:
-        plt.savefig("virtual lamina.pdf", format="pdf", bbox_inches=None)
+        plt.savefig("virtual lamina.svg", format="svg", bbox_inches=None)
     
     plt.show()
 
@@ -1399,7 +1432,7 @@ def main():
     #                            proposal_type="RWM", plot_histogram=True, plot_path=True)
     #plot_RW_tows(proposal_type="RWM", plot_individual_histograms=True)
     #std = get_proposal_distribution("CAM", plot=True)
-    plot_animated_walk_hist("CAM", 31)
+    # plot_animated_walk_hist("CAM", 31)
     #print(get_n_steps("CAM"))
     #plot_LLS_hist()
     #check_burn_in("CAM", 23200, 5)
@@ -1421,8 +1454,8 @@ def main():
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
     #generate_virtual_lamina_figure(save_PDF=False)
-    #generate_virtual_lamina_figure(save_PDF=False, style="presentation")
-    #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=False, style="presentation_3_tows")
+    generate_virtual_lamina_figure(save_PDF=True, style="presentation")
+    # generate_virtual_lamina_figure(num_tows=3, save_PDF=False, style="presentation_3_tows")
     #find_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":

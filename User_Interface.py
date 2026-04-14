@@ -49,7 +49,7 @@ import matplotlib as mpl
 mpl.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from Scripts.constants import (figure_width, min_figure_height, font_TNR, font_label, font_axis_ticks, font_legend, graph_line_thickness, 
+from Scripts.constants import (figure_width, font_TNR, font_label, font_axis_ticks, font_legend, graph_line_thickness, 
                        legend_line_thickness, annotation_thickness, annotation_stripe_height, break_marker_thickness,
                        tick_width, tick_length, graph_box_thickness, legend_box_thickness, color_exp, color_RW, color_RS,
                        color_annotations, color_PDF_fits, color_borders, color_ideal_gap, transparency, color_gap, color_overlap, legend_space)
@@ -57,6 +57,8 @@ from Scripts.constants import (figure_width, min_figure_height, font_TNR, font_l
 # Import tow generator
 from Scripts.D04_Model.Model_ALL_Simulation import generate_multitow_layout
 from Scripts.Model_ALL_RandomWalk import generate_RW_multitow
+from Scripts.Model_ALL_RandomSampling import user_interface_only_generate_RS_multitow
+min_figure_height = 0.382 * figure_width  
 
 # ---------------- Screen Setup ----------------
 root = tk.Tk()
@@ -539,7 +541,7 @@ def export_figure(save_PDF=True):
     if save_PDF == True:
         plt.savefig("virtual lamina.pdf", format="pdf", bbox_inches=None)
     
-    plt.show()
+    # plt.show()
 # ---------------- Main Loop ----------------
 
 def main():

@@ -1380,7 +1380,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=False, save_SVG=True, style="presentation")
+    plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True, save_SVG=False, style="presentation")
     #compare_real_vs_RW_vs_RS_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
