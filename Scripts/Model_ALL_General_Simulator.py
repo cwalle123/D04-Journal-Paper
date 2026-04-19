@@ -52,6 +52,9 @@ def CAM_params(mean_shift, scale_factor):
     alpha = -2.29
     return xi, omega
 
+def NORMAL_distribution(mu, sigma):
+    return lambda x: norm.pdf(x, loc=mu, scale=sigma)
+
 def get_n_steps(sensor):
     """This function gets the number of steps, which is the number of data points in a one meter tow"""
     data, weights = get_data(sensor, format='separated')
@@ -63,6 +66,7 @@ def get_n_steps(sensor):
     return int(np.average(lengths))
 
 def draw_single_distribution(screen, dist_func, rect, color, title, params=None):
+    global normal_mode
     x0, y0, w, h = rect
 
     pygame.draw.rect(screen, (80, 80, 80), rect, 2)
@@ -128,7 +132,8 @@ def draw_single_distribution(screen, dist_func, rect, color, title, params=None)
     # -----------------------------
     # TITLE
     # -----------------------------
-    title_txt = font.render(title, True, color)
+    title_display = title + " (Normal)" if normal_mode else title
+    title_txt = font.render(title_display, True, color)
     screen.blit(title_txt, (x0 + 5, y0 + 5))
 
     # -----------------------------
@@ -137,17 +142,21 @@ def draw_single_distribution(screen, dist_func, rect, color, title, params=None)
     if params is not None:
         mu, scale = params
 
-        if title == "LT":
-            info = font.render(f"μ={mu:.3f}  s={scale:.3f}", True, (200, 200, 200))
-
-        elif title == "LLSA":
-            info = font.render(f"μ={mu:.3f}  s={scale:.3f}", True, (200, 200, 200))
-
-        elif title == "LLSB":
+        if normal_mode:
             info = font.render(f"μ={mu:.3f}  σ={scale:.3f}", True, (200, 200, 200))
 
-        elif title == "CAM":
-            info = font.render(f"ξ={mu:.3f}  ω={scale:.3f}", True, (200, 200, 200))
+        else:
+            if title == "LT":
+                info = font.render(f"μ={mu:.3f}  s={scale:.3f}", True, (200, 200, 200))
+
+            elif title == "LLSA":
+                info = font.render(f"μ={mu:.3f}  s={scale:.3f}", True, (200, 200, 200))
+
+            elif title == "LLSB":
+                info = font.render(f"μ={mu:.3f}  σ={scale:.3f}", True, (200, 200, 200))
+
+            elif title == "CAM":
+                info = font.render(f"ξ={mu:.3f}  ω={scale:.3f}", True, (200, 200, 200))
 
         screen.blit(info, (x0 + 5, y0 + 25))
 
@@ -180,7 +189,7 @@ def draw_all_distributions(screen, params):
 
     draw_single_distribution(
         screen,
-        LT_distribution(*params["LT"]),
+        NORMAL_distribution(*params["LT"]) if normal_mode else LT_distribution(*params["LT"]),
         (start_x, start_y, plot_w, plot_h),
         (0, 200, 255),
         "LT",
@@ -189,7 +198,7 @@ def draw_all_distributions(screen, params):
 
     draw_single_distribution(
         screen,
-        CAM_distribution(*params["CAM"]),
+        NORMAL_distribution(*params["CAM"]) if normal_mode else CAM_distribution(*params["CAM"]),
         (start_x + plot_w + gap, start_y, plot_w, plot_h),
         (255, 200, 0),
         "CAM",
@@ -198,7 +207,7 @@ def draw_all_distributions(screen, params):
 
     draw_single_distribution(
         screen,
-        LLSA_distribution(*params["LLSA"]),
+        NORMAL_distribution(*params["LLSA"]) if normal_mode else LLSA_distribution(*params["LLSA"]),
         (start_x, start_y + plot_h + gap, plot_w, plot_h),
         (255, 100, 100),
         "LLSA",
@@ -207,7 +216,7 @@ def draw_all_distributions(screen, params):
 
     draw_single_distribution(
         screen,
-        LLSB_distribution(*params["LLSB"]),
+        NORMAL_distribution(*params["LLSB"]) if normal_mode else LLSB_distribution(*params["LLSB"]),
         (start_x + plot_w + gap, start_y + plot_h + gap, plot_w, plot_h),
         (100, 255, 100),
         "LLSB",
@@ -242,6 +251,17 @@ def draw_reset_button():
 
     return reset_button
 
+def draw_normal_button():
+    normal_button = pygame.Rect(285, 60, 210, 40)  # ABOVE reset
+
+    pygame.draw.rect(screen, (100, 200, 120), normal_button)
+    pygame.draw.rect(screen, (255, 255, 255), normal_button, 2)
+
+    txt = font.render("NORMAL DIST", True, (255, 255, 255))
+    screen.blit(txt, (normal_button.x + 50, normal_button.y + 13))
+
+    return normal_button
+
 def generate_tows_full_control(params, num_tows=3,
                               tow_spacing_mm=6.35,
                               tow_width_mm=6.35,
@@ -261,28 +281,28 @@ def generate_tows_full_control(params, num_tows=3,
         # --- generate each signal with YOUR parameters ---
         LT = generate_random_walk(
             "LT", LT_steps, 0.05,
-            LT_distribution(*params["LT"]),
+            NORMAL_distribution(*params["LT"]) if normal_mode else LT_distribution(*params["LT"]),
             norm,
             (0, 1)
         )
 
         CAM = generate_random_walk(
             "CAM", CAM_steps, 0.05,
-            CAM_distribution(*params["CAM"]),
+            NORMAL_distribution(*params["CAM"]) if normal_mode else CAM_distribution(*params["CAM"]),
             norm,
             (0, 1)
         )
 
         LLSB = generate_random_walk(
             "LLS_B", LLSB_steps, params["LLSB"][1],
-            LLSB_distribution(*params["LLSB"]),
+            NORMAL_distribution(*params["LLSB"]) if normal_mode else LLSB_distribution(*params["LLSB"]),
             norm,
             params["LLSB"]
         )
 
         LLSA = generate_random_walk(
             "LLS_A", LLSA_steps, 0.05,
-            LLSA_distribution(*params["LLSA"]),
+            NORMAL_distribution(*params["LLSA"]) if normal_mode else LLSA_distribution(*params["LLSA"]),
             norm,
             (0, 1)
         )
@@ -495,6 +515,7 @@ WIDTH, HEIGHT = 1920, 1080
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 24)
+normal_mode = False
 
 class InputBox:
     def __init__(self, x, y, w, h, text, label):
@@ -567,6 +588,33 @@ initial_input_values = {
     "LLSA_shift": (0.0, "0.0"),
     "LLSA_scale": (1.0, "1.0")}
 
+def update_input_labels(normal_mode):
+    if normal_mode:
+        inputs["LT_shift"].label = "LT μ"
+        inputs["LT_scale"].label = "LT σ"
+
+        inputs["CAM_shift"].label = "CAM μ"
+        inputs["CAM_scale"].label = "CAM σ"
+
+        inputs["LLSB_mean"].label = "LLSB μ"
+        inputs["LLSB_std"].label = "LLSB σ"
+
+        inputs["LLSA_shift"].label = "LLSA μ"
+        inputs["LLSA_scale"].label = "LLSA σ"
+
+    else:
+        inputs["LT_shift"].label = "LT Shift"
+        inputs["LT_scale"].label = "LT Scale"
+
+        inputs["CAM_shift"].label = "CAM Shift"
+        inputs["CAM_scale"].label = "CAM Scale"
+
+        inputs["LLSB_mean"].label = "LLSB Mean"
+        inputs["LLSB_std"].label = "LLSB STD"
+
+        inputs["LLSA_shift"].label = "LLSA Shift"
+        inputs["LLSA_scale"].label = "LLSA Scale"
+
 # --- Initial tow values ---
 params = {
     "LT": (-0.93, 0.06),
@@ -575,12 +623,18 @@ params = {
     "LLSA": (-0.25, 0.07)}
 x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = generate_tows_full_control(params)
 running = True
+update_input_labels(normal_mode)
+
+# store original params for reset
+original_params = params.copy()
+original_inputs = {k: (v.value, v.text) for k, v in inputs.items()}
 
 while running:
     screen.fill((30, 30, 30))
     exit_button = pygame.Rect(WIDTH - 120, HEIGHT - 60, 100, 40)
     regen_button = pygame.Rect(285, 450, 210, 40)
     reset_button = pygame.Rect(285, 120, 210, 40)
+    normal_button = pygame.Rect(285, 60, 210, 40)
 
     changed_any = False
 
@@ -596,20 +650,33 @@ while running:
                 x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = generate_tows_full_control(params)
 
             if reset_button.collidepoint(event.pos):
+                normal_mode = False
+
+                update_input_labels(normal_mode)
+
                 for key, box in inputs.items():
-                    val, text = initial_input_values[key]
+                    val, text = original_inputs[key]
                     box.value = val
                     box.text = text
 
-                # Reset simulation params
+                params = original_params.copy()
+
+                x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = \
+                    generate_tows_full_control(params)
+            
+            if normal_button.collidepoint(event.pos):
+                normal_mode = True
+
+                update_input_labels(normal_mode)
+
+                # convert ALL sensors to normal using current input values
                 params = {
-                    "LT": (-0.93, 0.06),
-                    "CAM": (0.29, 0.22),
-                    "LLSB": (-0.08, 0.06),
-                    "LLSA": (-0.25, 0.07)
+                    "LT": (inputs["LT_shift"].value, inputs["LT_scale"].value),
+                    "CAM": (inputs["CAM_shift"].value, inputs["CAM_scale"].value),
+                    "LLSB": (inputs["LLSB_mean"].value, inputs["LLSB_std"].value),
+                    "LLSA": (inputs["LLSA_shift"].value, inputs["LLSA_scale"].value)
                 }
 
-                # Regenerate simulation
                 x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = \
                     generate_tows_full_control(params)
 
@@ -639,6 +706,7 @@ while running:
     draw_metrics(gap_percent, overlap_percent)
     draw_regenerate_button()
     draw_reset_button()
+    draw_normal_button()
 
     pygame.display.flip()
     clock.tick(60)
