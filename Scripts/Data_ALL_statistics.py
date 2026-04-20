@@ -37,7 +37,7 @@ def plot_histograms(data: pd.DataFrame, title: str, bin_widths: list[float] = No
             data['error_LLS_A'],
             data['error_LLS_B'],
             data['error_LT'],
-            data['center_CAM']]
+            data['error_CAM']]
         
         names = ['Error LLS A', 'Error LLS B', 'Error Laser Tracker', 'Error Camera']
 
@@ -114,7 +114,7 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
             ('error_LLS_A', 'w_LLS_A', 'Tape Width Before Compaction'),
             ('error_LLS_B', 'w_LLS_B', 'Tape Width After Compaction'),
             ('error_LT',    'w_LT',    'Robot Position'),
-            ('center_CAM',  'w_CAM',   'Tape Lateral Movement'),
+            ('error_CAM',   'w_CAM',   'Tape Lateral Movement'),
         ]
 
 
@@ -122,7 +122,7 @@ def plot_histograms_separated(data: pd.DataFrame, bin_widths: list[float] = None
             data['error_LLS_A'],
             data['error_LLS_B'],
             data['error_LT'],
-            data['center_CAM']]
+            data['error_CAM']]
 
         names = [
             'error_LLS_A',
@@ -321,16 +321,24 @@ def best_fit_distribution(data, bins=40, distributions=None, weights=None, use_a
 
     return best
 
-def build_all_sensors_df(tow_range=range(2, 31), time_key=None):
+def build_all_sensors_df(tow_range=range(2, 31)):
     """Returns a dataframe with columns:
       error_LLS_A, w_LLS_A,
       error_LLS_B, w_LLS_B,
       error_LT,    w_LT,
-      center_CAM,  w_CAM,
-      number of tow"""
+      error_CAM,   w_CAM,
+      tow
+
+    Notes
+    -----
+    This function assumes the synced/distilled sensor files are already aligned
+    sample-by-sample within each tow. It concatenates the four sensor streams
+    row-wise for each tow after resetting the index.
+    """
     
     def ensure_col(df: pd.DataFrame, desired: str, fallbacks: list[str]) -> pd.DataFrame:
-        """Make sure df has `desired`; if missing, rename it to first available, else create empty."""
+        """Ensure df has `desired`; if missing, rename from first available fallback."""
+        df = df.copy()
         for fb in fallbacks:
             if desired not in df.columns and fb in df.columns:
                 df = df.rename(columns={fb: desired})
@@ -340,40 +348,39 @@ def build_all_sensors_df(tow_range=range(2, 31), time_key=None):
         return df
 
     def extract_weight(df: pd.DataFrame, new_name: str) -> pd.DataFrame:
-        """Coalesce any duplicated 'Weights' columns into a single numeric Series named `new_name`."""
+        """Extract a single weight column, even if duplicate 'Weights' columns exist."""
         df = df.copy()
         df.columns = df.columns.astype(str).str.strip()
         weight_cols = [c for c in df.columns if c.strip().lower() == "weights"]
+
         if not weight_cols:
             return pd.Series(name=new_name, dtype=float).to_frame()
+
         wdf = df[weight_cols]
         if isinstance(wdf, pd.Series):
             s = pd.to_numeric(wdf, errors="coerce")
         else:
             wdf_num = wdf.apply(pd.to_numeric, errors="coerce")
-            # first non-null across duplicate
             s = wdf_num.bfill(axis=1).iloc[:, 0]
+
         return s.reset_index(drop=True).rename(new_name).to_frame()
 
     dfs = []
-    # Get the data
+
     for t in tow_range:
         lt   = get_synced_data(t, sensor_type="LT").copy()
         llsa = get_synced_data(t, sensor_type="LLS_A").copy()
         llsb = get_synced_data(t, sensor_type="LLS_B").copy()
         cam  = get_synced_data(t, sensor_type="CAM").copy()
 
-        # clean names
         for f in (lt, llsa, llsb, cam):
             f.columns = f.columns.astype(str).str.strip()
 
-        # make sure expected error/center columns exist
         lt   = ensure_col(lt,   "error_LT",    fallbacks=["error"])
         llsa = ensure_col(llsa, "error_LLS_A", fallbacks=["error"])
         llsb = ensure_col(llsb, "error_LLS_B", fallbacks=["error"])
-        cam  = ensure_col(cam,  "center_CAM",  fallbacks=["center", "error_CAM", "error"])
+        cam  = ensure_col(cam,  "error_CAM",   fallbacks=["center_CAM", "center", "error"])
 
-        # build the dataframe of 1 tow
         df_t = pd.concat(
             [
                 lt[["error_LT"]].reset_index(drop=True),
@@ -385,13 +392,12 @@ def build_all_sensors_df(tow_range=range(2, 31), time_key=None):
                 llsb[["error_LLS_B"]].reset_index(drop=True),
                 extract_weight(llsb, "w_LLS_B"),
 
-                cam[["center_CAM"]].reset_index(drop=True),
+                cam[["error_CAM"]].reset_index(drop=True),
                 extract_weight(cam, "w_CAM"),
             ],
             axis=1
         )
 
-        # Merge all the tows into the same dataframe
         df_t["tow"] = t
         dfs.append(df_t)
 
@@ -420,7 +426,7 @@ def print_weighted_stats_table(df: pd.DataFrame):
     mapping = [('error_LLS_A', 'w_LLS_A'),
         ('error_LLS_B', 'w_LLS_B'),
         ('error_LT',    'w_LT'),
-        ('center_CAM',  'w_CAM'),]
+        ('error_CAM',  'w_CAM'),]
 
     for col, wcol in mapping:
         s = df[col]
@@ -433,6 +439,194 @@ def print_weighted_stats_table(df: pd.DataFrame):
     print("Stats:")
     for col, n, mu, sd, kind in rows:
         print(f"- {col:<12} n={n:5d}  mean={mu: .4f}  std={sd: .4f}  ({kind})")
+
+
+
+def plot_sensor_correlation_scatter_only(
+    tow_range=range(2, 32),
+    scatter_figsize=(12, 8),
+    matrix_figsize=(7, 6),
+    alpha=0.20,
+    s=8,
+    add_regression_line=True,
+    show_pearson_matrix_plot=True,
+    show_spearman_matrix_plot=True,
+    print_table=True,
+    print_matrix=True
+):
+    """
+    Plot:
+    1) Lower-triangular scatter/correlation matrix
+    2) Pearson correlation heatmap
+    3) Spearman correlation heatmap
+
+    Uses the four variation sources:
+        - error_LLS_A : width before compaction
+        - error_LLS_B : width after compaction
+        - error_LT    : robot position
+        - error_CAM   : tape lateral movement
+
+    Returns
+    -------
+    corr_df : pd.DataFrame
+        Pairwise correlation table.
+    pearson_matrix : pd.DataFrame
+        Pearson correlation matrix.
+    spearman_matrix : pd.DataFrame
+        Spearman correlation matrix.
+    """
+
+    from scipy.stats import pearsonr, spearmanr
+
+    # --------------------------------------------------
+    # Build dataframe and ensure camera column is correct
+    # --------------------------------------------------
+    df = build_all_sensors_df(tow_range=tow_range).copy()
+
+    if "error_CAM" not in df.columns:
+        if "center_CAM" in df.columns:
+            df = df.rename(columns={"center_CAM": "error_CAM"})
+        else:
+            raise KeyError("Camera error column not found. Expected 'error_CAM'.")
+
+    cols = ["error_LLS_A", "error_LLS_B", "error_LT", "error_CAM"]
+    labels = {
+        "error_LLS_A": "Width before compaction",
+        "error_LLS_B": "Width after compaction",
+        "error_LT": "Robot position",
+        "error_CAM": "Tape lateral movement"
+    }
+
+    # --------------------------------------------------
+    # 1) Scatter correlation matrix (lower triangle only)
+    # --------------------------------------------------
+    n = len(cols)
+    fig, axes = plt.subplots(n - 1, n - 1, figsize=scatter_figsize)
+    fig.suptitle("Cross-correlations between the four variation sources", fontsize=18)
+
+    correlation_rows = []
+
+    for i in range(1, n):
+        for j in range(n - 1):
+            ax = axes[i - 1, j]
+
+            if j >= i:
+                ax.axis("off")
+                continue
+
+            xcol = cols[j]
+            ycol = cols[i]
+
+            pair_df = df[[xcol, ycol]].dropna()
+            x = pair_df[xcol].to_numpy()
+            y = pair_df[ycol].to_numpy()
+
+            if len(x) < 2:
+                ax.text(0.5, 0.5, "Not enough data", ha="center", va="center")
+                ax.set_xlabel(labels[xcol])
+                ax.set_ylabel(labels[ycol])
+                continue
+
+            r, _ = pearsonr(x, y)
+            rho, _ = spearmanr(x, y)
+
+            correlation_rows.append({
+                "Variable 1": labels[xcol],
+                "Variable 2": labels[ycol],
+                "Pearson r": r,
+                "Spearman rho": rho,
+                "N": len(pair_df)
+            })
+
+            ax.scatter(x, y, alpha=alpha, s=s)
+
+            if add_regression_line:
+                slope, intercept = np.polyfit(x, y, 1)
+                x_line = np.linspace(np.min(x), np.max(x), 200)
+                y_line = slope * x_line + intercept
+                ax.plot(x_line, y_line, linewidth=2, color='red')
+
+            ax.text(
+                0.03, 0.95,
+                f"r = {r:.3f}\nρ = {rho:.3f}",
+                transform=ax.transAxes,
+                va="top",
+                bbox=dict(facecolor="white", alpha=0.8, edgecolor="none")
+            )
+
+            ax.set_xlabel(labels[xcol])
+            ax.set_ylabel(labels[ycol])
+
+    plt.tight_layout()
+    plt.show()
+
+    # --------------------------------------------------
+    # 2) Correlation matrices
+    # --------------------------------------------------
+    corr_df = pd.DataFrame(correlation_rows)
+
+    pearson_matrix = df[cols].corr(method="pearson")
+    spearman_matrix = df[cols].corr(method="spearman")
+
+    pearson_matrix = pearson_matrix.rename(index=labels, columns=labels)
+    spearman_matrix = spearman_matrix.rename(index=labels, columns=labels)
+
+    def _plot_corr_matrix(matrix, title, cmap="Greens"):
+        fig, ax = plt.subplots(figsize=matrix_figsize)
+        im = ax.imshow(matrix.values, cmap=cmap, vmin=-1, vmax=1)
+
+        ax.set_xticks(np.arange(len(matrix.columns)))
+        ax.set_yticks(np.arange(len(matrix.index)))
+        ax.set_xticklabels(matrix.columns, rotation=30, ha="right")
+        ax.set_yticklabels(matrix.index)
+
+        ax.set_title(title)
+
+        # write values inside cells
+        for i in range(matrix.shape[0]):
+            for j in range(matrix.shape[1]):
+                val = matrix.iloc[i, j]
+                ax.text(
+                    j, i, f"{val:.2f}",
+                    ha="center", va="center",
+                    color="black"
+                )
+
+        cbar = plt.colorbar(im, ax=ax)
+        cbar.set_label("Correlation coefficient")
+
+        plt.tight_layout()
+        plt.show()
+
+    if show_pearson_matrix_plot:
+        _plot_corr_matrix(
+            pearson_matrix,
+            title="Pearson correlation matrix",
+            cmap="Greens"
+        )
+
+    if show_spearman_matrix_plot:
+        _plot_corr_matrix(
+            spearman_matrix,
+            title="Spearman correlation matrix",
+            cmap="Greens"
+        )
+
+    # --------------------------------------------------
+    # 3) Print tables
+    # --------------------------------------------------
+    if print_table:
+        print("\nPairwise correlations between the four variation sources:\n")
+        print(corr_df.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
+
+    if print_matrix:
+        print("\nPearson correlation matrix:\n")
+        print(pearson_matrix.to_string(float_format=lambda x: f"{x:.3f}"))
+
+        print("\nSpearman correlation matrix:\n")
+        print(spearman_matrix.to_string(float_format=lambda x: f"{x:.3f}"))
+
+    return corr_df, pearson_matrix, spearman_matrix
 
 ##############################################################################################################
 """Run this file"""
@@ -464,7 +658,7 @@ def main():
     #    bin_widths=[0.005, 0.005],
     #    run = False)
     
-    sensor = "LLS_B"
+    '''sensor = "LLS_B"
     
     # Get best fit distributions
     if sensor == "CAM":
@@ -476,7 +670,21 @@ def main():
     data, weights = np.array(get_data(sensor, format="merged"))
     print(f"Sensor: {sensor}")
     best = best_fit_distribution(data=data, bins=bins, distributions=None, weights=weights, use_all_dist=use_all_dist, plot=True, print_statement=True)
-    print(best)
+    print(best)'''
+
+
+    corr_df, pearson_matrix, spearman_matrix = plot_sensor_correlation_scatter_only(
+        tow_range=range(2, 32),
+        scatter_figsize=(12, 8),
+        matrix_figsize=(7, 6),
+        alpha=0.20,
+        s=8,
+        add_regression_line=True,
+        show_pearson_matrix_plot=True,
+        show_spearman_matrix_plot=True,
+        print_table=True,
+        print_matrix=True
+    )
 
     # Get raw statistics
     #data, weights = get_data(sensor=sensor)
