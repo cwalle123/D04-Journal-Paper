@@ -1458,7 +1458,7 @@ def main():
     #plot_RW_tows(2, plot_individual_histograms=True)
     #analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
     #analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv", error_areas=True) # Only plots data
-    # run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=500,num_tows=31) #Seems to converge at 120 sims
+    run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=120,num_tows=31) #Seems to converge at 120 sims
     #plot_LLS_hist()
 
     # generate_RW_multitow_layout_lengths(num_tows=30, plot=True, histogram_bins = 300)
@@ -1470,7 +1470,7 @@ def main():
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
     #generate_virtual_lamina_figure(save_PDF=False)
-    generate_virtual_lamina_figure(save_PDF=True, style="presentation")
+    # generate_virtual_lamina_figure(save_PDF=True, style="presentation")
     # generate_virtual_lamina_figure(num_tows=3, save_PDF=True, style="presentation_3_tows")
     #find_RW_statistics(n_tows=1000)
 

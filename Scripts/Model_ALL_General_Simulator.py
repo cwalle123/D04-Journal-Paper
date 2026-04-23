@@ -2,43 +2,59 @@
 import numpy as np
 from scipy.stats import logistic, norm, skewnorm
 import pygame
+import time
 
 #Internal imports
-from Handling_ALL_Functions import get_data
-from Model_ALL_RandomWalk import generate_random_walk
+from Model_ALL_RandomWalk import generate_random_walk, fit_random_walk, get_n_steps, get_proposal_distribution
 
 ############################################################################################################################################
-"""Help Functions"""
+"""Cache"""
+
+RW_CACHE = {
+    "LT": fit_random_walk("LT"),
+    "CAM": fit_random_walk("CAM"),
+    "LLS_B": fit_random_walk("LLS_B"),
+    "LLS_A": fit_random_walk("LLS_A")}
+
+RW_PROPOSAL_STD = {
+    "LT": get_proposal_distribution("LT"),
+    "CAM": get_proposal_distribution("CAM"),
+    "LLS_B": get_proposal_distribution("LLS_B"),
+    "LLS_A": get_proposal_distribution("LLS_A")}
+
+STEP_CACHE = {
+    "LT": get_n_steps("LT"),
+    "CAM": get_n_steps("CAM"),
+    "LLS_B": get_n_steps("LLS_B"),
+    "LLS_A": get_n_steps("LLS_A")}
+
+params = {
+    "LT": (-0.93, 0.06),
+    "CAM": (0.29, 0.22),
+    "LLSB": (-0.08, 0.06),
+    "LLSA": (-0.25, 0.07)}
+
+def generate_rw(sensor, n_steps, target_dist, params):
+    proposal_std = RW_PROPOSAL_STD[sensor]
+
+    return generate_random_walk(
+        sensor,
+        n_steps,
+        proposal_std,     # ✅ real step size (important)
+        target_dist,      # ✅ YOUR distribution
+        norm,             # ✅ acts as base distribution
+        params            # ✅ used for start value
+    )
+
+normal_mode = False
+
+def NORMAL_distribution(mu, sigma):
+    return lambda x: norm.pdf(x, loc=mu, scale=sigma)
 
 def LT_distribution(mean_shift, scale_factor):
     mu = -0.93 + mean_shift
     s = 0.036 * scale_factor
     return lambda x: logistic.pdf(x, loc=mu, scale=s)
-
-def LT_params(mean_shift, scale_factor):
-    mu = -0.93 + mean_shift
-    s = 0.036 * scale_factor
-    return mu, s
-
-def LLSA_distribution(mean_shift, scale_factor):
-    mu = -0.25 + mean_shift
-    s = 0.041 * scale_factor
-    return lambda x: logistic.pdf(x, loc=mu, scale=s)
-
-def LLSA_params(mean_shift, scale_factor):
-    mu = -0.25 + mean_shift
-    s = 0.041 * scale_factor
-    return mu, s
-
-def LLSB_distribution(mean_shift, scale_factor):
-    mu = mean_shift
-    sigma = scale_factor
-    return lambda x: norm.pdf(x, loc=mu, scale=sigma)
-
-def LLSB_params(mean_shift, scale_factor):
-    mu = mean_shift
-    sigma = scale_factor
-    return mu, sigma
 
 def CAM_distribution(mean_shift, scale_factor):
     xi = 0.53 + mean_shift
@@ -46,24 +62,49 @@ def CAM_distribution(mean_shift, scale_factor):
     alpha = -2.29
     return lambda x: skewnorm.pdf(x, a=alpha, loc=xi, scale=omega)
 
+def LLSB_distribution(mean_shift, scale_factor):
+    mu = mean_shift
+    sigma = scale_factor
+    return lambda x: norm.pdf(x, loc=mu, scale=sigma)
+
+def LLSA_distribution(mean_shift, scale_factor):
+    mu = -0.25 + mean_shift
+    s = 0.041 * scale_factor
+    return lambda x: logistic.pdf(x, loc=mu, scale=s)
+
+LT_steps, LT_std, LT_target, LT_dist, LT_params = RW_CACHE["LT"]
+CAM_steps, CAM_std, CAM_target, CAM_dist, CAM_params = RW_CACHE["CAM"]
+LLSB_steps, LLSB_std, LLSB_target, LLSB_dist, LLSB_params = RW_CACHE["LLS_B"]
+LLSA_steps, LLSA_std, LLSA_target, LLSA_dist, LLSA_params = RW_CACHE["LLS_A"]
+
+LT = generate_rw("LT",LT_steps, NORMAL_distribution(*params["LT"]) if normal_mode else LT_distribution(*params["LT"]), params["LT"])
+CAM = generate_rw("CAM",CAM_steps, NORMAL_distribution(*params["CAM"]) if normal_mode else CAM_distribution(*params["CAM"]), params["CAM"])
+LLSB = generate_rw("LLS_B", LLSB_steps, NORMAL_distribution(*params["LLSB"]) if normal_mode else LLSB_distribution(*params["LLSB"]), params["LLSB"])
+LLSA = generate_rw("LLS_A", LLSA_steps, NORMAL_distribution(*params["LLSA"]) if normal_mode else LLSA_distribution(*params["LLSA"]), params["LLSA"])
+
+############################################################################################################################################
+"""Help Functions"""
+
+def LT_params(mean_shift, scale_factor):
+    mu = -0.93 + mean_shift
+    s = 0.036 * scale_factor
+    return mu, s
+
+def LLSA_params(mean_shift, scale_factor):
+    mu = -0.25 + mean_shift
+    s = 0.041 * scale_factor
+    return mu, s
+
+def LLSB_params(mean_shift, scale_factor):
+    mu = mean_shift
+    sigma = scale_factor
+    return mu, sigma
+
 def CAM_params(mean_shift, scale_factor):
     xi = 0.53 + mean_shift
     omega = 0.32 * scale_factor
     alpha = -2.29
     return xi, omega
-
-def NORMAL_distribution(mu, sigma):
-    return lambda x: norm.pdf(x, loc=mu, scale=sigma)
-
-def get_n_steps(sensor):
-    """This function gets the number of steps, which is the number of data points in a one meter tow"""
-    data, weights = get_data(sensor, format='separated')
-
-    lengths = []
-    for i in range(len(data)):
-        lengths.append(len(data[i][:]))
-
-    return int(np.average(lengths))
 
 def draw_single_distribution(screen, dist_func, rect, color, title, params=None):
     global normal_mode
@@ -228,6 +269,7 @@ def draw_exit_button():
     pygame.draw.rect(screen, (180, 50, 50), exit_button)
     txt = font.render("EXIT", True, (255, 255, 255))
     screen.blit(txt, (exit_button.x + 30, exit_button.y + 12))
+    return exit_button
 
 def draw_regenerate_button():
     regen_button = pygame.Rect(285, 450, 210, 40)
@@ -262,6 +304,17 @@ def draw_normal_button():
 
     return normal_button
 
+def draw_multisim_button():
+    multi_button = pygame.Rect(285, 500, 210, 40)  # below regenerate
+
+    pygame.draw.rect(screen, (120, 80, 200), multi_button)
+    pygame.draw.rect(screen, (255, 255, 255), multi_button, 2)
+
+    txt = font.render("MULTI - SIMULATE", True, (255, 255, 255))
+    screen.blit(txt, (multi_button.x + 35, multi_button.y + 13))
+
+    return multi_button
+
 def generate_tows_full_control(params, num_tows=3,
                               tow_spacing_mm=6.35,
                               tow_width_mm=6.35,
@@ -270,42 +323,33 @@ def generate_tows_full_control(params, num_tows=3,
     tow_offset = 0
     top_paths, bottom_paths, centerlines = [], [], []
 
-    # --- get step counts ONCE ---
-    LT_steps = get_n_steps("LT")
-    CAM_steps = get_n_steps("CAM")
-    LLSB_steps = get_n_steps("LLS_B")
-    LLSA_steps = get_n_steps("LLS_A")
+    LT_steps = STEP_CACHE["LT"]
+    CAM_steps = STEP_CACHE["CAM"]
+    LLSB_steps = STEP_CACHE["LLS_B"]
+    LLSA_steps = STEP_CACHE["LLS_A"]
 
     for _ in range(num_tows):
 
         # --- generate each signal with YOUR parameters ---
         LT = generate_random_walk(
-            "LT", LT_steps, 0.05,
+            "LT", LT_steps, RW_PROPOSAL_STD["LT"],
             NORMAL_distribution(*params["LT"]) if normal_mode else LT_distribution(*params["LT"]),
-            norm,
-            (0, 1)
-        )
+            RW_CACHE["LT"][3], RW_CACHE["LT"][4])
 
         CAM = generate_random_walk(
-            "CAM", CAM_steps, 0.05,
+            "CAM", CAM_steps, RW_PROPOSAL_STD["CAM"],
             NORMAL_distribution(*params["CAM"]) if normal_mode else CAM_distribution(*params["CAM"]),
-            norm,
-            (0, 1)
-        )
+            RW_CACHE["CAM"][3], RW_CACHE["CAM"][4])
 
         LLSB = generate_random_walk(
-            "LLS_B", LLSB_steps, params["LLSB"][1],
+            "LLS_B", LLSB_steps, RW_PROPOSAL_STD["LLS_B"],
             NORMAL_distribution(*params["LLSB"]) if normal_mode else LLSB_distribution(*params["LLSB"]),
-            norm,
-            params["LLSB"]
-        )
+            RW_CACHE["LLS_B"][3], RW_CACHE["LLS_B"][4])
 
         LLSA = generate_random_walk(
-            "LLS_A", LLSA_steps, 0.05,
+            "LLS_A", LLSA_steps, RW_PROPOSAL_STD["LLS_A"],
             NORMAL_distribution(*params["LLSA"]) if normal_mode else LLSA_distribution(*params["LLSA"]),
-            norm,
-            (0, 1)
-        )
+            RW_CACHE["LLS_A"][3], RW_CACHE["LLS_A"][4])
 
         # --- match lengths ---
         n_steps = min(len(LT), len(CAM), len(LLSB), len(LLSA))
@@ -356,6 +400,119 @@ def generate_tows_full_control(params, num_tows=3,
     overlap_percent = (overlap_area / total_area) * 100 if total_area > 0 else 0
 
     return x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent
+
+def compute_gap_overlap_only(params, num_tows=31,
+                             tow_spacing_mm=6.35,
+                             tow_width_mm=6.35,
+                             tow_length_mm=1000):
+
+    LT_steps = STEP_CACHE["LT"]
+    CAM_steps = STEP_CACHE["CAM"]
+    LLSB_steps = STEP_CACHE["LLS_B"]
+    LLSA_steps = STEP_CACHE["LLS_A"]
+
+    tow_offset = 0
+
+    top_paths = []
+    bottom_paths = []
+
+    # IMPORTANT: define x ONCE (same as full model behavior)
+    x = np.linspace(0, tow_length_mm, min(LT_steps, CAM_steps, LLSB_steps, LLSA_steps))
+
+    for _ in range(num_tows):
+
+        LT = generate_random_walk(
+            "LT", LT_steps, RW_PROPOSAL_STD["LT"],
+            NORMAL_distribution(*params["LT"]) if normal_mode else LT_distribution(*params["LT"]),
+            RW_CACHE["LT"][3], RW_CACHE["LT"][4]
+        )
+
+        CAM = generate_random_walk(
+            "CAM", CAM_steps, RW_PROPOSAL_STD["CAM"],
+            NORMAL_distribution(*params["CAM"]) if normal_mode else CAM_distribution(*params["CAM"]),
+            RW_CACHE["CAM"][3], RW_CACHE["CAM"][4]
+        )
+
+        LLSB = generate_random_walk(
+            "LLS_B", LLSB_steps, RW_PROPOSAL_STD["LLS_B"],
+            NORMAL_distribution(*params["LLSB"]) if normal_mode else LLSB_distribution(*params["LLSB"]),
+            RW_CACHE["LLS_B"][3], RW_CACHE["LLS_B"][4]
+        )
+
+        LLSA = generate_random_walk(
+            "LLS_A", LLSA_steps, RW_PROPOSAL_STD["LLS_A"],
+            NORMAL_distribution(*params["LLSA"]) if normal_mode else LLSA_distribution(*params["LLSA"]),
+            RW_CACHE["LLS_A"][3], RW_CACHE["LLS_A"][4]
+        )
+
+        # interpolate EVERYTHING to SAME x (critical match to full model behavior)
+        def interp(arr):
+            return np.interp(
+                np.linspace(0, len(arr)-1, len(x)),
+                np.arange(len(arr)),
+                arr
+            )
+
+        LT = interp(LT)
+        CAM = interp(CAM)
+        LLSB = interp(LLSB)
+        LLSA = interp(LLSA)
+
+        center = tow_offset + CAM + LT
+        width = tow_width_mm + LLSB
+
+        top = center + 0.5 * width
+        bottom = center - 0.5 * width
+
+        top_paths.append(top)
+        bottom_paths.append(bottom)
+
+        tow_offset += tow_spacing_mm
+
+    # -----------------------------
+    # GAP / OVERLAP (IDENTICAL LOGIC)
+    # -----------------------------
+    gap_area = 0
+    overlap_area = 0
+
+    for i in range(len(top_paths) - 1):
+        diff = bottom_paths[i + 1] - top_paths[i]
+
+        gap_area += np.trapezoid(np.clip(diff, 0, None), x)
+        overlap_area += np.trapezoid(np.clip(-diff, 0, None), x)
+
+    # IMPORTANT FIX: same normalization as full model
+    total_height = top_paths[-1] - bottom_paths[0]
+    total_area = np.trapezoid(total_height, x)
+
+    gap_percent = (gap_area / total_area) * 100 if total_area > 0 else 0
+    overlap_percent = (overlap_area / total_area) * 100 if total_area > 0 else 0
+
+    return gap_percent, overlap_percent
+
+def run_multi_simulation(params, runs=100, tows=31):
+    gap_results = []
+    overlap_results = []
+
+    start_time = time.time()
+
+    for _ in range(runs):
+        gap, overlap = compute_gap_overlap_only(params, num_tows=tows)
+        gap_results.append(gap)
+        overlap_results.append(overlap)
+
+    total_time = time.time() - start_time
+
+    avg_gap = np.mean(gap_results)
+    avg_overlap = np.mean(overlap_results)
+
+    print("\n=== MULTI SIMULATION RESULTS ===")
+    print(f"Runs: {runs}, Tows per run: {tows}")
+    print(f"Average Gap: {avg_gap:.4f} %")
+    print(f"Average Overlap: {avg_overlap:.4f} %")
+    print(f"Total Time: {total_time:.2f} sec\n")
+
+    return avg_gap, avg_overlap, total_time
 
 def draw_tows(x, top_paths, bottom_paths, centerlines):
     origin_x = 100
@@ -504,8 +661,47 @@ def draw_metrics(gap_percent, overlap_percent):
     txt1 = font.render(f"Gap: {gap_percent:.2f} %", True, (255, 255, 255))
     txt2 = font.render(f"Overlap: {overlap_percent:.2f} %", True, (255, 255, 255))
 
-    screen.blit(txt1, (280, 540))
-    screen.blit(txt2, (380, 540))
+    screen.blit(txt1, (280, 570))
+    screen.blit(txt2, (380, 570))
+
+def draw_loading_bar(progress, elapsed_time):
+    bar_x, bar_y = 240, 300
+    bar_w, bar_h = 300, 20
+
+    # background
+    pygame.draw.rect(screen, (80, 80, 80), (bar_x, bar_y, bar_w, bar_h))
+
+    # progress fill
+    pygame.draw.rect(screen, (100, 200, 255),
+                     (bar_x, bar_y, int(bar_w * progress), bar_h))
+
+    # border
+    pygame.draw.rect(screen, (255, 255, 255), (bar_x, bar_y, bar_w, bar_h), 2)
+
+    # -----------------------------
+    # TEXT: percentage
+    # -----------------------------
+    percent = progress * 100
+    percent_txt = font.render(f"{percent:.1f} %", True, (255, 255, 255))
+    screen.blit(percent_txt, (bar_x + bar_w // 2 - 20, bar_y + 3))
+
+    # -----------------------------
+    # TEXT: elapsed time
+    # -----------------------------
+    elapsed_txt = font.render(f"Elapsed: {elapsed_time:.1f}s", True, (255, 255, 255))
+    screen.blit(elapsed_txt, (bar_x, bar_y + 30))
+
+    # -----------------------------
+    # TEXT: estimated remaining time
+    # -----------------------------
+    if progress > 0:
+        total_estimated = elapsed_time / progress
+        remaining = total_estimated - elapsed_time
+    else:
+        remaining = 0
+
+    remaining_txt = font.render(f"Remaining: {remaining:.1f}s", True, (255, 255, 255))
+    screen.blit(remaining_txt, (bar_x + 200, bar_y + 30))
 
 ############################################################################################################################################
 """Main loop"""
@@ -515,7 +711,15 @@ WIDTH, HEIGHT = 1920, 1080
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 24)
-normal_mode = False
+
+multi_running = False
+multi_progress = 0
+multi_start_time = 0
+multi_total_runs = 10
+multi_current_run = 0
+multi_done_time = None
+multi_gap_results = np.zeros(multi_total_runs)
+multi_overlap_results = np.zeros(multi_total_runs)
 
 class InputBox:
     def __init__(self, x, y, w, h, text, label):
@@ -616,11 +820,6 @@ def update_input_labels(normal_mode):
         inputs["LLSA_scale"].label = "LLSA Scale"
 
 # --- Initial tow values ---
-params = {
-    "LT": (-0.93, 0.06),
-    "CAM": (0.29, 0.22),
-    "LLSB": (-0.08, 0.06),
-    "LLSA": (-0.25, 0.07)}
 x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = generate_tows_full_control(params)
 running = True
 update_input_labels(normal_mode)
@@ -631,10 +830,11 @@ original_inputs = {k: (v.value, v.text) for k, v in inputs.items()}
 
 while running:
     screen.fill((30, 30, 30))
-    exit_button = pygame.Rect(WIDTH - 120, HEIGHT - 60, 100, 40)
-    regen_button = pygame.Rect(285, 450, 210, 40)
-    reset_button = pygame.Rect(285, 120, 210, 40)
-    normal_button = pygame.Rect(285, 60, 210, 40)
+    exit_button = draw_exit_button()
+    regen_button = draw_regenerate_button()
+    reset_button = draw_reset_button()
+    normal_button = draw_normal_button()
+    multi_button = draw_multisim_button()
 
     changed_any = False
 
@@ -643,15 +843,20 @@ while running:
             running = False
 
         if event.type == pygame.MOUSEBUTTONDOWN:
+            # ALWAYS allow exit
             if exit_button.collidepoint(event.pos):
                 running = False
 
+            # Block other buttons during simulation
+            if multi_running:
+                continue
+
             if regen_button.collidepoint(event.pos):
-                x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = generate_tows_full_control(params)
+                x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = \
+                    generate_tows_full_control(params)
 
             if reset_button.collidepoint(event.pos):
                 normal_mode = False
-
                 update_input_labels(normal_mode)
 
                 for key, box in inputs.items():
@@ -663,13 +868,11 @@ while running:
 
                 x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = \
                     generate_tows_full_control(params)
-            
+
             if normal_button.collidepoint(event.pos):
                 normal_mode = True
-
                 update_input_labels(normal_mode)
 
-                # convert ALL sensors to normal using current input values
                 params = {
                     "LT": (inputs["LT_shift"].value, inputs["LT_scale"].value),
                     "CAM": (inputs["CAM_shift"].value, inputs["CAM_scale"].value),
@@ -680,9 +883,50 @@ while running:
                 x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = \
                     generate_tows_full_control(params)
 
-        for box in inputs.values():
-            if box.handle_event(event):
-                changed_any = True
+            if multi_button.collidepoint(event.pos):
+                multi_running = True
+                multi_progress = 0
+                multi_current_run = 0
+
+                multi_gap_results = np.zeros(multi_total_runs)
+                multi_overlap_results = np.zeros(multi_total_runs)
+
+                multi_start_time = time.time()
+
+        # Disable typing during simulation (optional but cleaner)
+        if not multi_running:
+            for box in inputs.values():
+                if box.handle_event(event):
+                    changed_any = True
+    
+    if multi_running and running:
+        # run a few iterations per frame (keeps UI responsive)
+        batch_size = 1
+
+        for _ in range(batch_size):
+            if multi_current_run < multi_total_runs:
+                gap, overlap = compute_gap_overlap_only(params, num_tows=31)
+
+                multi_gap_results[multi_current_run] = gap
+                multi_overlap_results[multi_current_run] = overlap
+
+                multi_current_run += 1
+            else:
+                # finished
+                multi_running = False
+
+                avg_gap = np.mean(multi_gap_results)
+                avg_overlap = np.mean(multi_overlap_results)
+                total_time = time.time() - multi_start_time
+
+                print("\n=== MULTI SIMULATION RESULTS ===")
+                print(f"Average Gap: {avg_gap:.4f} %")
+                print(f"Average Overlap: {avg_overlap:.4f} %")
+                print(f"Total Time: {total_time:.2f} sec")
+
+                break
+
+        multi_progress = multi_current_run / multi_total_runs
 
     # ALWAYS update params (so plots update live)
     params = {
@@ -695,18 +939,20 @@ while running:
     if changed_any:
         x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = generate_tows_full_control(params)
 
-    # Draw everything
-    draw_tows(x, top_paths, bottom_paths, centerlines)
+    if multi_running:
+        # ONLY draw loading UI
+        elapsed = time.time() - multi_start_time
+        draw_loading_bar(multi_progress, elapsed)
 
-    for box in inputs.values():
-        box.draw(screen)
+    else:
+        # Normal UI rendering
+        draw_tows(x, top_paths, bottom_paths, centerlines)
 
-    draw_exit_button()
-    draw_all_distributions(screen, params)
-    draw_metrics(gap_percent, overlap_percent)
-    draw_regenerate_button()
-    draw_reset_button()
-    draw_normal_button()
+        for box in inputs.values():
+            box.draw(screen)
+
+        draw_all_distributions(screen, params)
+        draw_metrics(gap_percent, overlap_percent)
 
     pygame.display.flip()
     clock.tick(60)
