@@ -790,7 +790,7 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
     RW_99th_percentile = np.percentile(RW_gap_data, 99)
 
     # -------generating Random Sampling data--------
-    RS_gap_df, _ = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
+    RS_gap_df, _, _, _ = generate_RS_multitow(num_tows=tows_simulated, tow_spacing_mm=12.5)
     RS_gap_df = np.array(RS_gap_df)
     RS_gap_data = []
     for i in range (tows_simulated-1):
@@ -1264,9 +1264,9 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
 def main():
     #data = run_model()
     #Gap_Histogram(30)
-    #KDE_curves(29)
+    KDE_curves(29)
     #model_distribution_figures(29, plottype="single no D04", save_PDF=False, save_SVG=True)
-    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=False, save_SVG=True, use_RW_fit=False, show_data=True, style="single_error")
+    # plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=False, save_SVG=True, use_RW_fit=False, show_data=True, style="single_error")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
