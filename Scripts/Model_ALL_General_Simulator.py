@@ -85,22 +85,22 @@ LLSA = generate_rw("LLS_A", LLSA_steps, NORMAL_distribution(*params["LLSA"]) if 
 ############################################################################################################################################
 """Help Functions"""
 
-def LT_params(mean_shift, scale_factor):
+def LT_parameters(mean_shift, scale_factor):
     mu = -0.93 + mean_shift
     s = 0.036 * scale_factor
     return mu, s
 
-def LLSA_params(mean_shift, scale_factor):
+def LLSA_parameters(mean_shift, scale_factor):
     mu = -0.25 + mean_shift
     s = 0.041 * scale_factor
     return mu, s
 
-def LLSB_params(mean_shift, scale_factor):
+def LLSB_parameters(mean_shift, scale_factor):
     mu = mean_shift
     sigma = scale_factor
     return mu, sigma
 
-def CAM_params(mean_shift, scale_factor):
+def CAM_parameters(mean_shift, scale_factor):
     xi = 0.53 + mean_shift
     omega = 0.32 * scale_factor
     alpha = -2.29
@@ -234,7 +234,7 @@ def draw_all_distributions(screen, params):
         (start_x, start_y, plot_w, plot_h),
         (0, 200, 255),
         "LT",
-        LT_params(*params["LT"])
+        params["LT"] if normal_mode else LT_parameters(*params["LT"])
     )
 
     draw_single_distribution(
@@ -243,7 +243,7 @@ def draw_all_distributions(screen, params):
         (start_x + plot_w + gap, start_y, plot_w, plot_h),
         (255, 200, 0),
         "CAM",
-        CAM_params(*params["CAM"])
+        params["CAM"] if normal_mode else CAM_parameters(*params["CAM"])
     )
 
     draw_single_distribution(
@@ -252,7 +252,7 @@ def draw_all_distributions(screen, params):
         (start_x, start_y + plot_h + gap, plot_w, plot_h),
         (255, 100, 100),
         "LLSA",
-        LLSA_params(*params["LLSA"])
+        params["LLSA"] if normal_mode else LLSA_parameters(*params["LLSA"])
     )
 
     draw_single_distribution(
@@ -261,7 +261,7 @@ def draw_all_distributions(screen, params):
         (start_x + plot_w + gap, start_y + plot_h + gap, plot_w, plot_h),
         (100, 255, 100),
         "LLSB",
-        LLSB_params(*params["LLSB"])
+        params["LLSB"] if normal_mode else LLSB_parameters(*params["LLSB"])
     )
 
 def draw_exit_button():
@@ -657,7 +657,7 @@ def draw_tows(x, top_paths, bottom_paths, centerlines):
     screen.blit(tick_font.render("Position (mm)", True, axis_color),
                 (origin_x - 80, origin_y - height - 30))
 
-def draw_metrics(gap_percent, overlap_percent):
+def draw_gap_and_overlap_percentages(gap_percent, overlap_percent):
     txt1 = font.render(f"Gap: {gap_percent:.2f} %", True, (255, 255, 255))
     txt2 = font.render(f"Overlap: {overlap_percent:.2f} %", True, (255, 255, 255))
 
@@ -873,12 +873,36 @@ while running:
                 normal_mode = True
                 update_input_labels(normal_mode)
 
+                # --- FORCE all to (-0.08, 0.06) ---
+                default_mu = -0.08
+                default_sigma = 0.06
+
+                inputs["LT_shift"].value = default_mu
+                inputs["LT_shift"].text = str(default_mu)
+                inputs["LT_scale"].value = default_sigma
+                inputs["LT_scale"].text = str(default_sigma)
+
+                inputs["CAM_shift"].value = default_mu
+                inputs["CAM_shift"].text = str(default_mu)
+                inputs["CAM_scale"].value = default_sigma
+                inputs["CAM_scale"].text = str(default_sigma)
+
+                inputs["LLSB_mean"].value = default_mu
+                inputs["LLSB_mean"].text = str(default_mu)
+                inputs["LLSB_std"].value = default_sigma
+                inputs["LLSB_std"].text = str(default_sigma)
+
+                inputs["LLSA_shift"].value = default_mu
+                inputs["LLSA_shift"].text = str(default_mu)
+                inputs["LLSA_scale"].value = default_sigma
+                inputs["LLSA_scale"].text = str(default_sigma)
+
+                # update params immediately
                 params = {
-                    "LT": (inputs["LT_shift"].value, inputs["LT_scale"].value),
-                    "CAM": (inputs["CAM_shift"].value, inputs["CAM_scale"].value),
-                    "LLSB": (inputs["LLSB_mean"].value, inputs["LLSB_std"].value),
-                    "LLSA": (inputs["LLSA_shift"].value, inputs["LLSA_scale"].value)
-                }
+                    "LT": (default_mu, default_sigma),
+                    "CAM": (default_mu, default_sigma),
+                    "LLSB": (default_mu, default_sigma),
+                    "LLSA": (default_mu, default_sigma)}
 
                 x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent = \
                     generate_tows_full_control(params)
@@ -952,7 +976,7 @@ while running:
             box.draw(screen)
 
         draw_all_distributions(screen, params)
-        draw_metrics(gap_percent, overlap_percent)
+        draw_gap_and_overlap_percentages(gap_percent, overlap_percent)
 
     pygame.display.flip()
     clock.tick(60)
