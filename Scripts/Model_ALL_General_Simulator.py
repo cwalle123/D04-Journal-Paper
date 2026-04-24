@@ -3,6 +3,9 @@ import numpy as np
 from scipy.stats import logistic, norm, skewnorm
 import pygame
 import time
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import sys
 
 #Internal imports
 from Model_ALL_RandomWalk import generate_random_walk, fit_random_walk, get_n_steps, get_proposal_distribution
@@ -982,3 +985,114 @@ while running:
     clock.tick(60)
 
 pygame.quit()
+
+############################################################################################################################################
+"""Paper plots"""
+
+def KDE_gap_from_normals(custom_params, runs=200, tows=31, bins=10):
+
+    baseline_params = {
+        "LT": (-0.08, 0.06),
+        "CAM": (-0.08, 0.06),
+        "LLSB": (-0.08, 0.06),
+        "LLSA": (-0.08, 0.06)
+    }
+
+    global normal_mode
+    normal_mode = True
+
+    custom_gaps = []
+    baseline_gaps = []
+
+    start_time = time.time()
+
+    # -----------------------------
+    # PROGRESS BAR FUNCTION
+    # -----------------------------
+    def print_progress(i, total, start_time):
+        progress = (i + 1) / total
+        bar_length = 30
+        filled = int(bar_length * progress)
+
+        bar = "█" * filled + "-" * (bar_length - filled)
+        percent = progress * 100
+
+        elapsed = time.time() - start_time
+        if progress > 0:
+            total_est = elapsed / progress
+            remaining = total_est - elapsed
+        else:
+            remaining = 0
+
+        sys.stdout.write(
+            f"\rProgress |{bar}| {percent:6.2f}% "
+            f"Elapsed: {elapsed:5.1f}s "
+            f"Remaining: {remaining:5.1f}s"
+        )
+        sys.stdout.flush()
+
+    # -----------------------------
+    # RUN SIMULATIONS
+    # -----------------------------
+    for i in range(runs):
+        g_custom, _ = compute_gap_overlap_only(custom_params, num_tows=tows)
+        g_base, _ = compute_gap_overlap_only(baseline_params, num_tows=tows)
+
+        custom_gaps.append(g_custom)
+        baseline_gaps.append(g_base)
+
+        print_progress(i, runs, start_time)
+
+    print("\nDone.\n")
+
+    custom_gaps = np.array(custom_gaps)
+    baseline_gaps = np.array(baseline_gaps)
+
+    # -----------------------------
+    # STATS
+    # -----------------------------
+    print("=== CUSTOM ===")
+    print(f"Mean: {np.mean(custom_gaps):.4f}")
+    print(f"Std:  {np.std(custom_gaps):.4f}")
+
+    print("\n=== BASELINE ===")
+    print(f"Mean: {np.mean(baseline_gaps):.4f}")
+    print(f"Std:  {np.std(baseline_gaps):.4f}")
+
+    # -----------------------------
+    # PLOT
+    # -----------------------------
+    plt.figure(figsize=(10, 6))
+
+    plt.hist(baseline_gaps, bins=bins, density=True,
+             alpha=0.6, color="blue", label="Baseline")
+
+    plt.hist(custom_gaps, bins=bins, density=True,
+             alpha=0.6, color="orange", label="Custom")
+
+    try:
+        import seaborn as sns
+        sns.kdeplot(baseline_gaps, color="blue", linewidth=2)
+        sns.kdeplot(custom_gaps, color="orange", linewidth=2)
+    except:
+        pass
+
+    plt.axvline(np.mean(baseline_gaps), color="blue", linestyle="--")
+    plt.axvline(np.mean(custom_gaps), color="orange", linestyle="--")
+
+    plt.xlabel("Gap (%)")
+    plt.ylabel("Probability Density")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+    return custom_gaps, baseline_gaps
+
+params_test = {
+    "LT": (-0.08, 0.06),
+    "CAM": (-0.08, 0.06),
+    "LLSB": (-0.08, 0.06),
+    "LLSA": (-0.08, 0.06)}
+
+KDE_gap_from_normals(params_test, runs=50, tows=31) 
