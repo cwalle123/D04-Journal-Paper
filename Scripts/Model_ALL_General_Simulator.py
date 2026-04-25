@@ -1503,14 +1503,14 @@ def plot_all_spacing_variations(baseline_file="Cached Data/Normal Distribution V
 
 """Generate Graphs"""
 params_test = {
-    "LT": (0, 0.06),
-    "CAM": (-0.16, 0.06),
+    "LT": (0.0, 0.06),
+    "CAM": (0.0, 0.06),
     "LLSB": (-0.08, 0.06),
     "LLSA": (-0.08, 0.06)}
-KDE_spacing_from_normals(params_test, runs=100, sensor_type="LT_CAM", distribution_parameter="mu", plot=True)
+# KDE_spacing_from_normals(params_test, runs=100, sensor_type="LT_CAM", distribution_parameter="mu", plot=True)
 
 """Load Graphs"""
-# KDE_spacing_from_normals(sensor_type="LT", distribution_parameter="mu", plot=True, bins=100)
+# KDE_spacing_from_normals(sensor_type="LT_CAM", distribution_parameter="mu", bins=100, plot=True)
 
 """Run Simulations To Make A Lot Of Data"""
 # run_spacing_multiple_simulations()
