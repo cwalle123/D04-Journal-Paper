@@ -1120,9 +1120,9 @@ def compute_baseline_spacing(runs=100, tows=31):
 def KDE_spacing_from_normals(custom_params=None, 
                              runs=100, 
                              tows=31, 
-                             bins=30, 
+                             bins=100, 
                              customdata_df=None, 
-                             baseline_df="Normal Distribution Variations/baseline_spacing_data.csv", 
+                             baseline_df="Cached Data/Normal Distribution Variations/baseline_spacing_data.csv", 
                              save_csv=True, 
                              sensor_type=None, 
                              distribution_parameter=None,
@@ -1174,7 +1174,7 @@ def KDE_spacing_from_normals(custom_params=None,
         if distribution_parameter not in valid_params:
             raise ValueError("distribution_parameter must be 'mu' or 'sigma'")
 
-        filename = f"Normal Distribution Variations/{sensor_type}_shifted_{distribution_parameter}_spacing_data.csv"
+        filename = f"Cached Data/Normal Distribution Variations/{sensor_type}_shifted_{distribution_parameter}_spacing_data.csv"
 
         if not os.path.exists(filename):
             raise FileNotFoundError(f"Could not find {filename}")
@@ -1233,7 +1233,7 @@ def KDE_spacing_from_normals(custom_params=None,
         # SAVE CSV WITH NAMING
         # -----------------------------
         if save_csv:
-            base_name = f"Normal Distribution Variations/{sensor_type}_shifted_{distribution_parameter}_spacing_data"
+            base_name = f"Cached Data/Normal Distribution Variations/{sensor_type}_shifted_{distribution_parameter}_spacing_data"
             ext = ".csv"
             final_name = base_name + ext
 
@@ -1291,7 +1291,7 @@ def KDE_spacing_from_normals(custom_params=None,
 
     return customdata_df, baseline_df
 
-def run_spacing_multiple_simulations(runs=100, tows=31, baseline_df="Normal Distribution Variations/baseline_spacing_data.csv", plot=False):
+def run_spacing_multiple_simulations(runs=100, tows=31, baseline_df="Cached Data/Normal Distribution Variations/baseline_spacing_data.csv", plot=False):
 
     base = {
         "LT": (-0.08, 0.06),
@@ -1384,31 +1384,31 @@ def run_spacing_multiple_simulations(runs=100, tows=31, baseline_df="Normal Dist
 
     print("\n\nAll simulations complete.\n")
 
-def plot_all_spacing_variations(baseline_file="Normal Distribution Variations/baseline_spacing_data.csv", bins=100, figsize=(18, 18)):
+def plot_all_spacing_variations(baseline_file="Cached Data/Normal Distribution Variations/baseline_spacing_data.csv", bins=100, figsize=(18, 18)):
     """
     4x4 grid plot with manual loading bar and baseline vs baseline first.
     """
 
     cases = [
-        ("LT_std", "Normal Distribution Variations/LT_shifted_sigma_spacing_data.csv"),
-        ("LT_mu", "Normal Distribution Variations/LT_shifted_mu_spacing_data.csv"),
+        ("LT_std", "Cached Data/Normal Distribution Variations/LT_shifted_sigma_spacing_data.csv"),
+        ("LT_mu", "Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv"),
 
-        ("CAM_std", "Normal Distribution Variations/CAM_shifted_sigma_spacing_data.csv"),
-        ("CAM_mu", "Normal Distribution Variations/CAM_shifted_mu_spacing_data.csv"),
+        ("CAM_std", "Cached Data/Normal Distribution Variations/CAM_shifted_sigma_spacing_data.csv"),
+        ("CAM_mu", "Cached Data/Normal Distribution Variations/CAM_shifted_mu_spacing_data.csv"),
 
-        ("LT+CAM_std", "Normal Distribution Variations/LT_CAM_shifted_sigma_spacing_data.csv"),
-        ("LT+CAM_mu", "Normal Distribution Variations/LT_CAM_shifted_mu_spacing_data.csv"),
+        ("LT+CAM_std", "Cached Data/Normal Distribution Variations/LT_CAM_shifted_sigma_spacing_data.csv"),
+        ("LT+CAM_mu", "Cached Data/Normal Distribution Variations/LT_CAM_shifted_mu_spacing_data.csv"),
 
-        ("LLSB_std", "Normal Distribution Variations/LLSB_shifted_sigma_spacing_data.csv"),
-        ("LLSB_mu", "Normal Distribution Variations/LLSB_shifted_mu_spacing_data.csv"),
+        ("LLSB_std", "Cached Data/Normal Distribution Variations/LLSB_shifted_sigma_spacing_data.csv"),
+        ("LLSB_mu", "Cached Data/Normal Distribution Variations/LLSB_shifted_mu_spacing_data.csv"),
 
-        ("LLSA_std", "Normal Distribution Variations/LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSA_mu", "Normal Distribution Variations/LLSA_shifted_mu_spacing_data.csv"),
+        ("LLSA_std", "Cached Data/Normal Distribution Variations/LLSA_shifted_sigma_spacing_data.csv"),
+        ("LLSA_mu", "Cached Data/Normal Distribution Variations/LLSA_shifted_mu_spacing_data.csv"),
 
-        ("LLSB+LLSA_std", "Normal Distribution Variations/LLSB_LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSB+LLSA_mu", "Normal Distribution Variations/LLSB_LLSA_shifted_mu_spacing_data.csv"),
+        ("LLSB+LLSA_std", "Cached Data/Normal Distribution Variations/LLSB_LLSA_shifted_sigma_spacing_data.csv"),
+        ("LLSB+LLSA_mu", "Cached Data/Normal Distribution Variations/LLSB_LLSA_shifted_mu_spacing_data.csv"),
 
-        ("ALL_both", "Normal Distribution Variations/ALL_shifted_both_spacing_data.csv"),
+        ("ALL_both", "Cached Data/Normal Distribution Variations/ALL_shifted_both_spacing_data.csv"),
     ]
 
     total_steps = len(cases) + 1  # +1 for baseline load
@@ -1503,14 +1503,14 @@ def plot_all_spacing_variations(baseline_file="Normal Distribution Variations/ba
 
 """Generate Graphs"""
 params_test = {
-    "LT": (-0.08, 0.06),
-    "CAM": (-0.08, 0.06),
+    "LT": (0, 0.06),
+    "CAM": (-0.16, 0.06),
     "LLSB": (-0.08, 0.06),
     "LLSA": (-0.08, 0.06)}
-# KDE_spacing_from_normals(params_test, runs=1, plot=True, sensor_type="LT", distribution_parameter="mu")
+KDE_spacing_from_normals(params_test, runs=100, sensor_type="LT_CAM", distribution_parameter="mu", plot=True)
 
 """Load Graphs"""
-KDE_spacing_from_normals(sensor_type="LT", distribution_parameter="mu", plot=True, bins=100)
+# KDE_spacing_from_normals(sensor_type="LT", distribution_parameter="mu", plot=True, bins=100)
 
 """Run Simulations To Make A Lot Of Data"""
 # run_spacing_multiple_simulations()
