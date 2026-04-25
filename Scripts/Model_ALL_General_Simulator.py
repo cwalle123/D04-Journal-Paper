@@ -3,9 +3,11 @@ import numpy as np
 from scipy.stats import logistic, norm, skewnorm
 import pygame
 import time
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import sys
+import pandas as pd
+import seaborn as sns
+import os
 
 #Internal imports
 from Model_ALL_RandomWalk import generate_random_walk, fit_random_walk, get_n_steps, get_proposal_distribution
@@ -987,112 +989,532 @@ while running:
 pygame.quit()
 
 ############################################################################################################################################
-"""Paper plots"""
+"""Paper Graphs"""
 
-def KDE_gap_from_normals(custom_params, runs=200, tows=31, bins=10):
+def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
+    """
+    Returns ALL local spacing values (mm) across all tow pairs and x positions.
+    """
+
+    LT_steps = STEP_CACHE["LT"]
+    CAM_steps = STEP_CACHE["CAM"]
+    LLSB_steps = STEP_CACHE["LLS_B"]
+    LLSA_steps = STEP_CACHE["LLS_A"]
+
+    tow_offset = 0
+    top_paths = []
+    bottom_paths = []
+
+    x = np.linspace(0, tow_length_mm, min(LT_steps, CAM_steps, LLSB_steps, LLSA_steps))
+
+    for _ in range(num_tows):
+
+        LT = generate_random_walk(
+            "LT", LT_steps, RW_PROPOSAL_STD["LT"],
+            NORMAL_distribution(*params["LT"]),
+            RW_CACHE["LT"][3], RW_CACHE["LT"][4]
+        )
+
+        CAM = generate_random_walk(
+            "CAM", CAM_steps, RW_PROPOSAL_STD["CAM"],
+            NORMAL_distribution(*params["CAM"]),
+            RW_CACHE["CAM"][3], RW_CACHE["CAM"][4]
+        )
+
+        LLS_B = generate_random_walk(
+            "LLS_B", LLSB_steps, RW_PROPOSAL_STD["LLS_B"],
+            NORMAL_distribution(*params["LLSB"]),
+            RW_CACHE["LLS_B"][3], RW_CACHE["LLS_B"][4]
+        )
+
+        LLS_A = generate_random_walk(
+            "LLS_A", LLSA_steps, RW_PROPOSAL_STD["LLS_A"],
+            NORMAL_distribution(*params["LLSA"]),
+            RW_CACHE["LLS_A"][3], RW_CACHE["LLS_A"][4]
+        )
+
+        def interp(arr):
+            return np.interp(
+                np.linspace(0, len(arr)-1, len(x)),
+                np.arange(len(arr)),
+                arr
+            )
+
+        LT = interp(LT)
+        CAM = interp(CAM)
+        LLS_B = interp(LLS_B)
+        LLS_A = interp(LLS_A)
+
+        center = tow_offset + CAM + LT
+        width = 6.35 + LLS_B
+
+        top = center + 0.5 * width
+        bottom = center - 0.5 * width
+
+        top_paths.append(top)
+        bottom_paths.append(bottom)
+
+        tow_offset += 6.35
+
+    # -----------------------------
+    # COLLECT SPACING (KEY PART)
+    # -----------------------------
+    spacing_data = []
+
+    for i in range(len(top_paths) - 1):
+        diff = bottom_paths[i + 1] - top_paths[i]
+        spacing_data.extend(diff)   # keep ALL values (not integrated)
+
+    return np.array(spacing_data)
+
+def compute_baseline_spacing(runs=100, tows=31):
+    """
+    Compute baseline spacing distribution ONCE and store in DataFrame.
+    """
 
     baseline_params = {
         "LT": (-0.08, 0.06),
         "CAM": (-0.08, 0.06),
         "LLSB": (-0.08, 0.06),
-        "LLSA": (-0.08, 0.06)
-    }
+        "LLSA": (-0.08, 0.06)}
 
     global normal_mode
     normal_mode = True
 
-    custom_gaps = []
-    baseline_gaps = []
+    baseline_data = []
 
-    start_time = time.time()
-
-    # -----------------------------
-    # PROGRESS BAR FUNCTION
-    # -----------------------------
+    # progress bar
     def print_progress(i, total, start_time):
         progress = (i + 1) / total
-        bar_length = 30
-        filled = int(bar_length * progress)
+        bar_len = 30
+        filled = int(bar_len * progress)
 
-        bar = "█" * filled + "-" * (bar_length - filled)
+        bar = "█" * filled + "-" * (bar_len - filled)
         percent = progress * 100
 
         elapsed = time.time() - start_time
-        if progress > 0:
-            total_est = elapsed / progress
-            remaining = total_est - elapsed
-        else:
-            remaining = 0
+        remaining = (elapsed / progress - elapsed) if progress > 0 else 0
 
         sys.stdout.write(
-            f"\rProgress |{bar}| {percent:6.2f}% "
+            f"\rBaseline |{bar}| {percent:6.2f}% "
             f"Elapsed: {elapsed:5.1f}s "
             f"Remaining: {remaining:5.1f}s"
         )
         sys.stdout.flush()
 
-    # -----------------------------
-    # RUN SIMULATIONS
-    # -----------------------------
+    start_time = time.time()
+
     for i in range(runs):
-        g_custom, _ = compute_gap_overlap_only(custom_params, num_tows=tows)
-        g_base, _ = compute_gap_overlap_only(baseline_params, num_tows=tows)
-
-        custom_gaps.append(g_custom)
-        baseline_gaps.append(g_base)
-
+        baseline_data.extend(compute_spacing_distribution(baseline_params, num_tows=tows))
         print_progress(i, runs, start_time)
 
-    print("\nDone.\n")
+    print("\nBaseline ready.\n")
 
-    custom_gaps = np.array(custom_gaps)
-    baseline_gaps = np.array(baseline_gaps)
+    baseline_df = pd.DataFrame({
+        "spacing": baseline_data,
+        "type": "baseline"
+    })
+
+    return baseline_df
+
+def KDE_spacing_from_normals(custom_params=None, 
+                             runs=100, 
+                             tows=31, 
+                             bins=30, 
+                             customdata_df=None, 
+                             baseline_df="Normal Distribution Variations/baseline_spacing_data.csv", 
+                             save_csv=True, 
+                             sensor_type=None, 
+                             distribution_parameter=None,
+                             plot=False):
+
+    global normal_mode
+    normal_mode = True
+
+    # -----------------------------
+    # VALID SENSOR INPUTS (UPDATED)
+    # -----------------------------
+    valid_sensors = ["LT", "CAM", "LLSB", "LLSA",
+                     "LT_CAM", "LLSB_LLSA", "ALL"]
+    valid_params = ["mu", "sigma", "both"]
+
+    # -----------------------------
+    # HELPER: LOAD DF OR CSV
+    # -----------------------------
+    def load_df(data):
+        if data is None:
+            return None
+        if isinstance(data, str):
+            print(f"Loading data from CSV: {data}")
+            return pd.read_csv(data)
+        return data
+
+    baseline_df = load_df(baseline_df)
+    customdata_df = load_df(customdata_df)
+
+    # -----------------------------
+    # VALIDATE BASELINE
+    # -----------------------------
+    if baseline_df is None:
+        raise ValueError("baseline_df must be provided.")
+
+    # -----------------------------
+    # AUTO-LOAD CUSTOM DATA (KEY FEATURE)
+    # -----------------------------
+    if customdata_df is None and custom_params is None:
+
+        if sensor_type is None or distribution_parameter is None:
+            raise ValueError(
+                "Provide sensor_type and distribution_parameter to auto-load CSV."
+            )
+
+        if sensor_type not in valid_sensors:
+            raise ValueError(f"sensor_type must be one of {valid_sensors}")
+
+        if distribution_parameter not in valid_params:
+            raise ValueError("distribution_parameter must be 'mu' or 'sigma'")
+
+        filename = f"Normal Distribution Variations/{sensor_type}_shifted_{distribution_parameter}_spacing_data.csv"
+
+        if not os.path.exists(filename):
+            raise FileNotFoundError(f"Could not find {filename}")
+
+        print(f"Auto-loading custom data: {filename}")
+        customdata_df = pd.read_csv(filename)
+
+    # -----------------------------
+    # GENERATE CUSTOM DATA IF NEEDED
+    # -----------------------------
+    if customdata_df is None:
+
+        if custom_params is None:
+            raise ValueError("Provide custom_params OR customdata_df.")
+
+        if save_csv:
+            if sensor_type not in valid_sensors:
+                raise ValueError(f"sensor_type must be one of {valid_sensors}")
+            if distribution_parameter not in valid_params:
+                raise ValueError("distribution_parameter must be 'mu' or 'sigma'")
+
+        custom_data = []
+        start_time = time.time()
+
+        def print_progress(i, total):
+            progress = (i + 1) / total
+            bar_len = 30
+            filled = int(bar_len * progress)
+
+            bar = "█" * filled + "-" * (bar_len - filled)
+            percent = progress * 100
+
+            elapsed = time.time() - start_time
+            remaining = (elapsed / progress - elapsed) if progress > 0 else 0
+
+            sys.stdout.write(
+                f"\rCustom   |{bar}| {percent:6.2f}% "
+                f"Elapsed: {elapsed:6.1f}s "
+                f"Remaining: {remaining:6.1f}s"
+            )
+            sys.stdout.flush()
+
+        for i in range(runs):
+            custom_data.extend(
+                compute_spacing_distribution(custom_params, num_tows=tows)
+            )
+            print_progress(i, runs)
+
+        print("\nCustom data generation done.\n")
+
+        customdata_df = pd.DataFrame({
+            "spacing": custom_data
+        })
+
+        # -----------------------------
+        # SAVE CSV WITH NAMING
+        # -----------------------------
+        if save_csv:
+            base_name = f"Normal Distribution Variations/{sensor_type}_shifted_{distribution_parameter}_spacing_data"
+            ext = ".csv"
+            final_name = base_name + ext
+
+            counter = 1
+            while os.path.exists(final_name):
+                final_name = f"{base_name}_{counter}{ext}"
+                counter += 1
+
+            customdata_df.to_csv(final_name, index=False)
+            print(f"Saved custom data to: {final_name}")
+
+    else:
+        print("Using precomputed custom data...")
+
+    # -----------------------------
+    # EXTRACT DATA
+    # -----------------------------
+    custom_data = customdata_df["spacing"].values
+    baseline_data = baseline_df["spacing"].values
 
     # -----------------------------
     # STATS
     # -----------------------------
-    print("=== CUSTOM ===")
-    print(f"Mean: {np.mean(custom_gaps):.4f}")
-    print(f"Std:  {np.std(custom_gaps):.4f}")
-
-    print("\n=== BASELINE ===")
-    print(f"Mean: {np.mean(baseline_gaps):.4f}")
-    print(f"Std:  {np.std(baseline_gaps):.4f}")
+    print("\n=== SPACING (mm) ===")
+    print(f"Custom mean/std:   {np.mean(custom_data):.4f} / {np.std(custom_data):.4f}")
+    print(f"Baseline mean/std: {np.mean(baseline_data):.4f} / {np.std(baseline_data):.4f}")
 
     # -----------------------------
     # PLOT
     # -----------------------------
-    plt.figure(figsize=(10, 6))
+    if plot:
+        plt.figure(figsize=(10, 6))
 
-    plt.hist(baseline_gaps, bins=bins, density=True,
-             alpha=0.6, color="blue", label="Baseline")
+        plt.hist(baseline_data, bins=bins, density=True,
+                 alpha=0.6, label="Baseline", color="blue")
 
-    plt.hist(custom_gaps, bins=bins, density=True,
-             alpha=0.6, color="orange", label="Custom")
+        plt.hist(custom_data, bins=bins, density=True,
+                 alpha=0.6, label="Custom", color="orange")
 
-    try:
-        import seaborn as sns
-        sns.kdeplot(baseline_gaps, color="blue", linewidth=2)
-        sns.kdeplot(custom_gaps, color="orange", linewidth=2)
-    except:
-        pass
+        try:
+            import seaborn as sns
+            sns.kdeplot(baseline_data, color="blue", linewidth=2)
+            sns.kdeplot(custom_data, color="orange", linewidth=2)
+        except:
+            pass
 
-    plt.axvline(np.mean(baseline_gaps), color="blue", linestyle="--")
-    plt.axvline(np.mean(custom_gaps), color="orange", linestyle="--")
+        plt.axvline(0, color="black", linestyle=":", label="Ideal (0 gap)")
 
-    plt.xlabel("Gap (%)")
-    plt.ylabel("Probability Density")
-    plt.legend()
+        plt.xlabel("Gap (mm)")
+        plt.ylabel("Density")
+        plt.legend()
 
-    plt.tight_layout()
+        plt.tight_layout()
+        plt.show()
+
+    return customdata_df, baseline_df
+
+def run_spacing_multiple_simulations(runs=100, tows=31, baseline_df="Normal Distribution Variations/baseline_spacing_data.csv", plot=False):
+
+    base = {
+        "LT": (-0.08, 0.06),
+        "CAM": (-0.08, 0.06),
+        "LLSB": (-0.08, 0.06),
+        "LLSA": (-0.08, 0.06)}
+
+    def modify(params, sensors=None, change=None):
+        new_params = params.copy()
+
+        if sensors is None:
+            sensors = ["LT", "CAM", "LLSB", "LLSA"]
+
+        for s in sensors:
+            mu, sigma = new_params[s]
+
+            if change == "mean":
+                mu = 0
+            elif change == "std":
+                sigma = 0.12
+            elif change == "both":
+                mu = 0
+                sigma = 0.12
+
+            new_params[s] = (mu, sigma)
+
+        return new_params
+
+    experiments = [
+        ("LT", "sigma", ["LT"]),
+        ("LT", "mu", ["LT"]),
+        ("CAM", "sigma", ["CAM"]),
+        ("CAM", "mu", ["CAM"]),
+        ("LT_CAM", "sigma", ["LT", "CAM"]),
+        ("LT_CAM", "mu", ["LT", "CAM"]),
+        ("LLSB", "sigma", ["LLSB"]),
+        ("LLSB", "mu", ["LLSB"]),
+        ("LLSA", "sigma", ["LLSA"]),
+        ("LLSA", "mu", ["LLSA"]),
+        ("LLSB_LLSA", "sigma", ["LLSB", "LLSA"]),
+        ("LLSB_LLSA", "mu", ["LLSB", "LLSA"]),
+        ("ALL", "both", ["LT", "CAM", "LLSB", "LLSA"]),
+    ]
+
+    total_exp = len(experiments)
+    start_time = time.time()
+
+    def print_progress(i):
+        progress = (i + 1) / total_exp
+        bar_len = 30
+        filled = int(bar_len * progress)
+
+        bar = "█" * filled + "-" * (bar_len - filled)
+        percent = progress * 100
+
+        elapsed = time.time() - start_time
+        remaining = (elapsed / progress - elapsed) if progress > 0 else 0
+
+        sys.stdout.write(
+            f"\rBatch    |{bar}| {percent:6.2f}% "
+            f"Elapsed: {elapsed:6.1f}s "
+            f"Remaining: {remaining:6.1f}s"
+        )
+        sys.stdout.flush()
+
+    for i, (name, param_type, sensors) in enumerate(experiments):
+
+        print(f"\n===== Running: {name} | {param_type} =====")
+
+        if param_type == "mu":
+            change = "mean"
+        elif param_type == "sigma":
+            change = "std"
+        elif param_type == "both":
+            change = "both"
+
+        custom_params = modify(base, sensors=sensors, change=change)
+
+        KDE_spacing_from_normals(
+            custom_params=custom_params,
+            runs=runs,
+            tows=tows,
+            baseline_df=baseline_df,
+            save_csv=True,
+            sensor_type=name,
+            distribution_parameter=param_type,
+            plot=plot)
+
+        print_progress(i)
+
+    print("\n\nAll simulations complete.\n")
+
+def plot_all_spacing_variations(baseline_file="Normal Distribution Variations/baseline_spacing_data.csv", bins=100, figsize=(18, 18)):
+    """
+    4x4 grid plot with manual loading bar and baseline vs baseline first.
+    """
+
+    cases = [
+        ("LT_std", "Normal Distribution Variations/LT_shifted_sigma_spacing_data.csv"),
+        ("LT_mu", "Normal Distribution Variations/LT_shifted_mu_spacing_data.csv"),
+
+        ("CAM_std", "Normal Distribution Variations/CAM_shifted_sigma_spacing_data.csv"),
+        ("CAM_mu", "Normal Distribution Variations/CAM_shifted_mu_spacing_data.csv"),
+
+        ("LT+CAM_std", "Normal Distribution Variations/LT_CAM_shifted_sigma_spacing_data.csv"),
+        ("LT+CAM_mu", "Normal Distribution Variations/LT_CAM_shifted_mu_spacing_data.csv"),
+
+        ("LLSB_std", "Normal Distribution Variations/LLSB_shifted_sigma_spacing_data.csv"),
+        ("LLSB_mu", "Normal Distribution Variations/LLSB_shifted_mu_spacing_data.csv"),
+
+        ("LLSA_std", "Normal Distribution Variations/LLSA_shifted_sigma_spacing_data.csv"),
+        ("LLSA_mu", "Normal Distribution Variations/LLSA_shifted_mu_spacing_data.csv"),
+
+        ("LLSB+LLSA_std", "Normal Distribution Variations/LLSB_LLSA_shifted_sigma_spacing_data.csv"),
+        ("LLSB+LLSA_mu", "Normal Distribution Variations/LLSB_LLSA_shifted_mu_spacing_data.csv"),
+
+        ("ALL_both", "Normal Distribution Variations/ALL_shifted_both_spacing_data.csv"),
+    ]
+
+    total_steps = len(cases) + 1  # +1 for baseline load
+    start_time = time.time()
+
+    # -----------------------------
+    # PROGRESS BAR
+    # -----------------------------
+    def print_progress(step, total, label="Loading"):
+        progress = step / total
+        bar_len = 30
+        filled = int(bar_len * progress)
+
+        bar = "█" * filled + "-" * (bar_len - filled)
+        percent = progress * 100
+
+        elapsed = time.time() - start_time
+        remaining = (elapsed / progress - elapsed) if progress > 0 else 0
+
+        sys.stdout.write(
+            f"\r{label} |{bar}| {percent:6.2f}% "
+            f"Elapsed: {elapsed:6.1f}s "
+            f"Remaining: {remaining:6.1f}s"
+        )
+        sys.stdout.flush()
+
+    # -----------------------------
+    # LOAD BASELINE
+    # -----------------------------
+    baseline = pd.read_csv(baseline_file)["spacing"].values
+    print_progress(1, total_steps)
+
+    # -----------------------------
+    # FIGURE SETUP (4x4)
+    # -----------------------------
+    fig, axes = plt.subplots(4, 4, figsize=figsize)
+    axes = axes.flatten()
+
+    def plot_case(ax, data, title):
+        ax.hist(baseline, bins=bins, density=True, alpha=0.4, label="Baseline")
+        ax.hist(data, bins=bins, density=True, alpha=0.4, label="Custom")
+
+        try:
+            sns.kdeplot(baseline, ax=ax, linewidth=1.5)
+            sns.kdeplot(data, ax=ax, linewidth=1.5)
+        except:
+            pass
+
+        ax.axvline(0, linestyle=":", linewidth=1)
+        ax.set_title(title)
+        ax.set_xlabel("Gap (mm)")
+        ax.set_ylabel("Density")
+        ax.tick_params(labelsize=8)
+
+    # -----------------------------
+    # BASELINE vs BASELINE FIRST
+    # -----------------------------
+    plot_case(axes[0], baseline, "Baseline vs Baseline")
+
+    # -----------------------------
+    # LOAD + PLOT CASES
+    # -----------------------------
+    for i, (name, file) in enumerate(cases, start=1):
+
+        if not os.path.exists(file):
+            print(f"\nMissing file: {file}")
+            continue
+
+        df = pd.read_csv(file)
+        data = df["spacing"].values
+
+        plot_case(axes[i], data, name)
+
+        print_progress(i + 1, total_steps)
+
+    print("\nLoading complete.\n")
+
+    # -----------------------------
+    # HIDE UNUSED PANELS
+    # -----------------------------
+    for j in range(len(cases) + 1, len(axes)):
+        axes[j].axis("off")
+
+    # -----------------------------
+    # GLOBAL LEGEND
+    # -----------------------------
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=2)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
 
-    return custom_gaps, baseline_gaps
-
+"""Generate Graphs"""
 params_test = {
     "LT": (-0.08, 0.06),
     "CAM": (-0.08, 0.06),
     "LLSB": (-0.08, 0.06),
     "LLSA": (-0.08, 0.06)}
+# KDE_spacing_from_normals(params_test, runs=1, plot=True, sensor_type="LT", distribution_parameter="mu")
 
-KDE_gap_from_normals(params_test, runs=50, tows=31) 
+"""Load Graphs"""
+KDE_spacing_from_normals(sensor_type="LT", distribution_parameter="mu", plot=True, bins=100)
+
+"""Run Simulations To Make A Lot Of Data"""
+# run_spacing_multiple_simulations()
+
+"""Plot all cases of changes"""
+# plot_all_spacing_variations(bins=100)
+

@@ -1264,8 +1264,8 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
 def main():
     #data = run_model()
     #Gap_Histogram(30)
-    KDE_curves(29)
-    #model_distribution_figures(29, plottype="single no D04", save_PDF=False, save_SVG=True)
+    # KDE_curves(29)
+    model_distribution_figures(29, plottype="single no D04", save_PDF=False, save_SVG=True)
     # plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=False, save_SVG=True, use_RW_fit=False, show_data=True, style="single_error")
 
 if __name__ == "__main__":
