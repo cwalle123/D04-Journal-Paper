@@ -143,13 +143,13 @@ def generate_tows_full_control(params, num_tows=3,
             "LLS_B", LLSB_steps, RW_PROPOSAL_STD["LLS_B"],
             NORMAL_distribution(*params["LLSB"]) if normal_mode else LLSB_distribution(*params["LLSB"]),
             norm if normal_mode else RW_CACHE["LLS_B"][3], 
-            params["LLS_B"] if normal_mode else RW_CACHE["LLS_B"][4])
+            params["LLSB"] if normal_mode else RW_CACHE["LLS_B"][4])
 
         LLSA = generate_random_walk(
             "LLS_A", LLSA_steps, RW_PROPOSAL_STD["LLS_A"],
             NORMAL_distribution(*params["LLSA"]) if normal_mode else LLSA_distribution(*params["LLSA"]),
             norm if normal_mode else RW_CACHE["LLS_A"][3], 
-            params["LLS_A"] if normal_mode else RW_CACHE["LLS_A"][4])
+            params["LLSA"] if normal_mode else RW_CACHE["LLS_A"][4])
 
         # --- match lengths ---
         n_steps = min(len(LT), len(CAM), len(LLSB), len(LLSA))
