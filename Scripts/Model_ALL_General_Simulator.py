@@ -1,12 +1,12 @@
 # External imports
-import numpy as np
 from scipy.stats import logistic, norm, skewnorm
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
 import pygame
 import time
-import matplotlib.pyplot as plt
 import sys
-import pandas as pd
-import seaborn as sns
 import os
 
 #Internal imports
@@ -51,8 +51,6 @@ def generate_rw(sensor, n_steps, target_dist, params):
         params            # ✅ used for start value
     )
 
-normal_mode = False
-
 def NORMAL_distribution(mu, sigma):
     return lambda x: norm.pdf(x, loc=mu, scale=sigma)
 
@@ -76,6 +74,8 @@ def LLSA_distribution(mean_shift, scale_factor):
     mu = -0.25 + mean_shift
     s = 0.041 * scale_factor
     return lambda x: logistic.pdf(x, loc=mu, scale=s)
+
+normal_mode = False
 
 LT_steps, LT_std, LT_target, LT_dist, LT_params = RW_CACHE["LT"]
 CAM_steps, CAM_std, CAM_target, CAM_dist, CAM_params = RW_CACHE["CAM"]
@@ -110,215 +110,6 @@ def CAM_parameters(mean_shift, scale_factor):
     omega = 0.32 * scale_factor
     alpha = -2.29
     return xi, omega
-
-def draw_single_distribution(screen, dist_func, rect, color, title, params=None):
-    global normal_mode
-    x0, y0, w, h = rect
-
-    pygame.draw.rect(screen, (80, 80, 80), rect, 2)
-
-    # -----------------------------
-    # FIXED DOMAIN
-    # -----------------------------
-    x_min, x_max = -1.2, 1.2
-    x_vals = np.linspace(x_min, x_max, 400)
-    y_vals = dist_func(x_vals)
-
-    if np.max(y_vals) == 0:
-        return
-
-    y_max = 8
-
-    axis_color = (180, 180, 180)
-    tick_font = pygame.font.SysFont(None, 18)
-
-    # -----------------------------
-    # AXES
-    # -----------------------------
-    pygame.draw.line(screen, axis_color, (x0, y0 + h), (x0 + w, y0 + h), 1)
-    pygame.draw.line(screen, axis_color, (x0, y0), (x0, y0 + h), 1)
-
-    # -----------------------------
-    # X TICKS (FIXED RANGE)
-    # -----------------------------
-    num_ticks = 8
-    for i in range(num_ticks + 1):
-        t = i / num_ticks
-        x_val = x_min + t * (x_max - x_min)
-        px = x0 + t * w
-
-        pygame.draw.line(screen, axis_color, (px, y0 + h), (px, y0 + h + 6), 1)
-
-        label = tick_font.render(f"{x_val:.2f}", True, (220, 220, 220))
-        screen.blit(label, (px - 18, y0 + h + 8))
-
-    # -----------------------------
-    # Y TICKS (PDF SCALE)
-    # -----------------------------
-    for i in range(5):
-        t = i / 4
-        py = y0 + h - t * h
-
-        pygame.draw.line(screen, axis_color, (x0 - 5, py), (x0, py), 1)
-
-        label = tick_font.render(f"{t*y_max:.2f}", True, (220, 220, 220))
-        screen.blit(label, (x0 - 55, py - 8))
-
-    # -----------------------------
-    # CURVE
-    # -----------------------------
-    points = []
-    for i in range(len(x_vals)):
-        px = x0 + (x_vals[i] - x_min) / (x_max - x_min) * w
-        py = y0 + h - (y_vals[i] / y_max) * h
-        points.append((px, py))
-
-    pygame.draw.lines(screen, color, False, points, 2)
-
-    # -----------------------------
-    # TITLE
-    # -----------------------------
-    title_display = title + " (Normal)" if normal_mode else title
-    title_txt = font.render(title_display, True, color)
-    screen.blit(title_txt, (x0 + 5, y0 + 5))
-
-    # -----------------------------
-    # PARAM DISPLAY
-    # -----------------------------
-    if params is not None:
-        mu, scale = params
-
-        if normal_mode:
-            info = font.render(f"μ={mu:.3f}  σ={scale:.3f}", True, (200, 200, 200))
-
-        else:
-            if title == "LT":
-                info = font.render(f"μ={mu:.3f}  s={scale:.3f}", True, (200, 200, 200))
-
-            elif title == "LLSA":
-                info = font.render(f"μ={mu:.3f}  s={scale:.3f}", True, (200, 200, 200))
-
-            elif title == "LLSB":
-                info = font.render(f"μ={mu:.3f}  σ={scale:.3f}", True, (200, 200, 200))
-
-            elif title == "CAM":
-                info = font.render(f"ξ={mu:.3f}  ω={scale:.3f}", True, (200, 200, 200))
-
-        screen.blit(info, (x0 + 5, y0 + 25))
-
-    # -----------------------------
-    # AXIS LABELS
-    # -----------------------------
-    y_label = tick_font.render("PDF", True, axis_color)
-    screen.blit(y_label, (x0 - 55, y0 - 30))
-
-    # Sensor-specific
-    if params is not None:
-        if title == "LT":
-            x_label = "             Error in robot position"
-        elif title == "CAM":
-            x_label = "     Error in tow lateral movement"
-        elif title == "LLSA":
-            x_label = "Error in tow width before compaction"
-        elif title == "LLSB":
-            x_label = "Error in tow width after compaction"
-
-        x_label = tick_font.render(x_label, True, axis_color)
-        screen.blit(x_label, (x0 + w//2 - 100, y0 + h + 35))
-
-def draw_all_distributions(screen, params):
-    plot_w = 500
-    plot_h = 350
-    start_x = 800
-    start_y = 130
-    gap = 80
-
-    draw_single_distribution(
-        screen,
-        NORMAL_distribution(*params["LT"]) if normal_mode else LT_distribution(*params["LT"]),
-        (start_x, start_y, plot_w, plot_h),
-        (0, 200, 255),
-        "LT",
-        params["LT"] if normal_mode else LT_parameters(*params["LT"])
-    )
-
-    draw_single_distribution(
-        screen,
-        NORMAL_distribution(*params["CAM"]) if normal_mode else CAM_distribution(*params["CAM"]),
-        (start_x + plot_w + gap, start_y, plot_w, plot_h),
-        (255, 200, 0),
-        "CAM",
-        params["CAM"] if normal_mode else CAM_parameters(*params["CAM"])
-    )
-
-    draw_single_distribution(
-        screen,
-        NORMAL_distribution(*params["LLSA"]) if normal_mode else LLSA_distribution(*params["LLSA"]),
-        (start_x, start_y + plot_h + gap, plot_w, plot_h),
-        (255, 100, 100),
-        "LLSA",
-        params["LLSA"] if normal_mode else LLSA_parameters(*params["LLSA"])
-    )
-
-    draw_single_distribution(
-        screen,
-        NORMAL_distribution(*params["LLSB"]) if normal_mode else LLSB_distribution(*params["LLSB"]),
-        (start_x + plot_w + gap, start_y + plot_h + gap, plot_w, plot_h),
-        (100, 255, 100),
-        "LLSB",
-        params["LLSB"] if normal_mode else LLSB_parameters(*params["LLSB"])
-    )
-
-def draw_exit_button():
-    exit_button = pygame.Rect(WIDTH - 120, HEIGHT - 60, 100, 40)
-    pygame.draw.rect(screen, (180, 50, 50), exit_button)
-    txt = font.render("EXIT", True, (255, 255, 255))
-    screen.blit(txt, (exit_button.x + 30, exit_button.y + 12))
-    return exit_button
-
-def draw_regenerate_button():
-    regen_button = pygame.Rect(285, 450, 210, 40)
-
-    pygame.draw.rect(screen, (70, 140, 220), regen_button)
-    pygame.draw.rect(screen, (255, 255, 255), regen_button, 2)
-
-    txt = font.render("REGENERATE TOWS", True, (255, 255, 255))
-    screen.blit(txt, (regen_button.x + 23, regen_button.y + 13))
-
-    return regen_button
-
-def draw_reset_button():
-    reset_button = pygame.Rect(285, 120, 210, 40)
-
-    pygame.draw.rect(screen, (200, 140, 70), reset_button)
-    pygame.draw.rect(screen, (255, 255, 255), reset_button, 2)
-
-    txt = font.render("RESET VALUES", True, (255, 255, 255))
-    screen.blit(txt, (reset_button.x + 45, reset_button.y + 13))
-
-    return reset_button
-
-def draw_normal_button():
-    normal_button = pygame.Rect(285, 60, 210, 40)  # ABOVE reset
-
-    pygame.draw.rect(screen, (100, 200, 120), normal_button)
-    pygame.draw.rect(screen, (255, 255, 255), normal_button, 2)
-
-    txt = font.render("NORMAL DIST", True, (255, 255, 255))
-    screen.blit(txt, (normal_button.x + 50, normal_button.y + 13))
-
-    return normal_button
-
-def draw_multisim_button():
-    multi_button = pygame.Rect(285, 500, 210, 40)  # below regenerate
-
-    pygame.draw.rect(screen, (120, 80, 200), multi_button)
-    pygame.draw.rect(screen, (255, 255, 255), multi_button, 2)
-
-    txt = font.render("MULTI - SIMULATE", True, (255, 255, 255))
-    screen.blit(txt, (multi_button.x + 35, multi_button.y + 13))
-
-    return multi_button
 
 def generate_tows_full_control(params, num_tows=3,
                               tow_spacing_mm=6.35,
@@ -708,6 +499,215 @@ def draw_loading_bar(progress, elapsed_time):
     remaining_txt = font.render(f"Remaining: {remaining:.1f}s", True, (255, 255, 255))
     screen.blit(remaining_txt, (bar_x + 200, bar_y + 30))
 
+def draw_single_distribution(screen, dist_func, rect, color, title, params=None):
+    global normal_mode
+    x0, y0, w, h = rect
+
+    pygame.draw.rect(screen, (80, 80, 80), rect, 2)
+
+    # -----------------------------
+    # FIXED DOMAIN
+    # -----------------------------
+    x_min, x_max = -1.2, 1.2
+    x_vals = np.linspace(x_min, x_max, 400)
+    y_vals = dist_func(x_vals)
+
+    if np.max(y_vals) == 0:
+        return
+
+    y_max = 8
+
+    axis_color = (180, 180, 180)
+    tick_font = pygame.font.SysFont(None, 18)
+
+    # -----------------------------
+    # AXES
+    # -----------------------------
+    pygame.draw.line(screen, axis_color, (x0, y0 + h), (x0 + w, y0 + h), 1)
+    pygame.draw.line(screen, axis_color, (x0, y0), (x0, y0 + h), 1)
+
+    # -----------------------------
+    # X TICKS (FIXED RANGE)
+    # -----------------------------
+    num_ticks = 8
+    for i in range(num_ticks + 1):
+        t = i / num_ticks
+        x_val = x_min + t * (x_max - x_min)
+        px = x0 + t * w
+
+        pygame.draw.line(screen, axis_color, (px, y0 + h), (px, y0 + h + 6), 1)
+
+        label = tick_font.render(f"{x_val:.2f}", True, (220, 220, 220))
+        screen.blit(label, (px - 18, y0 + h + 8))
+
+    # -----------------------------
+    # Y TICKS (PDF SCALE)
+    # -----------------------------
+    for i in range(5):
+        t = i / 4
+        py = y0 + h - t * h
+
+        pygame.draw.line(screen, axis_color, (x0 - 5, py), (x0, py), 1)
+
+        label = tick_font.render(f"{t*y_max:.2f}", True, (220, 220, 220))
+        screen.blit(label, (x0 - 55, py - 8))
+
+    # -----------------------------
+    # CURVE
+    # -----------------------------
+    points = []
+    for i in range(len(x_vals)):
+        px = x0 + (x_vals[i] - x_min) / (x_max - x_min) * w
+        py = y0 + h - (y_vals[i] / y_max) * h
+        points.append((px, py))
+
+    pygame.draw.lines(screen, color, False, points, 2)
+
+    # -----------------------------
+    # TITLE
+    # -----------------------------
+    title_display = title + " (Normal)" if normal_mode else title
+    title_txt = font.render(title_display, True, color)
+    screen.blit(title_txt, (x0 + 5, y0 + 5))
+
+    # -----------------------------
+    # PARAM DISPLAY
+    # -----------------------------
+    if params is not None:
+        mu, scale = params
+
+        if normal_mode:
+            info = font.render(f"μ={mu:.3f}  σ={scale:.3f}", True, (200, 200, 200))
+
+        else:
+            if title == "LT":
+                info = font.render(f"μ={mu:.3f}  s={scale:.3f}", True, (200, 200, 200))
+
+            elif title == "LLSA":
+                info = font.render(f"μ={mu:.3f}  s={scale:.3f}", True, (200, 200, 200))
+
+            elif title == "LLSB":
+                info = font.render(f"μ={mu:.3f}  σ={scale:.3f}", True, (200, 200, 200))
+
+            elif title == "CAM":
+                info = font.render(f"ξ={mu:.3f}  ω={scale:.3f}", True, (200, 200, 200))
+
+        screen.blit(info, (x0 + 5, y0 + 25))
+
+    # -----------------------------
+    # AXIS LABELS
+    # -----------------------------
+    y_label = tick_font.render("PDF", True, axis_color)
+    screen.blit(y_label, (x0 - 55, y0 - 30))
+
+    # Sensor-specific
+    if params is not None:
+        if title == "LT":
+            x_label = "             Error in robot position"
+        elif title == "CAM":
+            x_label = "     Error in tow lateral movement"
+        elif title == "LLSA":
+            x_label = "Error in tow width before compaction"
+        elif title == "LLSB":
+            x_label = "Error in tow width after compaction"
+
+        x_label = tick_font.render(x_label, True, axis_color)
+        screen.blit(x_label, (x0 + w//2 - 100, y0 + h + 35))
+
+def draw_all_distributions(screen, params):
+    plot_w = 500
+    plot_h = 350
+    start_x = 800
+    start_y = 130
+    gap = 80
+
+    draw_single_distribution(
+        screen,
+        NORMAL_distribution(*params["LT"]) if normal_mode else LT_distribution(*params["LT"]),
+        (start_x, start_y, plot_w, plot_h),
+        (0, 200, 255),
+        "LT",
+        params["LT"] if normal_mode else LT_parameters(*params["LT"])
+    )
+
+    draw_single_distribution(
+        screen,
+        NORMAL_distribution(*params["CAM"]) if normal_mode else CAM_distribution(*params["CAM"]),
+        (start_x + plot_w + gap, start_y, plot_w, plot_h),
+        (255, 200, 0),
+        "CAM",
+        params["CAM"] if normal_mode else CAM_parameters(*params["CAM"])
+    )
+
+    draw_single_distribution(
+        screen,
+        NORMAL_distribution(*params["LLSA"]) if normal_mode else LLSA_distribution(*params["LLSA"]),
+        (start_x, start_y + plot_h + gap, plot_w, plot_h),
+        (255, 100, 100),
+        "LLSA",
+        params["LLSA"] if normal_mode else LLSA_parameters(*params["LLSA"])
+    )
+
+    draw_single_distribution(
+        screen,
+        NORMAL_distribution(*params["LLSB"]) if normal_mode else LLSB_distribution(*params["LLSB"]),
+        (start_x + plot_w + gap, start_y + plot_h + gap, plot_w, plot_h),
+        (100, 255, 100),
+        "LLSB",
+        params["LLSB"] if normal_mode else LLSB_parameters(*params["LLSB"])
+    )
+
+def draw_exit_button():
+    exit_button = pygame.Rect(WIDTH - 120, HEIGHT - 60, 100, 40)
+    pygame.draw.rect(screen, (180, 50, 50), exit_button)
+    txt = font.render("EXIT", True, (255, 255, 255))
+    screen.blit(txt, (exit_button.x + 30, exit_button.y + 12))
+    return exit_button
+
+def draw_regenerate_button():
+    regen_button = pygame.Rect(285, 450, 210, 40)
+
+    pygame.draw.rect(screen, (70, 140, 220), regen_button)
+    pygame.draw.rect(screen, (255, 255, 255), regen_button, 2)
+
+    txt = font.render("REGENERATE TOWS", True, (255, 255, 255))
+    screen.blit(txt, (regen_button.x + 23, regen_button.y + 13))
+
+    return regen_button
+
+def draw_reset_button():
+    reset_button = pygame.Rect(285, 120, 210, 40)
+
+    pygame.draw.rect(screen, (200, 140, 70), reset_button)
+    pygame.draw.rect(screen, (255, 255, 255), reset_button, 2)
+
+    txt = font.render("RESET VALUES", True, (255, 255, 255))
+    screen.blit(txt, (reset_button.x + 45, reset_button.y + 13))
+
+    return reset_button
+
+def draw_normal_button():
+    normal_button = pygame.Rect(285, 60, 210, 40)  # ABOVE reset
+
+    pygame.draw.rect(screen, (100, 200, 120), normal_button)
+    pygame.draw.rect(screen, (255, 255, 255), normal_button, 2)
+
+    txt = font.render("NORMAL DIST", True, (255, 255, 255))
+    screen.blit(txt, (normal_button.x + 50, normal_button.y + 13))
+
+    return normal_button
+
+def draw_multisim_button():
+    multi_button = pygame.Rect(285, 500, 210, 40)  # below regenerate
+
+    pygame.draw.rect(screen, (120, 80, 200), multi_button)
+    pygame.draw.rect(screen, (255, 255, 255), multi_button, 2)
+
+    txt = font.render("MULTI - SIMULATE", True, (255, 255, 255))
+    screen.blit(txt, (multi_button.x + 35, multi_button.y + 13))
+
+    return multi_button
+
 ############################################################################################################################################
 """Main loop"""
 
@@ -1012,25 +1012,29 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
         LT = generate_random_walk(
             "LT", LT_steps, RW_PROPOSAL_STD["LT"],
             NORMAL_distribution(*params["LT"]),
-            RW_CACHE["LT"][3], RW_CACHE["LT"][4]
+            norm,
+            params["LT"]
         )
 
         CAM = generate_random_walk(
             "CAM", CAM_steps, RW_PROPOSAL_STD["CAM"],
             NORMAL_distribution(*params["CAM"]),
-            RW_CACHE["CAM"][3], RW_CACHE["CAM"][4]
+            norm,
+            params["CAM"]
         )
 
         LLS_B = generate_random_walk(
             "LLS_B", LLSB_steps, RW_PROPOSAL_STD["LLS_B"],
             NORMAL_distribution(*params["LLSB"]),
-            RW_CACHE["LLS_B"][3], RW_CACHE["LLS_B"][4]
+            norm,
+            params["LLSB"]
         )
 
         LLS_A = generate_random_walk(
             "LLS_A", LLSA_steps, RW_PROPOSAL_STD["LLS_A"],
             NORMAL_distribution(*params["LLSA"]),
-            RW_CACHE["LLS_A"][3], RW_CACHE["LLS_A"][4]
+            norm,
+            params["LLSA"]
         )
 
         def interp(arr):
@@ -1069,14 +1073,16 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
 
 def compute_baseline_spacing(runs=100, tows=31):
     """
-    Compute baseline spacing distribution ONCE and store in DataFrame.
+    Compute baseline spacing distribution ONCE, store in DataFrame,
+    and always save to CSV.
     """
 
     baseline_params = {
         "LT": (-0.08, 0.06),
         "CAM": (-0.08, 0.06),
         "LLSB": (-0.08, 0.06),
-        "LLSA": (-0.08, 0.06)}
+        "LLSA": (-0.08, 0.06)
+    }
 
     global normal_mode
     normal_mode = True
@@ -1105,7 +1111,9 @@ def compute_baseline_spacing(runs=100, tows=31):
     start_time = time.time()
 
     for i in range(runs):
-        baseline_data.extend(compute_spacing_distribution(baseline_params, num_tows=tows))
+        baseline_data.extend(
+            compute_spacing_distribution(baseline_params, num_tows=tows)
+        )
         print_progress(i, runs, start_time)
 
     print("\nBaseline ready.\n")
@@ -1114,6 +1122,18 @@ def compute_baseline_spacing(runs=100, tows=31):
         "spacing": baseline_data,
         "type": "baseline"
     })
+
+    # -----------------------------
+    # SAVE TO CSV (ALWAYS)
+    # -----------------------------
+    save_path = "Cached Data/Normal Distribution Variations/baseline_spacing_data.csv"
+
+    # ensure directory exists
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+    baseline_df.to_csv(save_path, index=False)
+
+    print(f"Saved baseline data to: {save_path}")
 
     return baseline_df
 
@@ -1508,12 +1528,13 @@ params_test = {
     "LLSB": (-0.08, 0.06),
     "LLSA": (-0.08, 0.06)}
 # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LT_CAM", distribution_parameter="mu", plot=True)
+# compute_baseline_spacing()
 
 """Load Graphs"""
 # KDE_spacing_from_normals(sensor_type="LT_CAM", distribution_parameter="mu", bins=100, plot=True)
 
 """Run Simulations To Make A Lot Of Data"""
-# run_spacing_multiple_simulations()
+run_spacing_multiple_simulations()
 
 """Plot all cases of changes"""
 # plot_all_spacing_variations(bins=100)
