@@ -10,7 +10,7 @@ import sys
 import os
 
 # Internal imports (CHANGED)
-from Model_ALL_RandomSampling import generate_random_sampling_data
+from Model_ALL_RandomSampling import generate_random_sampling_data, generate_siddharth_width
 
 ############################################################################################################################################
 """Functions"""
@@ -27,9 +27,54 @@ def NORMAL_distribution(mu, sigma):
     from scipy.stats import norm
     return lambda x: norm.pdf(x, loc=mu, scale=sigma)
 
+def enforce_Wb_ge_Wa(Wa, params, steps, max_trials=5):
+    """
+    Ensures Wb >= Wa by sampling LLSB (width error).
+    Works correctly in error-space.
+    """
+
+    # Required minimum error to satisfy constraint
+    W0 = 6.35
+    required_error = Wa - W0
+
+    # -----------------------------
+    # Generate candidate error samples
+    # -----------------------------
+    candidates = np.stack([
+        generate_random_sampling_data("LLS_B", steps=steps, tows=1)[0]
+        for _ in range(max_trials)
+    ])
+
+    # apply scaling (still errors)
+    candidates = candidates * params["LLSB"][1] + params["LLSB"][0]
+
+    # -----------------------------
+    # validity: error >= required error
+    # -----------------------------
+    valid = candidates >= required_error
+
+    any_valid = np.any(valid, axis=0)
+    idx = np.argmax(valid, axis=0)
+
+    # pick error
+    chosen_error = candidates[idx, np.arange(steps)]
+
+    # fallback: exactly match Wa → error = required_error
+    chosen_error[~any_valid] = required_error[~any_valid]
+
+    # convert back to absolute width
+    Wb = W0 + chosen_error
+
+    return Wb
+
 def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
     """
     Returns ALL local spacing values (mm) across all tow pairs and x positions.
+    NOW matches full tow logic:
+    - Pc = Pr + Pt
+    - Wa (LLS_A) = pre-compaction width
+    - Wb (LLS_B) = post-compaction width with constraint Wb >= Wa
+    - Uses TL,b and TR,b for spacing
     """
 
     LT_steps = STEP_CACHE["LT"]
@@ -41,53 +86,83 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
     top_paths = []
     bottom_paths = []
 
-    x = np.linspace(0, tow_length_mm, min(LT_steps, CAM_steps, LLSB_steps, LLSA_steps))
+    x = np.linspace(0, tow_length_mm,
+                    min(LT_steps, CAM_steps, LLSB_steps, LLSA_steps))
 
     for _ in range(num_tows):
 
         # -----------------------------
-        # RS GENERATION (KEY CHANGE)
+        # 1 & 2: POSITION SAMPLING
         # -----------------------------
-        LT = generate_random_sampling_data("LT", steps=LT_steps, tows=1)[0]
-        LT = LT * params["LT"][1] + params["LT"][0]
+        Pr = generate_random_sampling_data("LT", steps=LT_steps, tows=1)[0]
+        Pr = Pr * params["LT"][1] + params["LT"][0]
 
-        CAM = generate_random_sampling_data("CAM", steps=CAM_steps, tows=1)[0]
-        CAM = CAM * params["CAM"][1] + params["CAM"][0]
-
-        LLS_B = generate_random_sampling_data("LLS_B", steps=LLSB_steps, tows=1)[0]
-        LLS_B = LLS_B * params["LLSB"][1] + params["LLSB"][0]
-
-        LLS_A = generate_random_sampling_data("LLS_A", steps=LLSA_steps, tows=1)[0]
-        LLS_A = LLS_A * params["LLSA"][1] + params["LLSA"][0]
+        Pt = generate_random_sampling_data("CAM", steps=CAM_steps, tows=1)[0]
+        Pt = Pt * params["CAM"][1] + params["CAM"][0]
 
         # -----------------------------
-        # INTERPOLATION (UNCHANGED)
+        # 4: WIDTH BEFORE COMPACTION (Wa)
+        # -----------------------------
+        LLSA = generate_random_sampling_data("LLS_A", steps=LLSA_steps, tows=1)[0]
+        LLSA = LLSA * params["LLSA"][1] + params["LLSA"][0]
+
+        W0 = 6.35
+        Wa = W0 + LLSA
+
+        # -----------------------------
+        # 5: WIDTH AFTER COMPACTION (Wb) with constraint
+        # -----------------------------
+        Wb = enforce_Wb_ge_Wa(Wa, params, LLSB_steps)
+
+        # -----------------------------
+        # INTERPOLATION (keep consistent)
         # -----------------------------
         def interp(arr):
             return np.interp(
-                np.linspace(0, len(arr)-1, len(x)),
+                np.linspace(0, len(arr) - 1, len(x)),
                 np.arange(len(arr)),
                 arr
             )
 
-        LT = interp(LT)
-        CAM = interp(CAM)
-        LLS_B = interp(LLS_B)
-        LLS_A = interp(LLS_A)
+        Pr = interp(Pr)
+        Pt = interp(Pt)
+        Wa = interp(Wa)
+        Wb = interp(Wb)
 
-        center = tow_offset + CAM + LT
-        width = 6.35 + LLS_B
+        # -----------------------------
+        # FINAL SAFETY ENFORCEMENT AS INTERP MAY BREAK THE CONSTRAINT
+        # -----------------------------
+        Wb = np.maximum(Wb, Wa)
 
-        top = center + 0.5 * width
-        bottom = center - 0.5 * width
+        # -----------------------------
+        # 3: CENTER POSITION
+        # -----------------------------
+        Pc = tow_offset + Pr + Pt
 
-        top_paths.append(top)
-        bottom_paths.append(bottom)
+        # -----------------------------
+        # 5: PRE-COMPACTION EDGES
+        # -----------------------------
+        TL_a = Pc + 0.5 * Wa
+        TR_a = Pc - 0.5 * Wa
+
+        # -----------------------------
+        # 6–8: COMPACTION LOGIC
+        # -----------------------------
+        delta_W = Wb - Wa
+
+        TL_b = TL_a + 0.5 * delta_W
+        TR_b = TR_a - 0.5 * delta_W
+
+        # -----------------------------
+        # FINAL GEOMETRY (USE POST-COMPACTION)
+        # -----------------------------
+        top_paths.append(TL_b)
+        bottom_paths.append(TR_b)
 
         tow_offset += 6.35
 
     # -----------------------------
-    # COLLECT SPACING (UNCHANGED)
+    # SPACING CALCULATION (UNCHANGED)
     # -----------------------------
     spacing_data = []
 
@@ -348,13 +423,13 @@ if __name__ == "__main__":
     params_test = {
         "LT": (-0.08, 0.06),
         "CAM": (-0.08, 0.06),
-        "LLSB": (-0.08, 0.06),
+        "LLSB": (-0.08, 0.12),
         "LLSA": (-0.08, 0.06)}
 
-    # compute_baseline_spacing()
-    # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LT_CAM", distribution_parameter="mu")
-    # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 30 min!
+    # compute_baseline_spacing() # Takes 30 min
+    # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="sigma") # Takes 4 min
+    # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
 
 """Generate Graphs"""
-plot_spacing_distribution("Cached Data/Normal Distribution Variations RS/LT_RS_shifted_mu_spacing_data.csv")
+plot_spacing_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
 # plot_all_spacing_variations(bins=100) # Takes 2 minutes

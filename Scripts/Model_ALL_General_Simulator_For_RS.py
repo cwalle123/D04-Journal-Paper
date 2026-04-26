@@ -80,6 +80,45 @@ def CAM_parameters(mean_shift, scale_factor):
     alpha = -2.29
     return xi, omega
 
+def enforce_Wb_ge_Wa(Wa, tow_width_mm, params, steps, max_trials=5):
+    """
+    Ensures Wb >= Wa by sampling LLSB (width error).
+    Works correctly in error-space.
+    """
+
+    # Required minimum error to satisfy constraint
+    required_error = Wa - tow_width_mm
+
+    # -----------------------------
+    # Generate candidate error samples
+    # -----------------------------
+    candidates = np.stack([
+        generate_random_sampling_data("LLS_B", steps=steps, tows=1)[0]
+        for _ in range(max_trials)
+    ])
+
+    # apply scaling (still errors)
+    candidates = candidates * params["LLSB"][1] + params["LLSB"][0]
+
+    # -----------------------------
+    # validity: error >= required error
+    # -----------------------------
+    valid = candidates >= required_error
+
+    any_valid = np.any(valid, axis=0)
+    idx = np.argmax(valid, axis=0)
+
+    # pick error
+    chosen_error = candidates[idx, np.arange(steps)]
+
+    # fallback: exactly match Wa → error = required_error
+    chosen_error[~any_valid] = required_error[~any_valid]
+
+    # convert back to absolute width
+    Wb = tow_width_mm + chosen_error
+
+    return Wb
+
 def generate_tows_full_control(params, num_tows=3,
                               tow_spacing_mm=6.35,
                               tow_width_mm=6.35,
@@ -88,55 +127,88 @@ def generate_tows_full_control(params, num_tows=3,
     tow_offset = 0
     top_paths, bottom_paths, centerlines = [], [], []
 
+    LT_steps = 400
+    CAM_steps = 400
+    LLSB_steps = 400
+    LLSA_steps = 400
+
+    x = np.linspace(0, tow_length_mm,
+                    min(LT_steps, CAM_steps, LLSB_steps, LLSA_steps))
+
     for _ in range(num_tows):
 
-        # --- generate each signal with YOUR parameters ---
-        LT = generate_random_sampling_data("LT", steps=LT_steps, tows=1)[0]
-        LT = LT * params["LT"][1] + params["LT"][0]
+        # -----------------------------
+        # POSITION (Pr + Pt)
+        # -----------------------------
+        Pr = generate_random_sampling_data("LT", steps=LT_steps, tows=1)[0]
+        Pr = Pr * params["LT"][1] + params["LT"][0]
 
-        CAM = generate_random_sampling_data("CAM", steps=CAM_steps, tows=1)[0]
-        CAM = CAM * params["CAM"][1] + params["CAM"][0]
+        Pt = generate_random_sampling_data("CAM", steps=CAM_steps, tows=1)[0]
+        Pt = Pt * params["CAM"][1] + params["CAM"][0]
 
-        LLSB = generate_siddharth_width(steps=LLSB_steps, tows=1)[0]
-        LLSB = LLSB * params["LLSB"][1] + params["LLSB"][0]
-
+        # -----------------------------
+        # WIDTH ERRORS → ACTUAL WIDTHS
+        # -----------------------------
         LLSA = generate_random_sampling_data("LLS_A", steps=LLSA_steps, tows=1)[0]
         LLSA = LLSA * params["LLSA"][1] + params["LLSA"][0]
 
-        # --- match lengths ---
-        n_steps = min(len(LT), len(CAM), len(LLSB), len(LLSA))
-        x = np.linspace(0, tow_length_mm, n_steps)
+        # base width
+        W0 = tow_width_mm
 
+        # actual Wa
+        Wa = W0 + LLSA
+
+        # enforce Wb >= Wa using trials
+        Wb = enforce_Wb_ge_Wa(Wa, tow_width_mm, params, LLSB_steps)
+
+        # -----------------------------
+        # INTERPOLATION (CONSISTENT)
+        # -----------------------------
         def interp(arr):
             return np.interp(
-                np.linspace(0, len(arr)-1, n_steps),
+                np.linspace(0, len(arr) - 1, len(x)),
                 np.arange(len(arr)),
                 arr
             )
 
-        LT = interp(LT)
-        CAM = interp(CAM)
-        LLSB = interp(LLSB)
-        LLSA = interp(LLSA)
+        Pr = interp(Pr)
+        Pt = interp(Pt)
+        Wa = interp(Wa)
+        Wb = interp(Wb)
 
-        # --- compaction logic ---
-        compaction_error = -(LLSB - LLSA)
-        compaction_error[compaction_error > 0] = 0
+        # -----------------------------
+        # FINAL SAFETY ENFORCEMENT AS INTERP MAY BREAK THE CONSTRAINT
+        # -----------------------------
+        Wb = np.maximum(Wb, Wa)
 
-        # --- tow geometry ---
-        center = tow_offset + CAM + LT
-        width = tow_width_mm + LLSB
+        # -----------------------------
+        # CENTER POSITION
+        # -----------------------------
+        Pc = tow_offset + Pr + Pt
 
-        top = center + 0.5 * width
-        bottom = center - 0.5 * width
+        # -----------------------------
+        # PRE / POST COMPACTION EDGES
+        # -----------------------------
+        TL_a = Pc + 0.5 * Wa
+        TR_a = Pc - 0.5 * Wa
 
-        top_paths.append(top)
-        bottom_paths.append(bottom)
-        centerlines.append(center)
+        delta_W = Wb - Wa
+
+        TL_b = TL_a + 0.5 * delta_W
+        TR_b = TR_a - 0.5 * delta_W
+
+        # -----------------------------
+        # FINAL GEOMETRY
+        # -----------------------------
+        top_paths.append(TL_b)
+        bottom_paths.append(TR_b)
+        centerlines.append(Pc)
 
         tow_offset += tow_spacing_mm
 
-    # --- GAP / OVERLAP ---
+    # -----------------------------
+    # GAP / OVERLAP
+    # -----------------------------
     gap_area = 0
     overlap_area = 0
 
