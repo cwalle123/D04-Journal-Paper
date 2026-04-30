@@ -430,6 +430,7 @@ def plot_all_spacing_variations(bins=100):
 
         ax.set_title(title)
         ax.legend()
+        ax.set_xlim(-1.2, 1.2)
 
     plot(axes[0], baseline, "Baseline")
 
@@ -535,5 +536,5 @@ if __name__ == "__main__": # REQUIRED for multiprocessing (especially on Windows
 """Generate Graphs"""
 # plot_spacing_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
 # plot_gap_length_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
-plot_all_spacing_variations(bins=100) # Takes a minute
-# plot_all_gap_length_variations(bins=30) # Takes a minute
+# plot_all_spacing_variations(bins=100) # Takes a minute
+plot_all_gap_length_variations(bins=30) # Takes a minute
