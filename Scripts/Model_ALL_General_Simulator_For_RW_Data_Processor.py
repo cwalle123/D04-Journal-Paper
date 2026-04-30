@@ -323,17 +323,21 @@ def plot_spacing_distribution(custom_file, title="", bins=100):
     df_custom = pd.read_csv(custom_file)
     df_baseline = pd.read_csv(baseline_file)
 
-    # backwards compatible (old files only had spacing)
+    # extract safely
     custom_data = df_custom[df_custom["metric"] == "spacing"]["value"].values \
         if "metric" in df_custom.columns else df_custom["spacing"].values
 
     baseline_data = df_baseline[df_baseline["metric"] == "spacing"]["value"].values \
         if "metric" in df_baseline.columns else df_baseline["spacing"].values
 
+    # 🔥 shared bin range
+    all_data = np.concatenate([baseline_data, custom_data])
+    bin_edges = np.linspace(np.min(all_data), np.max(all_data), bins + 1)
+
     plt.figure(figsize=(10, 6))
 
-    plt.hist(baseline_data, bins=bins, density=True, alpha=0.5, label="Baseline")
-    plt.hist(custom_data, bins=bins, density=True, alpha=0.5, label="Custom")
+    plt.hist(baseline_data, bins=bin_edges, density=True, alpha=0.5, label="Baseline")
+    plt.hist(custom_data, bins=bin_edges, density=True, alpha=0.5, label="Custom")
 
     try:
         sns.kdeplot(baseline_data, linewidth=2)
@@ -349,7 +353,7 @@ def plot_spacing_distribution(custom_file, title="", bins=100):
     plt.tight_layout()
     plt.show()
 
-def plot_gap_length_distribution(custom_file, title="", bins=100):
+def plot_gap_length_distribution(custom_file, title="", bins=30):
 
     df_custom = pd.read_csv(custom_file)
     df_baseline = pd.read_csv(baseline_file)
@@ -361,15 +365,18 @@ def plot_gap_length_distribution(custom_file, title="", bins=100):
         custom_gaps = df_custom["gap_length"].values
         baseline_gaps = df_baseline["gap_length"].values
 
+    # 🔥 FIX: shared bin edges over fixed range
+    bin_edges = np.linspace(0, 150, bins + 1)
+
     plt.figure(figsize=(10, 6))
 
-    # IMPORTANT: density=False → frequency
-    plt.hist(baseline_gaps, bins=bins, alpha=0.5, label="Baseline gaps")
-    plt.hist(custom_gaps, bins=bins, alpha=0.5, label="Custom gaps")
+    plt.hist(baseline_gaps, bins=bin_edges, alpha=0.5, label="Baseline gaps")
+    plt.hist(custom_gaps, bins=bin_edges, alpha=0.5, label="Custom gaps")
 
     plt.xlabel("Gap length (mm)")
     plt.ylabel("Frequency")
-    plt.set_xlim(0, 150)
+    plt.xlim(0, 150)
+    plt.ylim(0, 25000)
     plt.title(title + " - Gap Distribution")
     plt.legend()
     plt.tight_layout()
@@ -469,12 +476,16 @@ def plot_all_gap_length_variations(bins=100):
     else:
         baseline_gaps = baseline_df["gap_length"].values
 
+    # 🔥 FIX: shared bins for ALL plots
+    bin_edges = np.linspace(0, 150, bins + 1)
+
     def plot(ax, data, title):
 
-        ax.hist(baseline_gaps, bins=bins, alpha=0.4, label="Baseline gaps")
-        ax.hist(data, bins=bins, alpha=0.4, label="Custom gaps")
+        ax.hist(baseline_gaps, bins=bin_edges, alpha=0.4, label="Baseline gaps")
+        ax.hist(data, bins=bin_edges, alpha=0.4, label="Custom gaps")
 
         ax.set_xlim(0, 150)
+        ax.set_ylim(0, 25000)
 
         ax.set_title(title)
         ax.set_ylabel("Frequency")
@@ -523,6 +534,6 @@ if __name__ == "__main__": # REQUIRED for multiprocessing (especially on Windows
 
 """Generate Graphs"""
 # plot_spacing_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
-plot_gap_length_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
+# plot_gap_length_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
 # plot_all_spacing_variations(bins=100) # Takes a minute
-# plot_all_gap_length_variations(bins=100) # Takes a minute
+plot_all_gap_length_variations(bins=30) # Takes a minute
