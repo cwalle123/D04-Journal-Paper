@@ -35,7 +35,10 @@ def NORMAL_distribution(mu, sigma):
 
 def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
     """
-    Returns ALL local spacing values (mm) across all tow pairs and x positions.
+    Returns:
+        spacing_data: all local spacing values (mm)
+        gap_lengths: lengths of gap regions (mm)
+        overlap_lengths: lengths of overlap regions (mm)
     """
 
     from scipy.stats import norm
@@ -50,36 +53,21 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
     bottom_paths = []
 
     x = np.linspace(0, tow_length_mm, min(LT_steps, CAM_steps, LLSB_steps, LLSA_steps))
+    dx = x[1] - x[0]
 
     for _ in range(num_tows):
 
-        LT = generate_random_walk(
-            "LT", LT_steps, RW_PROPOSAL_STD["LT"],
-            NORMAL_distribution(*params["LT"]),
-            norm,
-            params["LT"]
-        )
+        LT = generate_random_walk("LT", LT_steps, RW_PROPOSAL_STD["LT"],
+                                 NORMAL_distribution(*params["LT"]), norm, params["LT"])
 
-        CAM = generate_random_walk(
-            "CAM", CAM_steps, RW_PROPOSAL_STD["CAM"],
-            NORMAL_distribution(*params["CAM"]),
-            norm,
-            params["CAM"]
-        )
+        CAM = generate_random_walk("CAM", CAM_steps, RW_PROPOSAL_STD["CAM"],
+                                  NORMAL_distribution(*params["CAM"]), norm, params["CAM"])
 
-        LLS_B = generate_random_walk(
-            "LLS_B", LLSB_steps, RW_PROPOSAL_STD["LLS_B"],
-            NORMAL_distribution(*params["LLSB"]),
-            norm,
-            params["LLSB"]
-        )
+        LLS_B = generate_random_walk("LLS_B", LLSB_steps, RW_PROPOSAL_STD["LLS_B"],
+                                    NORMAL_distribution(*params["LLSB"]), norm, params["LLSB"])
 
-        LLS_A = generate_random_walk(
-            "LLS_A", LLSA_steps, RW_PROPOSAL_STD["LLS_A"],
-            NORMAL_distribution(*params["LLSA"]),
-            norm,
-            params["LLSA"]
-        )
+        LLS_A = generate_random_walk("LLS_A", LLSA_steps, RW_PROPOSAL_STD["LLS_A"],
+                                    NORMAL_distribution(*params["LLSA"]), norm, params["LLSA"])
 
         def interp(arr):
             return np.interp(
@@ -88,10 +76,7 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
                 arr
             )
 
-        LT = interp(LT)
-        CAM = interp(CAM)
-        LLS_B = interp(LLS_B)
-        LLS_A = interp(LLS_A)
+        LT, CAM, LLS_B, LLS_A = map(interp, (LT, CAM, LLS_B, LLS_A))
 
         center = tow_offset + CAM + LT
         width = 6.35 + LLS_B
@@ -105,34 +90,65 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
         tow_offset += 6.35
 
     # -----------------------------
-    # COLLECT SPACING (KEY PART)
+    # COLLECT SPACING + SEGMENTS
     # -----------------------------
     spacing_data = []
+    gap_lengths = []
+    overlap_lengths = []
 
     for i in range(len(top_paths) - 1):
-        diff = bottom_paths[i + 1] - top_paths[i]
-        spacing_data.extend(diff)   # keep ALL values (not integrated)
 
-    return np.array(spacing_data)
+        diff = bottom_paths[i + 1] - top_paths[i]
+        spacing_data.extend(diff)
+
+        # --- zero-crossing tracking ---
+        current_sign = np.sign(diff[0])
+        segment_start_idx = 0
+
+        for j in range(1, len(diff)):
+            new_sign = np.sign(diff[j])
+
+            # detect crossing (ignore exact zeros edge-case simply)
+            if new_sign != current_sign and new_sign != 0:
+
+                length = (j - segment_start_idx) * dx
+
+                if current_sign > 0:
+                    gap_lengths.append(length)
+                elif current_sign < 0:
+                    overlap_lengths.append(length)
+
+                segment_start_idx = j
+                current_sign = new_sign
+
+        # handle final segment
+        length = (len(diff) - segment_start_idx) * dx
+        if current_sign > 0:
+            gap_lengths.append(length)
+        elif current_sign < 0:
+            overlap_lengths.append(length)
+
+    return (
+        np.array(spacing_data),
+        np.array(gap_lengths),
+        np.array(overlap_lengths)
+    )
 
 def compute_baseline_spacing(runs=100, tows=31):
-    """
-    Compute baseline spacing distribution ONCE, store in DataFrame,
-    and always save to CSV.
-    """
 
     baseline_params = {
-        "LT": (-0.08, 0.06),
-        "CAM": (-0.08, 0.06),
-        "LLSB": (-0.08, 0.06),
-        "LLSA": (-0.08, 0.06)}
+        "LT": (0.00, 0.06),
+        "CAM": (0.00, 0.06),
+        "LLSB": (0.00, 0.06),
+        "LLSA": (0.00, 0.06)}
 
     global normal_mode
     normal_mode = True
 
-    baseline_data = []
+    spacing_data = []
+    gap_data = []
+    overlap_data = []
 
-    # progress bar
     def print_progress(i, total, start_time):
         progress = (i + 1) / total
         bar_len = 30
@@ -154,28 +170,30 @@ def compute_baseline_spacing(runs=100, tows=31):
     start_time = time.time()
 
     for i in range(runs):
-        baseline_data.extend(
-            compute_spacing_distribution(baseline_params, num_tows=tows)
+        spacing, gaps, overlaps = compute_spacing_distribution(
+            baseline_params, num_tows=tows
         )
+
+        spacing_data.extend(spacing)
+        gap_data.extend(gaps)
+        overlap_data.extend(overlaps)
+
         print_progress(i, runs, start_time)
 
     print("\nBaseline ready.\n")
 
     baseline_df = pd.DataFrame({
-        "spacing": baseline_data,
+        "value": np.concatenate([spacing_data, gap_data, overlap_data]),
+        "metric": (["spacing"] * len(spacing_data) +
+                   ["gap_length"] * len(gap_data) +
+                   ["overlap_length"] * len(overlap_data)),
         "type": "baseline"
     })
 
-    # -----------------------------
-    # SAVE TO CSV (ALWAYS)
-    # -----------------------------
     save_path = "Cached Data/Normal Distribution Variations/baseline_spacing_data.csv"
-
-    # ensure directory exists
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     baseline_df.to_csv(save_path, index=False)
-
     print(f"Saved baseline data to: {save_path}")
 
     return baseline_df
@@ -185,12 +203,12 @@ def run_single_spacing_worker(args):
     return compute_spacing_distribution(custom_params, num_tows=tows)
 
 def KDE_spacing_from_normals(
-                        custom_params=None,
-                        runs=100,
-                        tows=31,
-                        sensor_type=None,
-                        distribution_parameter=None,
-                        save_csv=True):
+    custom_params=None,
+    runs=100,
+    tows=31,
+    sensor_type=None,
+    distribution_parameter=None,
+    save_csv=True):
 
     global normal_mode
     normal_mode = True
@@ -198,14 +216,13 @@ def KDE_spacing_from_normals(
     valid_sensors = ["LT", "CAM", "LLSB", "LLSA", "LT_CAM", "LLSB_LLSA", "ALL"]
     valid_params = ["mu", "sigma", "both"]
 
-    if sensor_type not in valid_sensors: raise ValueError(f"sensor_type must be one of {valid_sensors}") 
-    if distribution_parameter not in valid_params: raise ValueError(f"distribution_parameter must be one of {valid_params}")
+    if sensor_type not in valid_sensors:
+        raise ValueError(f"sensor_type must be one of {valid_sensors}")
+    if distribution_parameter not in valid_params:
+        raise ValueError(f"distribution_parameter must be one of {valid_params}")
 
     baseline_df = pd.read_csv(baseline_file)
 
-    # -----------------------------
-    # GENERATE DATA
-    # -----------------------------
     if custom_params is None:
         raise ValueError("Provide custom_params.")
 
@@ -218,19 +235,28 @@ def KDE_spacing_from_normals(
             desc="Generating spacing data"
         ))
 
-    customdata_df = pd.DataFrame({"spacing": np.concatenate(results)})
+    # unpack results
+    spacing_all = []
+    gaps_all = []
+    overlaps_all = []
+
+    for spacing, gaps, overlaps in results:
+        spacing_all.extend(spacing)
+        gaps_all.extend(gaps)
+        overlaps_all.extend(overlaps)
+
+    customdata_df = pd.DataFrame({
+        "value": np.concatenate([spacing_all, gaps_all, overlaps_all]),
+        "metric": (["spacing"] * len(spacing_all) +
+                   ["gap_length"] * len(gaps_all) +
+                   ["overlap_length"] * len(overlaps_all))
+    })
 
     if save_csv:
-
-        base = f"Cached Data/Normal Distribution Variations/{sensor_type}_shifted_{distribution_parameter}_spacing_data"
-        filename = base + ".csv"
-
-        i = 1
-        while os.path.exists(filename):
-            filename = f"{base}_{i}.csv"
-            i += 1
-
-        customdata_df.to_csv(filename, index=False)
+        filename = f"Cached Data/Normal Distribution Variations/{sensor_type}_shifted_{distribution_parameter}_spacing_data.csv"
+        if os.path.exists(filename):
+            print(f"Overwriting existing file: {filename}")
+        customdata_df.to_csv(filename, index=False, mode="w")
         print(f"Saved: {filename}")
 
     return customdata_df, baseline_df
@@ -265,7 +291,7 @@ def run_spacing_multiple_simulations(runs=100, tows=31):
             mu, sigma = new_params[s]
 
             if change == "mean":
-                mu = 0
+                mu = 0.08
             elif change == "std":
                 sigma = 0.12
             elif change == "both":
@@ -392,8 +418,8 @@ if __name__ == "__main__": # REQUIRED for multiprocessing (especially on Windows
     
     # compute_baseline_spacing()
     # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LT_CAM", distribution_parameter="mu") # GENERATES ONE DATA SET BASED ON PARAMS_TEST
-    # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 25 min!
+    run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 25 min!
 
 """Generate Graphs"""
-plot_spacing_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
+# plot_spacing_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
 # plot_all_spacing_variations(bins=100) # Takes a minute
