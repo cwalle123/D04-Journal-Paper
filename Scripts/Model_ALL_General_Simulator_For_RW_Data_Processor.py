@@ -369,6 +369,7 @@ def plot_gap_length_distribution(custom_file, title="", bins=100):
 
     plt.xlabel("Gap length (mm)")
     plt.ylabel("Frequency")
+    plt.set_xlim(0, 150)
     plt.title(title + " - Gap Distribution")
     plt.legend()
     plt.tight_layout()
@@ -379,7 +380,11 @@ def plot_all_spacing_variations(bins=100):
     figsize = (18, 18)
     baseline_df = pd.read_csv(baseline_file)
 
-    baseline = baseline_df["spacing"].values
+    # extract baseline spacing safely
+    if "metric" in baseline_df.columns:
+        baseline = baseline_df[baseline_df["metric"] == "spacing"]["value"].values
+    else:
+        baseline = baseline_df["spacing"].values
 
     cases = [
         ("LT_std", "LT_shifted_sigma_spacing_data.csv"),
@@ -400,9 +405,15 @@ def plot_all_spacing_variations(bins=100):
     fig, axes = plt.subplots(4, 4, figsize=figsize)
     axes = axes.flatten()
 
+    def extract_spacing(df):
+        if "metric" in df.columns:
+            return df[df["metric"] == "spacing"]["value"].values
+        return df["spacing"].values
+
     def plot(ax, data, title):
-        ax.hist(baseline, bins=bins, density=True, alpha=0.4)
-        ax.hist(data, bins=bins, density=True, alpha=0.4)
+
+        ax.hist(baseline, bins=bins, density=True, alpha=0.4, label="Baseline")
+        ax.hist(data, bins=bins, density=True, alpha=0.4, label="Custom")
 
         try:
             sns.kdeplot(baseline, ax=ax)
@@ -411,13 +422,14 @@ def plot_all_spacing_variations(bins=100):
             pass
 
         ax.set_title(title)
+        ax.legend()
 
     plot(axes[0], baseline, "Baseline")
 
     for i, (title, file) in enumerate(cases, start=1):
-        df = pd.read_csv(f"Cached Data/Normal Distribution Variations/{file}")
 
-        data = df["spacing"].values if "spacing" in df.columns else df["value"].values[df["metric"] == "spacing"]
+        df = pd.read_csv(f"Cached Data/Normal Distribution Variations/{file}")
+        data = extract_spacing(df)
 
         plot(axes[i], data, title)
 
@@ -461,6 +473,8 @@ def plot_all_gap_length_variations(bins=100):
 
         ax.hist(baseline_gaps, bins=bins, alpha=0.4, label="Baseline gaps")
         ax.hist(data, bins=bins, alpha=0.4, label="Custom gaps")
+
+        ax.set_xlim(0, 150)
 
         ax.set_title(title)
         ax.set_ylabel("Frequency")
@@ -509,6 +523,6 @@ if __name__ == "__main__": # REQUIRED for multiprocessing (especially on Windows
 
 """Generate Graphs"""
 # plot_spacing_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
-# plot_gap_length_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
+plot_gap_length_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
 # plot_all_spacing_variations(bins=100) # Takes a minute
-plot_all_gap_length_variations(bins=100) # Takes a minute
+# plot_all_gap_length_variations(bins=100) # Takes a minute
