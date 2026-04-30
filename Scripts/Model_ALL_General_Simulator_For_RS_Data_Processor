@@ -456,7 +456,7 @@ if __name__ == "__main__":
         "LLSB": (-0.08, 0.12),
         "LLSA": (-0.08, 0.06)}
 
-    # compute_baseline_spacing() # Takes 30 min
+    #compute_baseline_spacing() # Takes 30 min
     # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="sigma") # Takes 4 min
     run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
 
