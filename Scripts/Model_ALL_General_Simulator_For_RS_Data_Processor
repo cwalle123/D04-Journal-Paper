@@ -308,12 +308,6 @@ def KDE_spacing_from_normals(
     return customdata_df, baseline_df
 
 def run_spacing_multiple_simulations(runs=100, tows=31):
-    
-    base = {
-        "LT": (-0.08, 0.06),
-        "CAM": (-0.08, 0.06),
-        "LLSB": (-0.08, 0.06),
-        "LLSA": (-0.08, 0.06)}
 
     experiments = [
         ("LT", "sigma", ["LT"]),
@@ -360,7 +354,7 @@ def run_spacing_multiple_simulations(runs=100, tows=31):
             "both": "both"
         }.get(param_type)
 
-        custom_params = modify(base, sensors=sensors, change=change)
+        custom_params = modify(baseline_params, sensors=sensors, change=change)
 
         KDE_spacing_from_normals(
             custom_params=custom_params,
