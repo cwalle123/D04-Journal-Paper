@@ -17,6 +17,12 @@ from Model_ALL_RandomWalk import generate_random_walk, get_n_steps, get_proposal
 
 baseline_file="Cached Data/Normal Distribution Variations/baseline_spacing_data.csv"
 
+baseline_params = {
+        "LT": (0.00, 0.06),
+        "CAM": (0.00, 0.06),
+        "LLSB": (0.00, 0.06),
+        "LLSA": (0.00, 0.06)}
+
 RW_PROPOSAL_STD = {
     "LT": get_proposal_distribution("LT"),
     "CAM": get_proposal_distribution("CAM"),
@@ -135,13 +141,6 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
     )
 
 def compute_baseline_spacing(runs=100, tows=31):
-
-    baseline_params = {
-        "LT": (0.00, 0.06),
-        "CAM": (0.00, 0.06),
-        "LLSB": (0.00, 0.06),
-        "LLSA": (0.00, 0.06)}
-
     global normal_mode
     normal_mode = True
 
@@ -170,9 +169,7 @@ def compute_baseline_spacing(runs=100, tows=31):
     start_time = time.time()
 
     for i in range(runs):
-        spacing, gaps, overlaps = compute_spacing_distribution(
-            baseline_params, num_tows=tows
-        )
+        spacing, gaps, overlaps = compute_spacing_distribution(baseline_params, num_tows=tows)
 
         spacing_data.extend(spacing)
         gap_data.extend(gaps)
@@ -262,12 +259,6 @@ def KDE_spacing_from_normals(
     return customdata_df, baseline_df
 
 def run_spacing_multiple_simulations(runs=100, tows=31):
-    
-    base = {
-        "LT": (-0.08, 0.06),
-        "CAM": (-0.08, 0.06),
-        "LLSB": (-0.08, 0.06),
-        "LLSA": (-0.08, 0.06)}
 
     experiments = [
         ("LT", "sigma", ["LT"]),
@@ -314,7 +305,7 @@ def run_spacing_multiple_simulations(runs=100, tows=31):
             "both": "both"
         }.get(param_type)
 
-        custom_params = modify(base, sensors=sensors, change=change)
+        custom_params = modify(baseline_params, sensors=sensors, change=change)
 
         KDE_spacing_from_normals(
             custom_params=custom_params,

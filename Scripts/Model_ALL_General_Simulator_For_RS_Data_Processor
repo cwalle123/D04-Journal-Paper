@@ -17,6 +17,12 @@ from Model_ALL_RandomSampling import generate_random_sampling_data
 
 baseline_file="Cached Data/Normal Distribution Variations RS/baseline_spacing_data.csv"
 
+baseline_params = {
+        "LT": (0.00, 0.06),
+        "CAM": (0.00, 0.06),
+        "LLSB": (0.00, 0.06),
+        "LLSA": (0.00, 0.06)}
+
 STEP_CACHE = {
     "LT": 400,
     "CAM": 400,
@@ -69,12 +75,10 @@ def enforce_Wb_ge_Wa(Wa, params, steps, max_trials=5):
 
 def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
     """
-    Returns ALL local spacing values (mm) across all tow pairs and x positions.
-    NOW matches full tow logic:
-    - Pc = Pr + Pt
-    - Wa (LLS_A) = pre-compaction width
-    - Wb (LLS_B) = post-compaction width with constraint Wb >= Wa
-    - Uses TL,b and TR,b for spacing
+    Returns:
+        spacing_data (np.array)
+        gap_lengths (np.array)
+        overlap_lengths (np.array)
     """
 
     LT_steps = STEP_CACHE["LT"]
@@ -89,34 +93,27 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
     x = np.linspace(0, tow_length_mm,
                     min(LT_steps, CAM_steps, LLSB_steps, LLSA_steps))
 
+    dx = x[1] - x[0] if len(x) > 1 else 1.0
+
+    # -----------------------------
+    # BUILD TOW GEOMETRY
+    # -----------------------------
     for _ in range(num_tows):
 
-        # -----------------------------
-        # 1 & 2: POSITION SAMPLING
-        # -----------------------------
         Pr = generate_random_sampling_data("LT", steps=LT_steps, tows=1)[0]
         Pr = Pr * params["LT"][1] + params["LT"][0]
 
         Pt = generate_random_sampling_data("CAM", steps=CAM_steps, tows=1)[0]
         Pt = Pt * params["CAM"][1] + params["CAM"][0]
 
-        # -----------------------------
-        # 4: WIDTH BEFORE COMPACTION (Wa)
-        # -----------------------------
         LLSA = generate_random_sampling_data("LLS_A", steps=LLSA_steps, tows=1)[0]
         LLSA = LLSA * params["LLSA"][1] + params["LLSA"][0]
 
         W0 = 6.35
         Wa = W0 + LLSA
 
-        # -----------------------------
-        # 5: WIDTH AFTER COMPACTION (Wb) with constraint
-        # -----------------------------
         Wb = enforce_Wb_ge_Wa(Wa, params, LLSB_steps)
 
-        # -----------------------------
-        # INTERPOLATION (keep consistent)
-        # -----------------------------
         def interp(arr):
             return np.interp(
                 np.linspace(0, len(arr) - 1, len(x)),
@@ -129,58 +126,76 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
         Wa = interp(Wa)
         Wb = interp(Wb)
 
-        # -----------------------------
-        # FINAL SAFETY ENFORCEMENT AS INTERP MAY BREAK THE CONSTRAINT
-        # -----------------------------
         Wb = np.maximum(Wb, Wa)
 
-        # -----------------------------
-        # 3: CENTER POSITION
-        # -----------------------------
         Pc = tow_offset + Pr + Pt
 
-        # -----------------------------
-        # 5: PRE-COMPACTION EDGES
-        # -----------------------------
         TL_a = Pc + 0.5 * Wa
         TR_a = Pc - 0.5 * Wa
 
-        # -----------------------------
-        # 6–8: COMPACTION LOGIC
-        # -----------------------------
         delta_W = Wb - Wa
 
         TL_b = TL_a + 0.5 * delta_W
         TR_b = TR_a - 0.5 * delta_W
 
-        # -----------------------------
-        # FINAL GEOMETRY (USE POST-COMPACTION)
-        # -----------------------------
         top_paths.append(TL_b)
         bottom_paths.append(TR_b)
 
         tow_offset += 6.35
 
     # -----------------------------
-    # SPACING CALCULATION (UNCHANGED)
+    # SPACING + GAP/OVERLAP LOGIC
     # -----------------------------
     spacing_data = []
+    gap_lengths = []
+    overlap_lengths = []
 
     for i in range(len(top_paths) - 1):
+
         diff = bottom_paths[i + 1] - top_paths[i]
         spacing_data.extend(diff)
 
-    return np.array(spacing_data)
+        # ---- zero-crossing segmentation ----
+        sign = np.sign(diff[0])
+        start_idx = 0
+
+        for j in range(1, len(diff)):
+
+            new_sign = np.sign(diff[j])
+
+            if new_sign != sign and new_sign != 0:
+
+                length = (j - start_idx) * dx
+
+                if sign > 0:
+                    gap_lengths.append(length)
+                elif sign < 0:
+                    overlap_lengths.append(length)
+
+                start_idx = j
+                sign = new_sign
+
+        # final segment
+        length = (len(diff) - start_idx) * dx
+        if sign > 0:
+            gap_lengths.append(length)
+        elif sign < 0:
+            overlap_lengths.append(length)
+
+    return (
+        np.array(spacing_data),
+        np.array(gap_lengths),
+        np.array(overlap_lengths)
+    )
 
 def compute_baseline_spacing(runs=100, tows=31):
 
-    baseline_params = {
-        "LT": (-0.08, 0.06),
-        "CAM": (-0.08, 0.06),
-        "LLSB": (-0.08, 0.06),
-        "LLSA": (-0.08, 0.06)}
+    global normal_mode
+    normal_mode = True
 
-    baseline_data = []
+    spacing_data = []
+    gap_data = []
+    overlap_data = []
 
     def print_progress(i, total, start_time):
         progress = (i + 1) / total
@@ -203,22 +218,30 @@ def compute_baseline_spacing(runs=100, tows=31):
     start_time = time.time()
 
     for i in range(runs):
-        baseline_data.extend(
-            compute_spacing_distribution(baseline_params, num_tows=tows)
+        spacing, gaps, overlaps = compute_spacing_distribution(
+            baseline_params, num_tows=tows
         )
+
+        spacing_data.extend(spacing)
+        gap_data.extend(gaps)
+        overlap_data.extend(overlaps)
+
         print_progress(i, runs, start_time)
 
     print("\nBaseline ready.\n")
 
     baseline_df = pd.DataFrame({
-        "spacing": baseline_data,
+        "value": np.concatenate([spacing_data, gap_data, overlap_data]),
+        "metric": (["spacing"] * len(spacing_data) +
+                   ["gap_length"] * len(gap_data) +
+                   ["overlap_length"] * len(overlap_data)),
         "type": "baseline"
     })
 
     save_path = baseline_file
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    baseline_df.to_csv(save_path, index=False)
 
+    baseline_df.to_csv(save_path, index=False)
     print(f"Saved baseline data to: {save_path}")
 
     return baseline_df
@@ -228,18 +251,23 @@ def run_single_spacing_worker(args):
     return compute_spacing_distribution(custom_params, num_tows=tows)
 
 def KDE_spacing_from_normals(
-                        custom_params=None,
-                        runs=100,
-                        tows=31,
-                        sensor_type=None,
-                        distribution_parameter=None,
-                        save_csv=True):
+    custom_params=None,
+    runs=100,
+    tows=31,
+    sensor_type=None,
+    distribution_parameter=None,
+    save_csv=True):
+
+    global normal_mode
+    normal_mode = True
 
     valid_sensors = ["LT", "CAM", "LLSB", "LLSA", "LT_CAM", "LLSB_LLSA", "ALL"]
     valid_params = ["mu", "sigma", "both"]
 
-    if sensor_type not in valid_sensors: raise ValueError(f"sensor_type must be one of {valid_sensors}") 
-    if distribution_parameter not in valid_params: raise ValueError(f"distribution_parameter must be one of {valid_params}")
+    if sensor_type not in valid_sensors:
+        raise ValueError(f"sensor_type must be one of {valid_sensors}")
+    if distribution_parameter not in valid_params:
+        raise ValueError(f"distribution_parameter must be one of {valid_params}")
 
     baseline_df = pd.read_csv(baseline_file)
 
@@ -255,17 +283,25 @@ def KDE_spacing_from_normals(
             desc="Generating spacing data"
         ))
 
-    customdata_df = pd.DataFrame({"spacing": np.concatenate(results)})
+    # unpack results
+    spacing_all = []
+    gaps_all = []
+    overlaps_all = []
+
+    for spacing, gaps, overlaps in results:
+        spacing_all.extend(spacing)
+        gaps_all.extend(gaps)
+        overlaps_all.extend(overlaps)
+
+    customdata_df = pd.DataFrame({
+        "value": np.concatenate([spacing_all, gaps_all, overlaps_all]),
+        "metric": (["spacing"] * len(spacing_all) +
+                   ["gap_length"] * len(gaps_all) +
+                   ["overlap_length"] * len(overlaps_all))
+    })
 
     if save_csv:
-        base = f"Cached Data/Normal Distribution Variations RS/{sensor_type}_RS_shifted_{distribution_parameter}_spacing_data"
-        filename = base + ".csv"
-
-        i = 1
-        while os.path.exists(filename):
-            filename = f"{base}_{i}.csv"
-            i += 1
-
+        filename = f"Cached Data/Normal Distribution Variations RS/{sensor_type}_RS_shifted_{distribution_parameter}_spacing_data"
         customdata_df.to_csv(filename, index=False)
         print(f"Saved: {filename}")
 
@@ -428,8 +464,8 @@ if __name__ == "__main__":
 
     # compute_baseline_spacing() # Takes 30 min
     # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="sigma") # Takes 4 min
-    # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
+    run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
 
 """Generate Graphs"""
-plot_spacing_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
+# plot_spacing_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
 # plot_all_spacing_variations(bins=100) # Takes 2 minutes
