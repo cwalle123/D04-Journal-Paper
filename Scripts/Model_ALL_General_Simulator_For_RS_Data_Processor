@@ -331,11 +331,11 @@ def run_spacing_multiple_simulations(runs=100, tows=31):
             mu, sigma = new_params[s]
 
             if change == "mean":
-                mu = 0
+                mu = 0.08
             elif change == "std":
                 sigma = 0.12
             elif change == "both":
-                mu = 0
+                mu = 0.08
                 sigma = 0.12
 
             new_params[s] = (mu, sigma)
@@ -372,17 +372,21 @@ def plot_spacing_distribution(custom_file, title="", bins=100):
     df_custom = pd.read_csv(custom_file)
     df_baseline = pd.read_csv(baseline_file)
 
-    # backwards compatible (old files only had spacing)
+    # extract safely
     custom_data = df_custom[df_custom["metric"] == "spacing"]["value"].values \
         if "metric" in df_custom.columns else df_custom["spacing"].values
 
     baseline_data = df_baseline[df_baseline["metric"] == "spacing"]["value"].values \
         if "metric" in df_baseline.columns else df_baseline["spacing"].values
 
+    # 🔥 shared bin range
+    all_data = np.concatenate([baseline_data, custom_data])
+    bin_edges = np.linspace(np.min(all_data), np.max(all_data), bins + 1)
+
     plt.figure(figsize=(10, 6))
 
-    plt.hist(baseline_data, bins=bins, density=True, alpha=0.5, label="Baseline")
-    plt.hist(custom_data, bins=bins, density=True, alpha=0.5, label="Custom")
+    plt.hist(baseline_data, bins=bin_edges, density=True, alpha=0.5, label="Baseline")
+    plt.hist(custom_data, bins=bin_edges, density=True, alpha=0.5, label="Custom")
 
     try:
         sns.kdeplot(baseline_data, linewidth=2)
@@ -398,7 +402,7 @@ def plot_spacing_distribution(custom_file, title="", bins=100):
     plt.tight_layout()
     plt.show()
 
-def plot_gap_length_distribution(custom_file, title="", bins=100):
+def plot_gap_length_distribution(custom_file, title="", bins=60):
 
     df_custom = pd.read_csv(custom_file)
     df_baseline = pd.read_csv(baseline_file)
@@ -410,16 +414,18 @@ def plot_gap_length_distribution(custom_file, title="", bins=100):
         custom_gaps = df_custom["gap_length"].values
         baseline_gaps = df_baseline["gap_length"].values
 
+    # 🔥 FIX: shared bin edges over fixed range
+    bin_edges = np.linspace(0, 150, bins + 1)
+
     plt.figure(figsize=(10, 6))
 
-    # IMPORTANT: density=False → frequency
-    plt.hist(baseline_gaps, bins=bins, alpha=0.5, label="Baseline gaps")
-    plt.hist(custom_gaps, bins=bins, alpha=0.5, label="Custom gaps")
+    plt.hist(baseline_gaps, bins=bin_edges, alpha=0.5, label="Baseline gaps")
+    plt.hist(custom_gaps, bins=bin_edges, alpha=0.5, label="Custom gaps")
 
     plt.xlabel("Gap length (mm)")
     plt.ylabel("Frequency")
     plt.xlim(0, 150)
-    plt.ylim(0, 35000)
+    plt.ylim(0, 125000)
     plt.title(title + " - Gap Distribution")
     plt.legend()
     plt.tight_layout()
@@ -430,66 +436,80 @@ def plot_all_spacing_variations(bins=100):
     figsize = (18, 18)
     baseline_df = pd.read_csv(baseline_file)
 
-    # extract baseline spacing safely
-    if "metric" in baseline_df.columns:
-        baseline = baseline_df[baseline_df["metric"] == "spacing"]["value"].values
-    else:
-        baseline = baseline_df["spacing"].values
-
-    cases = [
-        ("LT_std", "LT_shifted_sigma_spacing_data.csv"),
-        ("LT_mu", "LT_shifted_mu_spacing_data.csv"),
-        ("CAM_std", "CAM_shifted_sigma_spacing_data.csv"),
-        ("CAM_mu", "CAM_shifted_mu_spacing_data.csv"),
-        ("LT+CAM_std", "LT_CAM_shifted_sigma_spacing_data.csv"),
-        ("LT+CAM_mu", "LT_CAM_shifted_mu_spacing_data.csv"),
-        ("LLSB_std", "LLSB_shifted_sigma_spacing_data.csv"),
-        ("LLSB_mu", "LLSB_shifted_mu_spacing_data.csv"),
-        ("LLSA_std", "LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSA_mu", "LLSA_shifted_mu_spacing_data.csv"),
-        ("LLSB+LLSA_std", "LLSB_LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSB+LLSA_mu", "LLSB_LLSA_shifted_mu_spacing_data.csv"),
-        ("ALL_both", "ALL_shifted_both_spacing_data.csv"),
-    ]
-
-    fig, axes = plt.subplots(4, 4, figsize=figsize)
-    axes = axes.flatten()
-
     def extract_spacing(df):
         if "metric" in df.columns:
             return df[df["metric"] == "spacing"]["value"].values
         return df["spacing"].values
 
+    baseline = extract_spacing(baseline_df)
+
+    cases = [
+        ("LT_std", "LT_RS_shifted_sigma_spacing_data.csv"),
+        ("LT_mu", "LT_RS_shifted_mu_spacing_data.csv"),
+        ("CAM_std", "CAM_RS_shifted_sigma_spacing_data.csv"),
+        ("CAM_mu", "CAM_RS_shifted_mu_spacing_data.csv"),
+        ("LT+CAM_std", "LT_CAM_RS_shifted_sigma_spacing_data.csv"),
+        ("LT+CAM_mu", "LT_CAM_RS_shifted_mu_spacing_data.csv"),
+        ("LLSB_std", "LLSB_RS_shifted_sigma_spacing_data.csv"),
+        ("LLSB_mu", "LLSB_RS_shifted_mu_spacing_data.csv"),
+        ("LLSA_std", "LLSA_RS_shifted_sigma_spacing_data.csv"),
+        ("LLSA_mu", "LLSA_RS_shifted_mu_spacing_data.csv"),
+        ("LLSB+LLSA_std", "LLSB_LLSA_RS_shifted_sigma_spacing_data.csv"),
+        ("LLSB+LLSA_mu", "LLSB_LLSA_RS_shifted_mu_spacing_data.csv"),
+        ("ALL_both", "ALL_RS_shifted_both_spacing_data.csv"),
+    ]
+
+    # 🔥 collect ALL data first to compute global range
+    all_data = [baseline]
+
+    loaded_cases = []
+    for title, file in cases:
+        df = pd.read_csv(f"Cached Data/Normal Distribution Variations RS/{file}")
+        data = extract_spacing(df)
+        loaded_cases.append((title, data))
+        all_data.append(data)
+
+    all_data = np.concatenate(all_data)
+
+    # 🔥 dynamic global range (same as working function)
+    x_min, x_max = np.min(all_data), np.max(all_data)
+    bin_edges = np.linspace(x_min, x_max, bins + 1)
+
+    fig, axes = plt.subplots(4, 4, figsize=figsize)
+    axes = axes.flatten()
+
     def plot(ax, data, title):
 
-        ax.hist(baseline, bins=bins, density=True, alpha=0.4, label="Baseline")
-        ax.hist(data, bins=bins, density=True, alpha=0.4, label="Custom")
+        ax.hist(baseline, bins=bin_edges, density=True, alpha=0.4, label="Baseline")
+        ax.hist(data, bins=bin_edges, density=True, alpha=0.4, label="Custom")
 
-        try:
-            sns.kdeplot(baseline, ax=ax)
-            sns.kdeplot(data, ax=ax)
-        except:
-            pass
+        # safer KDE
+        if len(np.unique(baseline)) > 1:
+            sns.kdeplot(baseline, ax=ax, linewidth=2)
+        if len(np.unique(data)) > 1:
+            sns.kdeplot(data, ax=ax, linewidth=2)
+
+        ax.axvline(0, color="black", linestyle=":")
+        ax.set_xlim(x_min, x_max)
 
         ax.set_title(title)
         ax.legend()
 
+    # baseline plot
     plot(axes[0], baseline, "Baseline")
 
-    for i, (title, file) in enumerate(cases, start=1):
-
-        df = pd.read_csv(f"Cached Data/Normal Distribution Variations/{file}")
-        data = extract_spacing(df)
-
+    # other cases
+    for i, (title, data) in enumerate(loaded_cases, start=1):
         plot(axes[i], data, title)
 
-    for j in range(len(cases) + 1, len(axes)):
+    # turn off unused axes
+    for j in range(len(loaded_cases) + 1, len(axes)):
         axes[j].axis("off")
 
     plt.tight_layout()
     plt.show()
 
-def plot_all_gap_length_variations(bins=100):
+def plot_all_gap_length_variations(bins=60):
 
     figsize = (18, 18)
 
@@ -519,13 +539,16 @@ def plot_all_gap_length_variations(bins=100):
     else:
         baseline_gaps = baseline_df["gap_length"].values
 
+    # 🔥 FIX: shared bins for ALL plots
+    bin_edges = np.linspace(0, 150, bins + 1)
+
     def plot(ax, data, title):
 
-        ax.hist(baseline_gaps, bins=bins, alpha=0.4, label="Baseline gaps")
-        ax.hist(data, bins=bins, alpha=0.4, label="Custom gaps")
+        ax.hist(baseline_gaps, bins=bin_edges, alpha=0.4, label="Baseline gaps")
+        ax.hist(data, bins=bin_edges, alpha=0.4, label="Custom gaps")
 
         ax.set_xlim(0, 150)
-        ax.set_ylim(0, 35000)
+        ax.set_ylim(0, 125000)
 
         ax.set_title(title)
         ax.set_ylabel("Frequency")
@@ -570,10 +593,10 @@ if __name__ == "__main__":
 
     #compute_baseline_spacing() # Takes 30 min
     # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="sigma") # Takes 4 min
-    # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
+    run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
 
 """Generate Graphs"""
 # plot_spacing_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
-plot_gap_length_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
+# plot_gap_length_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
 # plot_all_spacing_variations(bins=100) # Takes a minute
-# plot_all_gap_length_variations(bins=100) # Takes a minute
+# plot_all_gap_length_variations(bins=60) # Takes a minute

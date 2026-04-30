@@ -286,7 +286,7 @@ def run_spacing_multiple_simulations(runs=100, tows=31):
             elif change == "std":
                 sigma = 0.12
             elif change == "both":
-                mu = 0
+                mu = 0.08
                 sigma = 0.12
 
             new_params[s] = (mu, sigma)
@@ -446,7 +446,7 @@ def plot_all_spacing_variations(bins=100):
     plt.tight_layout()
     plt.show()
 
-def plot_all_gap_length_variations(bins=100):
+def plot_all_gap_length_variations(bins=30):
 
     figsize = (18, 18)
 
@@ -523,17 +523,17 @@ if __name__ == "__main__": # REQUIRED for multiprocessing (especially on Windows
         pass
 
     params_test = {
-        "LT": (-0.08, 0.06),
-        "CAM": (-0.08, 0.06),
-        "LLSB": (-0.08, 0.06),
-        "LLSA": (-0.08, 0.06)}
+        "LT": (0.08, 0.12),
+        "CAM": (0.08, 0.12),
+        "LLSB": (0.08, 0.12),
+        "LLSA": (0.08, 0.12)}
     
     # compute_baseline_spacing()
-    # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LT_CAM", distribution_parameter="mu") # GENERATES ONE DATA SET BASED ON PARAMS_TEST
+    # KDE_spacing_from_normals(params_test, runs=100, sensor_type="ALL", distribution_parameter="both") # GENERATES ONE DATA SET BASED ON PARAMS_TEST
     # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 25 min!
 
 """Generate Graphs"""
 # plot_spacing_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
 # plot_gap_length_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
-# plot_all_spacing_variations(bins=100) # Takes a minute
-plot_all_gap_length_variations(bins=30) # Takes a minute
+plot_all_spacing_variations(bins=100) # Takes a minute
+# plot_all_gap_length_variations(bins=30) # Takes a minute
