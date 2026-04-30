@@ -452,6 +452,13 @@ def main():
     if RANDOM_SEED is not None:
         np.random.seed(RANDOM_SEED)
 
+    print("\n=== Final Results ===")
+    for label, _ in scenarios:
+        gap, ovl, shift, _, gap_std, ovl_std = summary[label]
+        print(f"{label}:")
+        print(f"  Gap     = {gap:.3f} % ± {gap_std:.3f}")
+        print(f"  Overlap = {ovl:.3f} % ± {ovl_std:.3f}")
+
     # Run experiment and generate figure
     scenarios, summary = run_experiment(N_RUNS, NUM_TOWS)
     plot_barchart(scenarios, summary, FIG_PATH, save_PDF=False, save_SVG=True)
