@@ -1,0 +1,3 @@
+,Gaps % area,Overlaps % area,Gaps std % area,Overlaps std % area
+"Experimental layup, tows 16-30",3.109524325840343,1.7901230296559474,,
+"MCMC simulation, trained on tows 1-15, mean of 120 runs",2.441557199094596,1.1494106623027525,0.19938207327685686,0.1856639515842475

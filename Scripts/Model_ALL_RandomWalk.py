@@ -35,13 +35,29 @@ from Model_ALL_RandomSampling import user_interface_only_generate_RS_multitow
 ##############################################################################################################
 """Functions"""
 
-def get_n_steps(sensor):
-    """This function gets the number of steps, which is the number of data points in a one meter tow"""
-    data, weights = get_data(sensor, format='separated')
+def get_n_steps(sensor, tows=None):
+    """
+    Gets the number of steps, which is the average number of data points
+    in a one meter tow.
+
+    If tows is None:
+        original behaviour is used.
+
+    If tows is provided:
+        only those tows are used.
+    """
+
+    if tows is None:
+        data, weights = get_data(sensor, format='separated')
+    else:
+        data, weights = get_data(sensor, tows=list(tows), format='separated')
 
     lengths = []
+
     for i in range(len(data)):
-        lengths.append(len(data[i][:]))
+        clean = np.asarray(data[i], dtype=float)
+        clean = clean[np.isfinite(clean)]
+        lengths.append(len(clean))
 
     return int(np.average(lengths))
 
@@ -51,18 +67,47 @@ def propose_new_RWM_value(x_current, dist_std):    # random walk metropolis (RWM
     # update_states()     # comment this if not initialising from StartVariations
     return proposal
 
-def fit_random_walk(sensor: str, bins=40):
-    n_steps = get_n_steps(sensor)
-    data, weights = get_data(sensor, format='merged')
-    if sensor != "CAM":
-        best = best_fit_distribution(np.array(data), bins=bins, weights=np.array(weights))
-    elif sensor == "CAM":
-        best = best_fit_distribution(np.array(data), weights=np.array(weights), use_all_dist=True)
-    dist, params = best['dist'], best['params']
-    print(f"for {sensor}, the dist is: {dist}")
-    target_distribution = lambda x: dist.pdf(x, *params[:-2], loc=params[-2], scale=params[-1])
+def fit_random_walk(sensor: str, bins=40, tows=None):
+    """
+    Fits the Random Walk model.
 
-    proposal_std = get_proposal_distribution(sensor)
+    If tows is None:
+        uses the original all-tow behaviour.
+
+    If tows is provided:
+        fits the RW only using those tows.
+    """
+
+    n_steps = get_n_steps(sensor, tows=tows)
+
+    if tows is None:
+        data, weights = get_data(sensor, format='merged')
+    else:
+        data, weights = get_data(sensor, tows=list(tows), format='merged')
+
+    data = np.array(data, dtype=float)
+    weights = np.array(weights, dtype=float)
+
+    if sensor != "CAM":
+        best = best_fit_distribution(data, bins=bins, weights=weights)
+
+    elif sensor == "CAM":
+        best = best_fit_distribution(data, weights=weights, use_all_dist=True)
+
+    dist, params = best['dist'], best['params']
+
+    print(f"for {sensor}, the dist is: {dist}")
+    if tows is not None:
+        print(f"{sensor} RW trained on tows: {list(tows)}")
+
+    target_distribution = lambda x: dist.pdf(
+        x,
+        *params[:-2],
+        loc=params[-2],
+        scale=params[-1]
+    )
+
+    proposal_std = get_proposal_distribution(sensor, tows=tows)
 
     return n_steps, proposal_std, target_distribution, dist, params
 
@@ -285,32 +330,60 @@ def test_LLS_A_B_condition(n_tows: int=1000):
     print("STEPS FALSE: ", total_steps_false, ", percentage: ", false_steps_percentage)
     print("STEPS TRUE: ", total_steps_true)
 
-def get_proposal_distribution(sensor, plot: bool=False):
-    data_pairs = get_data(sensor, format="paired")
-    data, weights = [], []
-    for i in range(len(data_pairs)):
-        diff = data_pairs[i, 0] - data_pairs[i, 1]
-        weight = data_pairs[i, 2]
-        data.append(diff)
-        weights.append(weight)
+def get_proposal_distribution(sensor, tows=None, plot: bool=False):
+    """
+    Gets the proposal distribution standard deviation for the RWM.
 
-    # determining the normal distribution which fits:
-    # mean = np.average(data)
-    # variance = np.var(data)
-    mean = np.average(data, weights= weights)
-    variance = np.average((data-mean)**2, weights=weights)
+    If tows is None:
+        original all-tow behaviour is used.
+
+    If tows is provided:
+        only those tows are used.
+    """
+
+    if tows is None:
+        data_sep, weights_sep = get_data(sensor, format="separated")
+    else:
+        data_sep, weights_sep = get_data(sensor, tows=list(tows), format="separated")
+
+    data = []
+    weights = []
+
+    for tow_values, tow_weights in zip(data_sep, weights_sep):
+
+        tow_values = np.asarray(tow_values, dtype=float)
+        tow_weights = np.asarray(tow_weights, dtype=float)
+
+        mask = np.isfinite(tow_values) & np.isfinite(tow_weights)
+        tow_values = tow_values[mask]
+        tow_weights = tow_weights[mask]
+
+        if len(tow_values) < 2:
+            continue
+
+        diffs = tow_values[:-1] - tow_values[1:]
+        pair_weights = 0.5 * tow_weights[:-1] + 0.5 * tow_weights[1:]
+
+        data.extend(diffs)
+        weights.extend(pair_weights)
+
+    data = np.asarray(data, dtype=float)
+    weights = np.asarray(weights, dtype=float)
+
+    if len(data) == 0:
+        raise ValueError(f"No valid step-size data found for sensor {sensor}")
+
+    mean = np.average(data, weights=weights)
+    variance = np.average((data - mean) ** 2, weights=weights)
     std = np.sqrt(variance)
 
     if plot:
-        #x = np.linspace(min(data), max(data), 200)
-        x = np.linspace(mean-3*std, mean+3*std, 200)
-
+        x = np.linspace(mean - 3 * std, mean + 3 * std, 200)
         distribution = lambda x: norm.pdf(x, loc=mean, scale=std)
 
-        # plotting
         plt.plot(x, distribution(x), label='proposal distribution')
         plt.hist(data, weights=weights, density=True, label='step-size data', bins=300)
-        plt.xlim(mean-3*std, mean+3*std)
+        plt.xlim(mean - 3 * std, mean + 3 * std)
         plt.title('step size distribution for ' + sensor)
         plt.legend()
         plt.show()
@@ -355,129 +428,221 @@ def find_RW_statistics(n_tows: int=1000, proposal_type: str="RWM"):
         standard_deviation = np.std(data[i])
         print(f"for {names[i]} the mean is {mean}, the standard deviation is {standard_deviation}")
 
-def generate_RW_multitow(num_tows: int=5, tow_spacing_mm: float=6.35, tow_width_mm: float=6.35, tow_length_mm: float=1000,
-                         proposal_type: str="RWM", print_statement: bool=False, starting_mods: list=[None, 1, 1], alternate_start: list=[None, "params"], override: bool=False):
-    """This function generate a multitow layout using RW"""
+def generate_RW_multitow(
+        num_tows: int=5,
+        tow_spacing_mm: float=6.35,
+        tow_width_mm: float=6.35,
+        tow_length_mm: float=1000,
+        proposal_type: str="RWM",
+        print_statement: bool=False,
+        starting_mods: list=[None, 1, 1],
+        alternate_start: list=[None, "params"],
+        override: bool=False,
+        training_tows=None):
+    """
+    This function generates a multitow layout using RW.
 
-    # fitting random walk to experimental data
-    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk("LT", bins=100) #Number of bins changed from default value to 100
-    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk("CAM", bins=250) #Number of bins changed from default value to 250
-    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk("LLS_B", bins=100) #Number of bins changed from default value to 100
-    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk("LLS_A", bins=100) #Number of bins changed from default value to 100
-    if print_statement == True:
-        print("LT_steps = ", LT_steps, "CAM_steps = ", CAM_steps, "LLS_B_steps = ", LLS_B_steps)
+    If training_tows is None:
+        original behaviour is used.
 
-    # This seciton modifies the starting distributions used by the model, which is needed for Model_ALL_StartVariations.
+    If training_tows is provided:
+        the RW is trained only on those tows.
+    """
+
+    # -------------------------------------------------------------------------
+    # Fit random walk to selected experimental training tows
+    # -------------------------------------------------------------------------
+    LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params = fit_random_walk(
+        "LT", bins=100, tows=training_tows
+    )
+
+    CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params = fit_random_walk(
+        "CAM", bins=250, tows=training_tows
+    )
+
+    LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params = fit_random_walk(
+        "LLS_B", bins=100, tows=training_tows
+    )
+
+    LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params = fit_random_walk(
+        "LLS_A", bins=100, tows=training_tows
+    )
+
+    if print_statement:
+        print("LT_steps = ", LT_steps)
+        print("CAM_steps = ", CAM_steps)
+        print("LLS_B_steps = ", LLS_B_steps)
+        print("LLS_A_steps = ", LLS_A_steps)
+
+    # -------------------------------------------------------------------------
+    # Optional starting distribution modifications
+    # -------------------------------------------------------------------------
     if starting_mods != [None, 1, 1]:
-        if starting_mods[0] != None:  # this changes the starting distribution type if necessary
+
+        if starting_mods[0] is not None:
             CAM_dist = starting_mods[0]
 
-        # these are the factors by which the mean and std are changed
         loc_factor, scale_factor = starting_mods[1], starting_mods[2]
 
-        # code used for start value: start_value = dist.rvs(*params[:-2], loc=params[-2], scale=params[-1])
-        #LT_params, LLS_B_params = list(LT_params), list(LLS_B_params)
         CAM_params = list(CAM_params)
-        #LT_params[-2] *= loc_factor
         CAM_params[-2] *= loc_factor
-        #LLS_B_params[-2] *= loc_factor
-        #LT_params[-1] *= scale_factor      # TODO: make sure the scale parameters equally affect the different distribution types
         CAM_params[-1] *= scale_factor
-        #LLS_B_params[-1] *= scale_factor
-        #LT_params, LLS_B_params = tuple(LT_params), tuple(LLS_B_params)
         CAM_params = tuple(CAM_params)
 
-    if alternate_start[0] != None:
+    if alternate_start[0] is not None:
         print("alternate starting distribution was used.")
         CAM_dist = alternate_start[0]
         CAM_params = alternate_start[1]
 
+    # -------------------------------------------------------------------------
+    # Generate virtual laminate
+    # -------------------------------------------------------------------------
     tow_offset = 0
-    RW_all_tows_data, top_edge_paths, bottom_edge_paths = [], [], []
+
+    RW_all_tows_data = []
+    top_edge_paths = []
+    bottom_edge_paths = []
+
     for n in range(num_tows):
 
-        # generating random walk data
-        LT_walk_data = generate_random_walk("LT", LT_steps, LT_proposal_std, LT_target_dist, LT_dist, LT_params, proposal_type=proposal_type)
-        CAM_walk_data = generate_random_walk("CAM", CAM_steps, CAM_proposal_std, CAM_target_dist, CAM_dist, CAM_params, proposal_type=proposal_type)
-        LLSB_walk_data = generate_random_walk("LLS_B", LLS_B_steps, LLS_B_proposal_std, LLS_B_target_dist, LLS_B_dist, LLS_B_params, proposal_type=proposal_type)
-        LLSA_walk_data = generate_random_walk("LLS_A", LLS_A_steps, LLS_A_proposal_std, LLS_A_target_dist, LLS_A_dist, LLS_A_params, proposal_type=proposal_type)
+        # Generate random walk data
+        LT_walk_data = generate_random_walk(
+            "LT",
+            LT_steps,
+            LT_proposal_std,
+            LT_target_dist,
+            LT_dist,
+            LT_params,
+            proposal_type=proposal_type
+        )
 
-        # determine what the smallest number of steps is for the errors and use this is the global number of steps
+        CAM_walk_data = generate_random_walk(
+            "CAM",
+            CAM_steps,
+            CAM_proposal_std,
+            CAM_target_dist,
+            CAM_dist,
+            CAM_params,
+            proposal_type=proposal_type
+        )
+
+        LLSB_walk_data = generate_random_walk(
+            "LLS_B",
+            LLS_B_steps,
+            LLS_B_proposal_std,
+            LLS_B_target_dist,
+            LLS_B_dist,
+            LLS_B_params,
+            proposal_type=proposal_type
+        )
+
+        LLSA_walk_data = generate_random_walk(
+            "LLS_A",
+            LLS_A_steps,
+            LLS_A_proposal_std,
+            LLS_A_target_dist,
+            LLS_A_dist,
+            LLS_A_params,
+            proposal_type=proposal_type
+        )
+
+        # Convert to arrays
+        LT_walk_data = np.asarray(LT_walk_data, dtype=float)
+        CAM_walk_data = np.asarray(CAM_walk_data, dtype=float)
+        LLSB_walk_data = np.asarray(LLSB_walk_data, dtype=float)
+        LLSA_walk_data = np.asarray(LLSA_walk_data, dtype=float)
+
+        # Determine common number of steps
         n_steps = min(LT_steps, CAM_steps, LLS_B_steps)
-        if n_steps != CAM_steps: print('Note: CAM data length was NOT used!')
+
+        if n_steps != CAM_steps:
+            print('Note: CAM data length was NOT used!')
+
         x_walk_data = np.linspace(0, tow_length_mm, n_steps)
 
-        # interpolate only datasets that are longer than the reference
+        # Interpolate only datasets that are longer/shorter than the reference
         if n_steps != LT_steps:
             LT_walk_data = interpolate(LT_walk_data, n_steps)
+
         if n_steps != CAM_steps:
             CAM_walk_data = interpolate(CAM_walk_data, n_steps)
+
         if n_steps != LLS_B_steps:
             LLSB_walk_data = interpolate(LLSB_walk_data, n_steps)
+
         if n_steps != LLS_A_steps:
             LLSA_walk_data = interpolate(LLSA_walk_data, n_steps)
 
-        compaction_error = -(LLSB_walk_data - LLSA_walk_data)
-        for i in range(len(LLSB_walk_data)):
-            if compaction_error[i] > 0:
-                compaction_error[i] = 0
+        # Convert again after interpolation
+        LT_walk_data = np.asarray(LT_walk_data, dtype=float)
+        CAM_walk_data = np.asarray(CAM_walk_data, dtype=float)
+        LLSB_walk_data = np.asarray(LLSB_walk_data, dtype=float)
+        LLSA_walk_data = np.asarray(LLSA_walk_data, dtype=float)
 
-        # getting it into centerline and width format
-        tow_centerline_data = tow_offset + np.array(CAM_walk_data) + np.array(LT_walk_data)
-        tow_width_data = tow_width_mm + np.array(LLSB_walk_data)
+        # Same original construction:
+        # centerline = LT error + CAM error + programmed tow offset
+        # width = nominal width + LLS_B error
+        tow_centerline_data = tow_offset + CAM_walk_data + LT_walk_data
+        tow_width_data = tow_width_mm + LLSB_walk_data
 
-        #print(f'Tow centerline: {tow_centerline_data}')
-        #print(f'Tow width: {tow_width_data}')
-
-        # --- Override for flat/square tows (no random walk) ---
-        if override == True:
-            # create perfectly straight, flat tows
+        # Optional override for perfect flat tow
+        if override:
             tow_centerline_data = np.full_like(x_walk_data, tow_offset)
             tow_width_data = np.full_like(x_walk_data, tow_width_mm)
 
+        # Construct edges
         tow_top_edge = tow_centerline_data + 0.5 * tow_width_data
         tow_bottom_edge = tow_centerline_data - 0.5 * tow_width_data
 
         top_edge_paths.append(tow_top_edge)
         bottom_edge_paths.append(tow_bottom_edge)
-        tow_offset += tow_spacing_mm
-
-        #print(f'Length of x: {len(x_walk_data)}')
-        #print(f'Length of centerline: {len(tow_centerline_data)}')
-        #print(f'Length of top: {len(tow_top_edge)}')
-        #print(f'Length of bottom: {len(tow_bottom_edge)}')
 
         RW_data = pd.DataFrame({
             "x_mm": x_walk_data,
             "centerline": tow_centerline_data,
             "top_edge": tow_top_edge,
-            "bottom_edge": tow_bottom_edge})
-        
+            "bottom_edge": tow_bottom_edge
+        })
+
         RW_all_tows_data.append(RW_data)
 
-    # creating the gap_overlap_data
-    gap_overlap_dict = {
-        f"Gap/overlap_Tow{tow_index + 1}_Tow{tow_index + 2}": bottom_edge_paths[tow_index + 1] - top_edge_paths[tow_index]
-        for tow_index in range(num_tows - 1)}
-    gap_overlap_df = pd.DataFrame(gap_overlap_dict)
+        tow_offset += tow_spacing_mm
 
-    x_vals = x_walk_data
+    # -------------------------------------------------------------------------
+    # Gap/overlap calculation
+    # -------------------------------------------------------------------------
+    gap_overlap_dict = {
+        f"Gap/overlap_Tow{tow_index + 1}_Tow{tow_index + 2}":
+            bottom_edge_paths[tow_index + 1] - top_edge_paths[tow_index]
+        for tow_index in range(num_tows - 1)
+    }
+
+    gap_overlap_df = pd.DataFrame(gap_overlap_dict, index=x_walk_data)
+
     gap_df = gap_overlap_df.where(gap_overlap_df > 0)
     overlap_df = gap_overlap_df.where(gap_overlap_df < 0)
 
-    # --- Area calculations ---
+    x_vals = x_walk_data
+
     highest_tow_edge = top_edge_paths[-1]
     lowest_tow_edge = bottom_edge_paths[0]
+
     total_layout_area = np.trapezoid(highest_tow_edge - lowest_tow_edge, x_vals)
 
-    total_gap_area = sum(np.trapezoid(np.clip(values, 0, None), x_vals) for values in gap_overlap_df.values.T)
-    total_overlap_area = sum(np.trapezoid(np.clip(-values, 0, None), x_vals) for values in gap_overlap_df.values.T)
+    total_gap_area = sum(
+        np.trapezoid(np.clip(values, 0, None), x_vals)
+        for values in gap_overlap_df.values.T
+    )
+
+    total_overlap_area = sum(
+        np.trapezoid(np.clip(-values, 0, None), x_vals)
+        for values in gap_overlap_df.values.T
+    )
 
     gap_percent = (total_gap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
     overlap_percent = (total_overlap_area / total_layout_area) * 100 if total_layout_area > 0 else 0
 
-    # --- Print summary ---
-    if print_statement == True:
+    if print_statement:
         print(f"\nTotal layout area: {total_layout_area:.2f} mm²")
         print(f"Gap area: {total_gap_area:.2f} mm² ({gap_percent:.2f}%)")
         print(f"Overlap area: {total_overlap_area:.2f} mm² ({overlap_percent:.2f}%)")
