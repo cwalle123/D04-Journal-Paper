@@ -388,15 +388,11 @@ def plot_spacing_distribution(custom_file, title="", bins=100):
     plt.hist(baseline_data, bins=bin_edges, density=True, alpha=0.5, label="Baseline")
     plt.hist(custom_data, bins=bin_edges, density=True, alpha=0.5, label="Custom")
 
-    try:
-        sns.kdeplot(baseline_data, linewidth=2)
-        sns.kdeplot(custom_data, linewidth=2)
-    except:
-        pass
-
     plt.axvline(0, color="black", linestyle=":", label="Ideal (0 gap)")
     plt.xlabel("Spacing (mm)")
     plt.ylabel("Density")
+    plt.xlim(0, 80)
+    plt.ylim(0, 125000)
     plt.title(title)
     plt.legend()
     plt.tight_layout()
@@ -509,24 +505,24 @@ def plot_all_spacing_variations(bins=100):
     plt.tight_layout()
     plt.show()
 
-def plot_all_gap_length_variations(bins=60):
+def plot_all_gap_length_variations(bins=30):
 
     figsize = (18, 18)
 
     cases = [
-        ("LT_std", "LT_shifted_sigma_spacing_data.csv"),
-        ("LT_mu", "LT_shifted_mu_spacing_data.csv"),
-        ("CAM_std", "CAM_shifted_sigma_spacing_data.csv"),
-        ("CAM_mu", "CAM_shifted_mu_spacing_data.csv"),
-        ("LT+CAM_std", "LT_CAM_shifted_sigma_spacing_data.csv"),
-        ("LT+CAM_mu", "LT_CAM_shifted_mu_spacing_data.csv"),
-        ("LLSB_std", "LLSB_shifted_sigma_spacing_data.csv"),
-        ("LLSB_mu", "LLSB_shifted_mu_spacing_data.csv"),
-        ("LLSA_std", "LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSA_mu", "LLSA_shifted_mu_spacing_data.csv"),
-        ("LLSB+LLSA_std", "LLSB_LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSB+LLSA_mu", "LLSB_LLSA_shifted_mu_spacing_data.csv"),
-        ("ALL_both", "ALL_shifted_both_spacing_data.csv"),
+        ("LT_std", "LT_RS_shifted_sigma_spacing_data.csv"),
+        ("LT_mu", "LT_RS_shifted_mu_spacing_data.csv"),
+        ("CAM_std", "CAM_RS_shifted_sigma_spacing_data.csv"),
+        ("CAM_mu", "CAM_RS_shifted_mu_spacing_data.csv"),
+        ("LT+CAM_std", "LT_CAM_RS_shifted_sigma_spacing_data.csv"),
+        ("LT+CAM_mu", "LT_CAM_RS_shifted_mu_spacing_data.csv"),
+        ("LLSB_std", "LLSB_RS_shifted_sigma_spacing_data.csv"),
+        ("LLSB_mu", "LLSB_RS_shifted_mu_spacing_data.csv"),
+        ("LLSA_std", "LLSA_RS_shifted_sigma_spacing_data.csv"),
+        ("LLSA_mu", "LLSA_RS_shifted_mu_spacing_data.csv"),
+        ("LLSB+LLSA_std", "LLSB_LLSA_RS_shifted_sigma_spacing_data.csv"),
+        ("LLSB+LLSA_mu", "LLSB_LLSA_RS_shifted_mu_spacing_data.csv"),
+        ("ALL_both", "ALL_RS_shifted_both_spacing_data.csv"),
     ]
 
     fig, axes = plt.subplots(4, 4, figsize=figsize)
@@ -547,7 +543,7 @@ def plot_all_gap_length_variations(bins=60):
         ax.hist(baseline_gaps, bins=bin_edges, alpha=0.4, label="Baseline gaps")
         ax.hist(data, bins=bin_edges, alpha=0.4, label="Custom gaps")
 
-        ax.set_xlim(0, 150)
+        ax.set_xlim(0, 80)
         ax.set_ylim(0, 125000)
 
         ax.set_title(title)
@@ -558,7 +554,7 @@ def plot_all_gap_length_variations(bins=60):
 
     for i, (title, file) in enumerate(cases, start=1):
 
-        df = pd.read_csv(f"Cached Data/Normal Distribution Variations/{file}")
+        df = pd.read_csv(f"Cached Data/Normal Distribution Variations RS/{file}")
 
         if "metric" in df.columns:
             data = df[df["metric"] == "gap_length"]["value"].values
@@ -593,10 +589,10 @@ if __name__ == "__main__":
 
     #compute_baseline_spacing() # Takes 30 min
     # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="sigma") # Takes 4 min
-    run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
+    # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
 
 """Generate Graphs"""
 # plot_spacing_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
 # plot_gap_length_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
 # plot_all_spacing_variations(bins=100) # Takes a minute
-# plot_all_gap_length_variations(bins=60) # Takes a minute
+plot_all_gap_length_variations(bins=60) # Takes a minute
