@@ -30,10 +30,10 @@ RW_PROPOSAL_STD = {
     "LLS_A": get_proposal_distribution("LLS_A")}
 
 STEP_CACHE = {
-    "LT": get_n_steps("LT"),
-    "CAM": get_n_steps("CAM"),
-    "LLS_B": get_n_steps("LLS_B"),
-    "LLS_A": get_n_steps("LLS_A")}
+    "LT": get_n_steps("LT") or 400,
+    "CAM": get_n_steps("CAM") or 400,
+    "LLS_B": get_n_steps("LLS_B") or 400,
+    "LLS_A": get_n_steps("LLS_A") or 400}
 
 def NORMAL_distribution(mu, sigma):
     from scipy.stats import norm
@@ -274,49 +274,71 @@ def run_spacing_multiple_simulations(runs=100, tows=31):
         ("LLSB_LLSA", "sigma", ["LLSB", "LLSA"]),
         ("LLSB_LLSA", "mu", ["LLSB", "LLSA"]),
         ("ALL", "both", ["LT", "CAM", "LLSB", "LLSA"])]
+    
 
-    def modify(params, sensors=None, change=None):
-        new_params = params.copy()
+def generate_LT_CAM_opposite_spacing_data(runs=100, tows=31):
+    """
+    Generates the two new LT+CAM opposite-direction cases and saves them to CSV.
 
-        for s in sensors:
-            mu, sigma = new_params[s]
+    Opposite convention:
+    - sigma opposite: LT sigma increased, CAM sigma decreased
+    - mu opposite:    LT mean increased, CAM mean decreased
+    """
 
-            if change == "mean":
-                mu = 0.08
-            elif change == "std":
-                sigma = 0.12
-            elif change == "both":
-                mu = 0.08
-                sigma = 0.12
+    save_dir = "Cached Data/Normal Distribution Variations"
+    os.makedirs(save_dir, exist_ok=True)
 
-            new_params[s] = (mu, sigma)
+    # --------------------------------------------------
+    # LT+CAM sigma opposite
+    # Baseline: LT sigma = 0.06, CAM sigma = 0.06
+    # Opposite: LT sigma = 0.12, CAM sigma = 0.00
+    # --------------------------------------------------
+    sigma_opposite_params = baseline_params.copy()
+    sigma_opposite_params["LT"] = (0.00, 0.1)
+    sigma_opposite_params["CAM"] = (0.00, 0.03)
 
-        return new_params
+    df_sigma_opposite, _ = KDE_spacing_from_normals(
+        custom_params=sigma_opposite_params,
+        runs=runs,
+        tows=tows,
+        sensor_type="LT_CAM",
+        distribution_parameter="sigma",
+        save_csv=False
+    )
 
-    start_time = time.time()
+    sigma_path = os.path.join(
+        save_dir,
+        "LT_CAM_opposite_shifted_sigma_spacing_data.csv"
+    )
 
-    for i, (name, param_type, sensors) in enumerate(experiments):
+    df_sigma_opposite.to_csv(sigma_path, index=False)
+    print(f"Saved: {sigma_path}")
 
-        print(f"\n===== Running {i+1}/{len(experiments)}: {name} | {param_type} =====")
+    # --------------------------------------------------
+    # LT+CAM mu opposite
+    # Baseline: LT mu = 0.00, CAM mu = 0.00
+    # Opposite: LT mu = +0.08, CAM mu = -0.08
+    # --------------------------------------------------
+    mu_opposite_params = baseline_params.copy()
+    mu_opposite_params["LT"] = (0.08, 0.06)
+    mu_opposite_params["CAM"] = (-0.08, 0.06)
 
-        change = {
-            "mu": "mean",
-            "sigma": "std",
-            "both": "both"
-        }.get(param_type)
+    df_mu_opposite, _ = KDE_spacing_from_normals(
+        custom_params=mu_opposite_params,
+        runs=runs,
+        tows=tows,
+        sensor_type="LT_CAM",
+        distribution_parameter="mu",
+        save_csv=False
+    )
 
-        custom_params = modify(baseline_params, sensors=sensors, change=change)
+    mu_path = os.path.join(
+        save_dir,
+        "LT_CAM_opposite_shifted_mu_spacing_data.csv"
+    )
 
-        KDE_spacing_from_normals(
-            custom_params=custom_params,
-            runs=runs,
-            tows=tows,
-            sensor_type=name,
-            distribution_parameter=param_type,
-            save_csv=True)
-
-    elapsed = time.time() - start_time
-    print(f"\nAll simulations complete in {elapsed:.1f}s\n")
+    df_mu_opposite.to_csv(mu_path, index=False)
+    print(f"Saved: {mu_path}")
 
 def plot_spacing_distribution(custom_file, title="", bins=100):
 
@@ -412,40 +434,147 @@ def plot_all_spacing_variations(bins=100):
     fig, axes = plt.subplots(4, 4, figsize=figsize)
     axes = axes.flatten()
 
+def plot_LT_CAM_spacing_variations_ordered(bins=100):
+    """
+    Plot only LT and CAM spacing variations in the requested order.
+
+    Layout:
+    - Row 1: Baseline across both columns
+    - Row 2: LT_sigma | LT_mu
+    - Row 3: CAM_sigma | CAM_mu
+    - Row 4: LT_CAM_sigma | LT_CAM_mu
+    - Row 5: LT_CAM_sigma_opposite | LT_CAM_mu_opposite
+
+    Legend in each plot contains:
+    - plot name
+    - mean of custom
+    - SD of custom
+
+    No plot titles.
+    No KDE lines.
+    """
+
+    from matplotlib.lines import Line2D
+
     def extract_spacing(df):
         if "metric" in df.columns:
             return df[df["metric"] == "spacing"]["value"].values
         return df["spacing"].values
 
-    def plot(ax, data, title):
+    save_dir = "Cached Data/Normal Distribution Variations"
 
-        ax.hist(baseline, bins=bins, density=True, alpha=0.4, label="Baseline")
-        ax.hist(data, bins=bins, density=True, alpha=0.4, label="Custom")
+    baseline_df = pd.read_csv(baseline_file)
+    baseline = extract_spacing(baseline_df)
 
-        try:
-            sns.kdeplot(baseline, ax=ax)
-            sns.kdeplot(data, ax=ax)
-        except:
-            pass
+    cases = [
+        ("LT_sigma", os.path.join(save_dir, "LT_shifted_sigma_spacing_data.csv")),
+        ("LT_mu", os.path.join(save_dir, "LT_shifted_mu_spacing_data.csv")),
 
-        ax.set_title(title)
-        ax.legend()
-        ax.set_xlim(-1.2, 1.2)
+        ("CAM_sigma", os.path.join(save_dir, "CAM_shifted_sigma_spacing_data.csv")),
+        ("CAM_mu", os.path.join(save_dir, "CAM_shifted_mu_spacing_data.csv")),
 
-    plot(axes[0], baseline, "Baseline")
+        ("LT_CAM_sigma", os.path.join(save_dir, "LT_CAM_shifted_sigma_spacing_data.csv")),
+        ("LT_CAM_mu", os.path.join(save_dir, "LT_CAM_shifted_mu_spacing_data.csv")),
 
-    for i, (title, file) in enumerate(cases, start=1):
+        ("LT_CAM_sigma_opposite", os.path.join(save_dir, "LT_CAM_opposite_shifted_sigma_spacing_data.csv")),
+        ("LT_CAM_mu_opposite", os.path.join(save_dir, "LT_CAM_opposite_shifted_mu_spacing_data.csv")),
+    ]
 
-        df = pd.read_csv(f"Cached Data/Normal Distribution Variations/{file}")
+    loaded_cases = []
+    all_data = [baseline]
+
+    for name, file in cases:
+        if not os.path.exists(file):
+            raise FileNotFoundError(
+                f"Missing file: {file}\n"
+                f"Generate it first before plotting."
+            )
+
+        df = pd.read_csv(file)
         data = extract_spacing(df)
 
-        plot(axes[i], data, title)
+        loaded_cases.append((name, data))
+        all_data.append(data)
 
-    for j in range(len(cases) + 1, len(axes)):
-        axes[j].axis("off")
+    all_data = np.concatenate(all_data)
+
+    x_min = np.min(all_data)
+    x_max = np.max(all_data)
+    bin_edges = np.linspace(x_min, x_max, bins + 1)
+
+    fig = plt.figure(figsize=(18, 18))
+    gs = fig.add_gridspec(5, 2)
+
+    axes = []
+
+    # Baseline plot spans both columns
+    axes.append(fig.add_subplot(gs[0, :]))
+
+    # Remaining 8 plots
+    for r in range(1, 5):
+        for c in range(2):
+            axes.append(fig.add_subplot(gs[r, c]))
+
+    baseline_mean = np.mean(baseline)
+    baseline_std = np.std(baseline, ddof=1)
+
+    def make_text_legend(ax, line1, line2, line3):
+        handles = [
+            Line2D([], [], linestyle="none", label=line1),
+            Line2D([], [], linestyle="none", label=line2),
+            Line2D([], [], linestyle="none", label=line3),
+        ]
+        ax.legend(handles=handles, loc="best", handlelength=0, handletextpad=0)
+
+    def plot(ax, data, name, show_custom=True):
+        # Histograms only
+        ax.hist(baseline, bins=bin_edges, density=True, alpha=0.4)
+
+        if show_custom:
+            ax.hist(data, bins=bin_edges, density=True, alpha=0.4)
+
+        # Keep this if you still want the ideal spacing reference
+        ax.axvline(0, color="black", linestyle=":")
+
+        ax.set_xlim(x_min, x_max)
+
+        # No title
+        # ax.set_title(name)
+
+        if show_custom:
+            custom_mean = np.mean(data)
+            custom_std = np.std(data, ddof=1)
+
+            make_text_legend(
+                ax,
+                f"{name}",
+                f"Mean = {custom_mean:.4f}",
+                f"SD = {custom_std:.4f}"
+            )
+        else:
+            make_text_legend(
+                ax,
+                "Baseline",
+                f"Mean = {baseline_mean:.4f}",
+                f"SD = {baseline_std:.4f}"
+            )
+
+    # Baseline plot
+    plot(axes[0], baseline, "Baseline", show_custom=False)
+
+    # Remaining plots
+    for ax, (name, data) in zip(axes[1:], loaded_cases):
+        plot(ax, data, name, show_custom=True)
 
     plt.tight_layout()
-    plt.show()
+
+    plt.savefig(
+        "LT_CAM_spacing_variations_ordered.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+plt.show()
 
 def plot_all_gap_length_variations(bins=30):
 
@@ -511,9 +640,16 @@ def plot_all_gap_length_variations(bins=30):
     plt.tight_layout()
     plt.show()
 
+#TODO: do this plot for the four scenarios 
+#TODO: Find where to change the means and SD of the increased and decreased metrics. change increased mean to 0.1 and mu=0.
+
 ############################################################################################################################################
 """Generate Data"""
-if __name__ == "__main__": # REQUIRED for multiprocessing (especially on Windows/macOS)
+############################################################################################################################################
+"""Generate Data / Graphs"""
+
+if __name__ == "__main__":
+
     from multiprocessing import freeze_support, set_start_method
 
     freeze_support()
@@ -523,18 +659,22 @@ if __name__ == "__main__": # REQUIRED for multiprocessing (especially on Windows
     except RuntimeError:
         pass
 
-    params_test = {
-        "LT": (0.08, 0.12),
-        "CAM": (0.08, 0.12),
-        "LLSB": (0.08, 0.12),
-        "LLSA": (0.08, 0.12)}
-    
+    # --------------------------------------------------
+    # Run this ONCE if the opposite LT+CAM files do not exist yet
+    # --------------------------------------------------
+    #generate_LT_CAM_opposite_spacing_data(runs=100, tows=31)
+
+    # --------------------------------------------------
+    # Plot LT/CAM spacing variations
+    # --------------------------------------------------
+    plot_LT_CAM_spacing_variations_ordered(bins=100)
+
     # compute_baseline_spacing()
     # KDE_spacing_from_normals(params_test, runs=100, sensor_type="ALL", distribution_parameter="both") # GENERATES ONE DATA SET BASED ON PARAMS_TEST
     # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 25 min!
 
 """Generate Graphs"""
-# plot_spacing_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
-# plot_gap_length_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
-# plot_all_spacing_variations(bins=100) # Takes a minute
-plot_all_gap_length_variations(bins=30) # Takes a minute
+#plot_spacing_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
+#plot_gap_length_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
+#plot_all_spacing_variations(bins=100) # Takes a minute
+#plot_all_gap_length_variations(bins=30) # Takes a minute
