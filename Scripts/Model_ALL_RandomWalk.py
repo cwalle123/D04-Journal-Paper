@@ -35,31 +35,9 @@ from Model_ALL_RandomSampling import user_interface_only_generate_RS_multitow
 ##############################################################################################################
 """Functions"""
 
-def get_n_steps(sensor, tows=None):
-    """
-    Gets the number of steps, which is the average number of data points
-    in a one meter tow.
-
-    If tows is None:
-        original behaviour is used.
-
-    If tows is provided:
-        only those tows are used.
-    """
-
-    if tows is None:
-        data, weights = get_data(sensor, format='separated')
-    else:
-        data, weights = get_data(sensor, tows=list(tows), format='separated')
-
-    lengths = []
-
-    for i in range(len(data)):
-        clean = np.asarray(data[i], dtype=float)
-        clean = clean[np.isfinite(clean)]
-        lengths.append(len(clean))
-
-    return int(np.average(lengths))
+def get_n_steps(sensor):
+    """This function gets the number of steps, which is the number of data points in a one meter tow"""
+    data, weights = get_data(sensor, format='separated')
 
 def propose_new_RWM_value(x_current, dist_std):    # random walk metropolis (RWM), using normal dist???
     mean = 0
