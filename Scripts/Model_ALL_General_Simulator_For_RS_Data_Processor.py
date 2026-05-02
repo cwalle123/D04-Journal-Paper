@@ -876,14 +876,17 @@ def plot_LT_CAM_gap_length_variations_ordered(bins=100):
     baseline = extract_gap(baseline_df)
 
     cases = [
-        ("LT_std", os.path.join(save_dir, "LT_RS_shifted_sigma_spacing_data.csv")),
+        ("LT_sigma", os.path.join(save_dir, "LT_RS_shifted_sigma_spacing_data.csv")),
         ("LT_mu", os.path.join(save_dir, "LT_RS_shifted_mu_spacing_data.csv")),
 
-        ("CAM_std", os.path.join(save_dir, "CAM_RS_shifted_sigma_spacing_data.csv")),
+        ("CAM_sigma", os.path.join(save_dir, "CAM_RS_shifted_sigma_spacing_data.csv")),
         ("CAM_mu", os.path.join(save_dir, "CAM_RS_shifted_mu_spacing_data.csv")),
 
-        ("LT+CAM_std", os.path.join(save_dir, "LT_CAM_RS_shifted_sigma_spacing_data.csv")),
-        ("LT+CAM_mu", os.path.join(save_dir, "LT_CAM_RS_shifted_mu_spacing_data.csv")),
+        ("LT_CAM_sigma", os.path.join(save_dir, "LT_CAM_RS_shifted_sigma_spacing_data.csv")),
+        ("LT_CAM_mu", os.path.join(save_dir, "LT_CAM_RS_shifted_mu_spacing_data.csv")),
+
+        ("LT_CAM_sigma_opposite", os.path.join(save_dir, "LT_CAM_RS_opposite_shifted_sigma_spacing_data.csv")),
+        ("LT_CAM_mu_opposite", os.path.join(save_dir, "LT_CAM_RS_opposite_shifted_mu_spacing_data.csv")),
     ]
 
     loaded_cases, all_data = [], [baseline]
@@ -900,14 +903,14 @@ def plot_LT_CAM_gap_length_variations_ordered(bins=100):
     bin_edges = np.linspace(x_min, x_max, bins + 1)
 
     fig = plt.figure(figsize=(18, 18))
-    outer = fig.add_gridspec(4, 1, hspace=0.3)
+    outer = fig.add_gridspec(5, 1, hspace=0.3)
 
     axes = []
 
     top = outer[0].subgridspec(1, 3, width_ratios=[1, 2, 1])
     axes.append(fig.add_subplot(top[0, 1]))
 
-    for r in range(1, 4):
+    for r in range(1, 5):
         inner = outer[r].subgridspec(1, 2, wspace=0.25)
         axes.append(fig.add_subplot(inner[0, 0]))
         axes.append(fig.add_subplot(inner[0, 1]))
@@ -957,14 +960,17 @@ def plot_LLSB_LLSA_gap_length_variations_ordered(bins=100):
     baseline = extract_gap(pd.read_csv(baseline_file))
 
     cases = [
-        ("LLSA_std", os.path.join(save_dir, "LLSA_RS_shifted_sigma_spacing_data.csv")),
+        ("LLSA_sigma", os.path.join(save_dir, "LLSA_RS_shifted_sigma_spacing_data.csv")),
         ("LLSA_mu", os.path.join(save_dir, "LLSA_RS_shifted_mu_spacing_data.csv")),
 
-        ("LLSB_std", os.path.join(save_dir, "LLSB_RS_shifted_sigma_spacing_data.csv")),
+        ("LLSB_sigma", os.path.join(save_dir, "LLSB_RS_shifted_sigma_spacing_data.csv")),
         ("LLSB_mu", os.path.join(save_dir, "LLSB_RS_shifted_mu_spacing_data.csv")),
 
-        ("LLSB+LLSA_std", os.path.join(save_dir, "LLSB_LLSA_RS_shifted_sigma_spacing_data.csv")),
-        ("LLSB+LLSA_mu", os.path.join(save_dir, "LLSB_LLSA_RS_shifted_mu_spacing_data.csv")),
+        ("LLSB_LLSA_sigma", os.path.join(save_dir, "LLSB_LLSA_RS_shifted_sigma_spacing_data.csv")),
+        ("LLSB_LLSA_mu", os.path.join(save_dir, "LLSB_LLSA_RS_shifted_mu_spacing_data.csv")),
+
+        ("LLSB_LLSA_sigma_opposite", os.path.join(save_dir, "LLSB_LLSA_RS_opposite_shifted_sigma_spacing_data.csv")),
+        ("LLSB_LLSA_mu_opposite", os.path.join(save_dir, "LLSB_LLSA_RS_opposite_shifted_mu_spacing_data.csv")),
     ]
 
     loaded_cases, all_data = [], [baseline]
@@ -978,14 +984,14 @@ def plot_LLSB_LLSA_gap_length_variations_ordered(bins=100):
     bin_edges = np.linspace(np.min(all_data), np.max(all_data), bins + 1)
 
     fig = plt.figure(figsize=(18, 18))
-    outer = fig.add_gridspec(4, 1, hspace=0.3)
+    outer = fig.add_gridspec(5, 1, hspace=0.3)
 
     axes = []
 
     top = outer[0].subgridspec(1, 3, width_ratios=[1, 2, 1])
     axes.append(fig.add_subplot(top[0, 1]))
 
-    for r in range(1, 4):
+    for r in range(1, 5):
         inner = outer[r].subgridspec(1, 2)
         axes.append(fig.add_subplot(inner[0, 0]))
         axes.append(fig.add_subplot(inner[0, 1]))
@@ -1079,12 +1085,6 @@ if __name__ == "__main__":
         set_start_method("spawn", force=True)
     except RuntimeError:
         pass
-
-    params_test = {
-        "LT": (-0.08, 0.06),
-        "CAM": (-0.08, 0.06),
-        "LLSB": (-0.08, 0.12),
-        "LLSA": (-0.08, 0.06)}
     
     # --------------------------------------------------
     # Run this ONCE if the opposite LT+CAM or LLSA/LLSB files do not exist yet
@@ -1100,7 +1100,7 @@ if __name__ == "__main__":
     # plot_baseline_vs_all_spacing_variations_ordered(bins=100)
     # plot_LT_CAM_gap_length_variations_ordered(bins=30)
     # plot_LLSB_LLSA_gap_length_variations_ordered(bins=30)
-    plot_baseline_vs_all_gap_length_variations_ordered(bins=18)
+    # plot_baseline_vs_all_gap_length_variations_ordered(bins=18)
 
     # compute_baseline_spacing() # Takes 30 min
     # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="sigma") # Takes 4 min
