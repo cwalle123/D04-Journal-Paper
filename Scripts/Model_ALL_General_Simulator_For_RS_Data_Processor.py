@@ -890,7 +890,7 @@ def plot_LLSB_LLSA_spacing_variations_ordered(bins=100):
             ax.hist(data, bins=bin_edges, density=True, alpha=0.4)
 
         ax.axvline(0, color="black", linestyle=":")
-        ax.set_xlim(-0.75, 0.75)
+        ax.set_xlim(-0.6, 0.6)
 
         if show_custom:
             make_text_legend(
@@ -966,7 +966,7 @@ def plot_baseline_vs_all(bins=100):
     ax = axes[0]
     ax.hist(baseline, bins=bin_edges, density=True, alpha=0.5)
     ax.axvline(0, color="black", linestyle=":")
-    ax.set_xlim(-1.2, 1.2)
+    ax.set_xlim(-0.6, 0.6)
 
     make_text_legend(
         ax,
@@ -983,7 +983,7 @@ def plot_baseline_vs_all(bins=100):
     ax.hist(all_data, bins=bin_edges, density=True, alpha=0.4)
 
     ax.axvline(0, color="black", linestyle=":")
-    ax.set_xlim(-1.2, 1.2)
+    ax.set_xlim(-0.6, 0.6)
 
     make_text_legend(
         ax,
@@ -1025,21 +1025,20 @@ if __name__ == "__main__":
     # --------------------------------------------------
     # Run this ONCE if the opposite LT+CAM or LLSA/LLSB files do not exist yet
     # --------------------------------------------------
-    compute_baseline_spacing() # REMOVE THIS LINE AFTER TODAY
-    generate_LT_CAM_opposite_spacing_data(runs=100, tows=31)
-    generate_LLSB_LLSA_opposite_spacing_data(runs=100, tows=31)
+    # generate_LT_CAM_opposite_spacing_data(runs=100, tows=31)
+    # generate_LLSB_LLSA_opposite_spacing_data(runs=100, tows=31)
 
     # --------------------------------------------------
     # Plot LT/CAM or LLSA/LLSB spacing variations
     # --------------------------------------------------
     # plot_LT_CAM_spacing_variations_ordered(bins=100)
     # plot_LLSB_LLSA_spacing_variations_ordered(bins=100)
-    # plot_baseline_vs_all(bins=100)
+    plot_baseline_vs_all(bins=100)
     
 
     # compute_baseline_spacing() # Takes 30 min
     # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="sigma") # Takes 4 min
-    run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
+    # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
 
     # plot_spacing_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
     # plot_gap_length_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
