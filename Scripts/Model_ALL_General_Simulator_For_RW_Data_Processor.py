@@ -382,100 +382,6 @@ def plot_gap_length_distribution(custom_file, title="", bins=30):
     plt.tight_layout()
     plt.show()
 
-def plot_all_spacing_variations(bins=100):
-
-    figsize = (18, 18)
-    baseline_df = pd.read_csv(baseline_file)
-
-    # extract baseline spacing safely
-    if "metric" in baseline_df.columns:
-        baseline = baseline_df[baseline_df["metric"] == "spacing"]["value"].values
-    else:
-        baseline = baseline_df["spacing"].values
-
-    cases = [
-        ("LT_std", "LT_shifted_sigma_spacing_data.csv"),
-        ("LT_mu", "LT_shifted_mu_spacing_data.csv"),
-        ("CAM_std", "CAM_shifted_sigma_spacing_data.csv"),
-        ("CAM_mu", "CAM_shifted_mu_spacing_data.csv"),
-        ("LT+CAM_std", "LT_CAM_shifted_sigma_spacing_data.csv"),
-        ("LT+CAM_mu", "LT_CAM_shifted_mu_spacing_data.csv"),
-        ("LLSB_std", "LLSB_shifted_sigma_spacing_data.csv"),
-        ("LLSB_mu", "LLSB_shifted_mu_spacing_data.csv"),
-        ("LLSA_std", "LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSA_mu", "LLSA_shifted_mu_spacing_data.csv"),
-        ("LLSB+LLSA_std", "LLSB_LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSB+LLSA_mu", "LLSB_LLSA_shifted_mu_spacing_data.csv"),
-        ("ALL_both", "ALL_shifted_both_spacing_data.csv"),
-    ]
-
-    fig, axes = plt.subplots(4, 4, figsize=figsize)
-    axes = axes.flatten()
-
-def plot_all_gap_length_variations(bins=30):
-
-    figsize = (18, 18)
-
-    cases = [
-        ("LT_std", "LT_shifted_sigma_spacing_data.csv"),
-        ("LT_mu", "LT_shifted_mu_spacing_data.csv"),
-        ("CAM_std", "CAM_shifted_sigma_spacing_data.csv"),
-        ("CAM_mu", "CAM_shifted_mu_spacing_data.csv"),
-        ("LT+CAM_std", "LT_CAM_shifted_sigma_spacing_data.csv"),
-        ("LT+CAM_mu", "LT_CAM_shifted_mu_spacing_data.csv"),
-        ("LLSB_std", "LLSB_shifted_sigma_spacing_data.csv"),
-        ("LLSB_mu", "LLSB_shifted_mu_spacing_data.csv"),
-        ("LLSA_std", "LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSA_mu", "LLSA_shifted_mu_spacing_data.csv"),
-        ("LLSB+LLSA_std", "LLSB_LLSA_shifted_sigma_spacing_data.csv"),
-        ("LLSB+LLSA_mu", "LLSB_LLSA_shifted_mu_spacing_data.csv"),
-        ("ALL_both", "ALL_shifted_both_spacing_data.csv"),
-    ]
-
-    fig, axes = plt.subplots(4, 4, figsize=figsize)
-    axes = axes.flatten()
-
-    baseline_df = pd.read_csv(baseline_file)
-
-    if "metric" in baseline_df.columns:
-        baseline_gaps = baseline_df[baseline_df["metric"] == "gap_length"]["value"].values
-    else:
-        baseline_gaps = baseline_df["gap_length"].values
-
-    # 🔥 FIX: shared bins for ALL plots
-    bin_edges = np.linspace(0, 150, bins + 1)
-
-    def plot(ax, data, title):
-
-        ax.hist(baseline_gaps, bins=bin_edges, alpha=0.4, label="Baseline gaps")
-        ax.hist(data, bins=bin_edges, alpha=0.4, label="Custom gaps")
-
-        ax.set_xlim(0, 150)
-        ax.set_ylim(0, 25000)
-
-        ax.set_title(title)
-        ax.set_ylabel("Frequency")
-        ax.legend()
-
-    plot(axes[0], baseline_gaps, "Baseline")
-
-    for i, (title, file) in enumerate(cases, start=1):
-
-        df = pd.read_csv(f"Cached Data/Normal Distribution Variations/{file}")
-
-        if "metric" in df.columns:
-            data = df[df["metric"] == "gap_length"]["value"].values
-        else:
-            data = df["gap_length"].values
-
-        plot(axes[i], data, title)
-
-    for j in range(len(cases) + 1, len(axes)):
-        axes[j].axis("off")
-
-    plt.tight_layout()
-    plt.show()
-
 def generate_LT_CAM_opposite_spacing_data(runs=100, tows=31):
     """
     Generates the two new LT+CAM opposite-direction cases and saves them to CSV.
@@ -827,7 +733,7 @@ def plot_LLSB_LLSA_spacing_variations_ordered(bins=100):
 
     plt.show()
 
-def plot_baseline_vs_all(bins=100):
+def plot_baseline_vs_all_spacing_variations_ordered(bins=100):
     from matplotlib.lines import Line2D
 
     def extract_spacing(df):
@@ -911,6 +817,212 @@ def plot_baseline_vs_all(bins=100):
 
     plt.show()
 
+def plot_LT_CAM_gap_length_variations_ordered(bins=100):
+    from matplotlib.lines import Line2D
+
+    def extract_gap(df):
+        if "metric" in df.columns:
+            return df[df["metric"] == "gap_length"]["value"].values
+        return df["gap_length"].values
+
+    save_dir = "Cached Data/Normal Distribution Variations"
+
+    baseline_df = pd.read_csv(baseline_file)
+    baseline = extract_gap(baseline_df)
+
+    cases = [
+        ("LT_std", os.path.join(save_dir, "LT_shifted_sigma_spacing_data.csv")),
+        ("LT_mu", os.path.join(save_dir, "LT_shifted_mu_spacing_data.csv")),
+
+        ("CAM_std", os.path.join(save_dir, "CAM_shifted_sigma_spacing_data.csv")),
+        ("CAM_mu", os.path.join(save_dir, "CAM_shifted_mu_spacing_data.csv")),
+
+        ("LT+CAM_std", os.path.join(save_dir, "LT_CAM_shifted_sigma_spacing_data.csv")),
+        ("LT+CAM_mu", os.path.join(save_dir, "LT_CAM_shifted_mu_spacing_data.csv")),
+    ]
+
+    loaded_cases, all_data = [], [baseline]
+
+    for name, file in cases:
+        df = pd.read_csv(file)
+        data = extract_gap(df)
+        loaded_cases.append((name, data))
+        all_data.append(data)
+
+    all_data = np.concatenate(all_data)
+
+    x_min, x_max = np.min(all_data), np.max(all_data)
+    bin_edges = np.linspace(x_min, x_max, bins + 1)
+
+    fig = plt.figure(figsize=(18, 18))
+    outer = fig.add_gridspec(4, 1, hspace=0.3)
+
+    axes = []
+
+    top = outer[0].subgridspec(1, 3, width_ratios=[1, 2, 1])
+    axes.append(fig.add_subplot(top[0, 1]))
+
+    for r in range(1, 4):
+        inner = outer[r].subgridspec(1, 2, wspace=0.25)
+        axes.append(fig.add_subplot(inner[0, 0]))
+        axes.append(fig.add_subplot(inner[0, 1]))
+
+    baseline_mean = np.mean(baseline)
+    baseline_std = np.std(baseline, ddof=1)
+
+    def legend(ax, lines):
+        handles = [Line2D([], [], linestyle="none", label=l) for l in lines]
+        ax.legend(handles=handles, loc="best", handlelength=0)
+
+    def plot(ax, data, name, show_custom=True):
+        ax.hist(baseline, bins=bin_edges, density=False, alpha=0.4)
+
+        if show_custom:
+            ax.hist(data, bins=bin_edges, density=False, alpha=0.4)
+
+        ax.set_xlim(0, 80)
+
+        if show_custom:
+            legend(ax, [name,
+                        f"Mean = {np.mean(data):.4f}",
+                        f"SD = {np.std(data, ddof=1):.4f}"])
+        else:
+            legend(ax, ["Baseline",
+                        f"Mean = {baseline_mean:.4f}",
+                        f"SD = {baseline_std:.4f}"])
+
+    plot(axes[0], baseline, "Baseline", False)
+
+    for ax, (name, data) in zip(axes[1:], loaded_cases):
+        plot(ax, data, name)
+
+    plt.savefig("LT_CAM_gap_length_variations.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+def plot_LLSB_LLSA_gap_length_variations_ordered(bins=100):
+    from matplotlib.lines import Line2D
+
+    def extract_gap(df):
+        if "metric" in df.columns:
+            return df[df["metric"] == "gap_length"]["value"].values
+        return df["gap_length"].values
+
+    save_dir = "Cached Data/Normal Distribution Variations"
+
+    baseline = extract_gap(pd.read_csv(baseline_file))
+
+    cases = [
+        ("LLSA_std", os.path.join(save_dir, "LLSA_shifted_sigma_spacing_data.csv")),
+        ("LLSA_mu", os.path.join(save_dir, "LLSA_shifted_mu_spacing_data.csv")),
+
+        ("LLSB_std", os.path.join(save_dir, "LLSB_shifted_sigma_spacing_data.csv")),
+        ("LLSB_mu", os.path.join(save_dir, "LLSB_shifted_mu_spacing_data.csv")),
+
+        ("LLSB+LLSA_std", os.path.join(save_dir, "LLSB_LLSA_shifted_sigma_spacing_data.csv")),
+        ("LLSB+LLSA_mu", os.path.join(save_dir, "LLSB_LLSA_shifted_mu_spacing_data.csv")),
+    ]
+
+    loaded_cases, all_data = [], [baseline]
+
+    for name, file in cases:
+        data = extract_gap(pd.read_csv(file))
+        loaded_cases.append((name, data))
+        all_data.append(data)
+
+    all_data = np.concatenate(all_data)
+    bin_edges = np.linspace(np.min(all_data), np.max(all_data), bins + 1)
+
+    fig = plt.figure(figsize=(18, 18))
+    outer = fig.add_gridspec(4, 1, hspace=0.3)
+
+    axes = []
+
+    top = outer[0].subgridspec(1, 3, width_ratios=[1, 2, 1])
+    axes.append(fig.add_subplot(top[0, 1]))
+
+    for r in range(1, 4):
+        inner = outer[r].subgridspec(1, 2)
+        axes.append(fig.add_subplot(inner[0, 0]))
+        axes.append(fig.add_subplot(inner[0, 1]))
+
+    def legend(ax, lines):
+        handles = [Line2D([], [], linestyle="none", label=l) for l in lines]
+        ax.legend(handles=handles)
+
+    def plot(ax, data, name, show_custom=True):
+        ax.hist(baseline, bins=bin_edges, density=False, alpha=0.4)
+
+        if show_custom:
+            ax.hist(data, bins=bin_edges, density=False, alpha=0.4)
+
+        ax.set_xlim(0, 80)
+
+        if show_custom:
+            legend(ax, [name,
+                        f"Mean = {np.mean(data):.4f}",
+                        f"SD = {np.std(data, ddof=1):.4f}"])
+        else:
+            legend(ax, ["Baseline",
+                        f"Mean = {np.mean(baseline):.4f}",
+                        f"SD = {np.std(baseline, ddof=1):.4f}"])
+
+    plot(axes[0], baseline, "Baseline", False)
+
+    for ax, (name, data) in zip(axes[1:], loaded_cases):
+        plot(ax, data, name)
+
+    plt.savefig("LLSB_LLSA_gap_length_variations.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
+def plot_baseline_vs_all_gap_length_variations_ordered(bins=100):
+    from matplotlib.lines import Line2D
+
+    def extract_gap(df):
+        if "metric" in df.columns:
+            return df[df["metric"] == "gap_length"]["value"].values
+        return df["gap_length"].values
+
+    save_dir = "Cached Data/Normal Distribution Variations"
+
+    baseline = extract_gap(pd.read_csv(baseline_file))
+    all_data = extract_gap(pd.read_csv(
+        os.path.join(save_dir, "ALL_shifted_both_spacing_data.csv")
+    ))
+
+    combined = np.concatenate([baseline, all_data])
+    bin_edges = np.linspace(np.min(combined), np.max(combined), bins + 1)
+
+    fig, axes = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
+
+    def legend(ax, lines):
+        handles = [Line2D([], [], linestyle="none", label=l) for l in lines]
+        ax.legend(handles=handles)
+
+    # Baseline
+    axes[0].hist(baseline, bins=bin_edges, density=False, alpha=0.5)
+    axes[0].set_xlim(0, 80)
+
+    legend(axes[0], [
+        "Baseline",
+        f"Mean = {np.mean(baseline):.4f}",
+        f"SD = {np.std(baseline, ddof=1):.4f}"
+    ])
+
+    # Overlay
+    axes[1].hist(baseline, bins=bin_edges, density=False, alpha=0.4)
+    axes[1].hist(all_data, bins=bin_edges, density=False, alpha=0.4)
+    axes[1].set_xlim(0, 80)
+
+    legend(axes[1], [
+        "Baseline vs ALL",
+        f"Baseline μ={np.mean(baseline):.4f}, σ={np.std(baseline, ddof=1):.4f}",
+        f"ALL μ={np.mean(all_data):.4f}, σ={np.std(all_data, ddof=1):.4f}",
+    ])
+
+    plt.tight_layout()
+    plt.savefig("baseline_vs_all_gap_length.png", dpi=300, bbox_inches="tight")
+    plt.show()
+
 ############################################################################################################################################
 """Generate Data / Graphs"""
 
@@ -932,11 +1044,14 @@ if __name__ == "__main__":
     # generate_LLSB_LLSA_opposite_spacing_data(runs=100, tows=31)
 
     # --------------------------------------------------
-    # Plot LT/CAM or LLSA/LLSB spacing variations
+    # Plot spacing variations or gap length variations
     # --------------------------------------------------
     # plot_LT_CAM_spacing_variations_ordered(bins=100)
     # plot_LLSB_LLSA_spacing_variations_ordered(bins=100)
-    # plot_baseline_vs_all(bins=100)
+    # plot_baseline_vs_all_spacing_variations_ordered(bins=100)
+    plot_LT_CAM_gap_length_variations_ordered(bins=150)
+    plot_LLSB_LLSA_gap_length_variations_ordered(bins=150)
+    plot_baseline_vs_all_gap_length_variations_ordered(bins=150)
 
     # compute_baseline_spacing()
     # KDE_spacing_from_normals(params_test, runs=100, sensor_type="ALL", distribution_parameter="both") # GENERATES ONE DATA SET BASED ON PARAMS_TEST
