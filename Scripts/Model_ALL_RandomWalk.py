@@ -371,6 +371,51 @@ def get_proposal_distribution(sensor, tows=None, plot: bool=False):
 
     return std
 
+def get_normalized_proposal_STD(
+        sensors=("LT", "CAM", "LLS_B", "LLS_A"),
+        reference_sensor="CAM",
+        tows=None,
+        print_statement=True):
+    
+    """Computes the proposal standard deviations for the Random Walk Metropolis
+    model, normalized to the spatial resolution of the CAM sensor because this has the lowest resolution.
+    """
+
+    reference_steps = get_n_steps(reference_sensor)
+
+    results = {}
+
+    for sensor in sensors:
+
+        sensor_steps = get_n_steps(sensor)
+
+        raw_std = get_proposal_distribution(sensor, tows=tows)
+
+        scale_factor = sensor_steps / reference_steps
+
+        normalized_std = raw_std * np.sqrt(scale_factor)
+
+        results[sensor] = {
+            "sensor_steps": sensor_steps,
+            "reference_sensor": reference_sensor,
+            "reference_steps": reference_steps,
+            "scale_factor": scale_factor,
+            "raw_proposal_std": raw_std,
+            "normalized_proposal_std": normalized_std
+        }
+
+        if print_statement:
+            print(
+                f"\n{sensor}:"
+                f"\n  Sensor steps = {sensor_steps}"
+                f"\n  Reference steps ({reference_sensor}) = {reference_steps}"
+                f"\n  Scale factor = {scale_factor:.6f}"
+                f"\n  Raw proposal STD = {raw_std:.8g}"
+                f"\n  {reference_sensor}-normalized proposal STD = {normalized_std:.8g}"
+            )
+
+    return results
+
 def interpolate(data, new_steps):
     data = np.array(data)
     old_indices = np.linspace(0, 1, num=len(data))
@@ -409,109 +454,6 @@ def find_RW_statistics(n_tows: int=1000, proposal_type: str="RWM"):
         standard_deviation = np.std(data[i])
         print(f"for {names[i]} the mean is {mean}, the standard deviation is {standard_deviation}")
 
-
-def find_CAM_normalized_synthetic_RW_statistics(
-        n_tows: int = 1000,
-        proposal_type: str = "RWM",
-        reference_sensor: str = "CAM",
-        sensors=("LT", "CAM", "LLS_B", "LLS_A"),
-        print_statement: bool = True):
-    """
-    Generates synthetic Random Walk data for each sensor, resamples every
-    generated synthetic path to the number of steps of the reference sensor
-    by default CAM, and then calculates the mean and standard deviation of
-    the CAM-resolution synthetic data.
-
-    This normalizes the SYNTHETIC RW outputs, not the proposal distributions.
-
-    Method:
-        1. Fit RW model for each sensor.
-        2. Generate n_tows synthetic paths at native sensor resolution.
-        3. Interpolate each generated path to CAM_steps.
-        4. Pool all CAM-resolution synthetic values.
-        5. Compute mean and standard deviation.
-
-    Returns
-    -------
-    results : dict
-        Dictionary with raw and CAM-normalized synthetic statistics.
-    """
-
-    print(
-        f"Running find_CAM_normalized_synthetic_RW_statistics. "
-        f"For {n_tows} simulated tows this may take a few minutes."
-    )
-
-    reference_steps = get_n_steps(reference_sensor)
-
-    results = {}
-
-    for sensor in sensors:
-
-        # Fit random walk model at native sensor resolution
-        sensor_steps, proposal_std, target_dist, dist, params = fit_random_walk(sensor)
-
-        raw_synthetic_data = []
-        normalized_synthetic_data = []
-
-        for _ in range(n_tows):
-
-            # Generate synthetic RW path at native resolution
-            generated_path = generate_random_walk(
-                sensor,
-                sensor_steps,
-                proposal_std,
-                target_dist,
-                dist,
-                params,
-                proposal_type=proposal_type
-            )
-
-            generated_path = np.asarray(generated_path, dtype=float)
-
-            # Store raw synthetic data
-            raw_synthetic_data.extend(generated_path)
-
-            # Resample synthetic path to CAM resolution
-            if sensor_steps != reference_steps:
-                generated_path_normalized = interpolate(generated_path, reference_steps)
-            else:
-                generated_path_normalized = generated_path
-
-            # Store CAM-resolution synthetic data
-            normalized_synthetic_data.extend(generated_path_normalized)
-
-        raw_synthetic_data = np.asarray(raw_synthetic_data, dtype=float)
-        normalized_synthetic_data = np.asarray(normalized_synthetic_data, dtype=float)
-
-        raw_mean = np.average(raw_synthetic_data)
-        raw_std = np.std(raw_synthetic_data)
-
-        normalized_mean = np.average(normalized_synthetic_data)
-        normalized_std = np.std(normalized_synthetic_data)
-
-        results[sensor] = {
-            "sensor_steps": sensor_steps,
-            "reference_sensor": reference_sensor,
-            "reference_steps": reference_steps,
-            "raw_synthetic_mean": raw_mean,
-            "raw_synthetic_std": raw_std,
-            "CAM_normalized_synthetic_mean": normalized_mean,
-            "CAM_normalized_synthetic_std": normalized_std
-        }
-
-        if print_statement:
-            print(
-                f"\n{sensor}:"
-                f"\n  Native steps = {sensor_steps}"
-                f"\n  Reference steps = {reference_steps}"
-                f"\n  Raw synthetic mean = {raw_mean}"
-                f"\n  Raw synthetic std = {raw_std}"
-                f"\n  CAM-normalized synthetic mean = {normalized_mean}"
-                f"\n  CAM-normalized synthetic std = {normalized_std}"
-            )
-
-    return results
 
 def generate_RW_multitow(
         num_tows: int=5,
@@ -1723,7 +1665,9 @@ def main():
     # generate_virtual_lamina_figure(save_PDF=True, style="presentation")
     # generate_virtual_lamina_figure(num_tows=3, save_PDF=True, style="presentation_3_tows")
     #find_RW_statistics(n_tows=1000)
-    find_CAM_normalized_synthetic_RW_statistics(n_tows=1000)
+    
+    print(get_proposal_distribution('LLS_B', tows=None))
+
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
