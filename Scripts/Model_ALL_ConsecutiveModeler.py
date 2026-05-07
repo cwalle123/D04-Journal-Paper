@@ -803,10 +803,10 @@ def Gap_Histogram(tows_simulated: int, plot: bool=False):
     RS_90th_percentile = np.percentile(RS_gap_data, 90)
     RS_99th_percentile = np.percentile(RS_gap_data, 99)
 
-    print(f'Experimental mean/std/90th/99th = {experimental_mean}/{experimental_std}/{experimental_90th_percentile}/{experimental_99th_percentile}')
+    '''print(f'Experimental mean/std/90th/99th = {experimental_mean}/{experimental_std}/{experimental_90th_percentile}/{experimental_99th_percentile}')
     print(f'D04 mean/std/90th/99th = {D04_mean}/{D04_std}/{D04_90th_percentile}/{D04_99th_percentile}')
     print(f'RW mean/std/90th/99th = {RW_mean}/{RW_std}/{RW_90th_percentile}/{RW_99th_percentile}')
-    print(f'RS mean/std/90th/99th = {RS_mean}/{RS_std}/{RS_90th_percentile}/{RS_99th_percentile}')
+    print(f'RS mean/std/90th/99th = {RS_mean}/{RS_std}/{RS_90th_percentile}/{RS_99th_percentile}')'''
 
     gap_center = 12.5-6.35
     bins = [0]+list(np.linspace(gap_center-1.2, gap_center+1.2, 100+1))+[10]
@@ -1118,6 +1118,19 @@ def model_distribution_figures(tows_simulated: int, plottype: str, save_PDF: boo
         exp_shift = np.array(experimental_gap_data) - ideal_gap_center
         rw_shift  = np.array(RW_gap_data) - ideal_gap_center
         rs_shift  = np.array(RS_gap_data) - ideal_gap_center
+
+        print("\n=== Shifted gap-error statistics, same data as graph ===")
+        print(f"Experimental mean/std/90th/99th = "
+            f"{np.mean(exp_shift):.4f}/{np.std(exp_shift):.4f}/"
+            f"{np.percentile(exp_shift, 90):.4f}/{np.percentile(exp_shift, 99):.4f}")
+
+        print(f"RW mean/std/90th/99th = "
+            f"{np.mean(rw_shift):.4f}/{np.std(rw_shift):.4f}/"
+            f"{np.percentile(rw_shift, 90):.4f}/{np.percentile(rw_shift, 99):.4f}")
+
+        print(f"RS mean/std/90th/99th = "
+            f"{np.mean(rs_shift):.4f}/{np.std(rs_shift):.4f}/"
+            f"{np.percentile(rs_shift, 90):.4f}/{np.percentile(rs_shift, 99):.4f}")
 
         axs[0].hist(exp_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_exp, label="Experiment")
         axs[0].hist(rs_shift, bins=bins, density=True, alpha=transparency, histtype='stepfilled', color=color_RS, label="MC simulation")

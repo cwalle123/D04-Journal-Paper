@@ -5,7 +5,7 @@ import pygame
 import time
 
 #Internal imports
-from Model_ALL_RandomWalk import generate_random_walk, fit_random_walk, get_n_steps, get_proposal_distribution
+from Model_ALL_RandomWalk import generate_random_walk, fit_random_walk, get_n_steps, get_proposal_distribution, get_interpolated_proposal_STDs
 
 ############################################################################################################################################
 """Cache"""
@@ -17,10 +17,11 @@ RW_CACHE = {
     "LLS_A": fit_random_walk("LLS_A")}
 
 RW_PROPOSAL_STD = {
-    "LT": get_proposal_distribution("LT"),
-    "CAM": get_proposal_distribution("CAM"),
-    "LLS_B": get_proposal_distribution("LLS_B"),
-    "LLS_A": get_proposal_distribution("LLS_A")}
+    "LT": get_interpolated_proposal_STDs(sensors=("LT",), print_statement=False)["LT"]["CAM_normalized_proposal_std"],
+    "CAM": get_interpolated_proposal_STDs(sensors=("CAM",), print_statement=False)["CAM"]["CAM_normalized_proposal_std"],
+    "LLS_B": get_interpolated_proposal_STDs(sensors=("LLS_B",), print_statement=False)["LLS_B"]["CAM_normalized_proposal_std"],
+    "LLS_A": get_interpolated_proposal_STDs(sensors=("LLS_A",), print_statement=False)["LLS_A"]["CAM_normalized_proposal_std"],
+}
 
 STEP_CACHE = {
     "LT": get_n_steps("LT"),
@@ -70,7 +71,7 @@ def LLSA_distribution(mean_shift, scale_factor):
     s = 0.041 * scale_factor
     return lambda x: logistic.pdf(x, loc=mu, scale=s)
 
-normal_mode = False
+normal_mode = True
 
 LT_steps, LT_std, LT_target, LT_dist, LT_params = RW_CACHE["LT"]
 CAM_steps, CAM_std, CAM_target, CAM_dist, CAM_params = RW_CACHE["CAM"]
@@ -196,92 +197,105 @@ def generate_tows_full_control(params, num_tows=3,
 
     return x, top_paths, bottom_paths, centerlines, gap_percent, overlap_percent
 
-def compute_gap_overlap_only(params, num_tows=31,
+def compute_gap_overlap_only(params,
+                             num_tows=31,
                              tow_spacing_mm=6.35,
                              tow_width_mm=6.35,
-                             tow_length_mm=1000):
+                             tow_length_mm=1000,
+                             n_steps=373):
+    """
+    Computes gap and overlap percentages for one MCMC-generated laminate.
 
-    LT_steps = STEP_CACHE["LT"]
-    CAM_steps = STEP_CACHE["CAM"]
-    LLSB_steps = STEP_CACHE["LLS_B"]
-    LLSA_steps = STEP_CACHE["LLS_A"]
+    This version:
+    - uses one common spatial resolution for all sensors, default 373 steps;
+    - assumes RW_PROPOSAL_STD already contains CAM-normalized proposal STDs;
+    - uses tow_spacing_mm consistently;
+    - uses LLS_B as the final compacted tow-width error;
+    - returns area-based gap and overlap percentages.
+    """
 
-    tow_offset = 0
+    x = np.linspace(0, tow_length_mm, n_steps)
 
     top_paths = []
     bottom_paths = []
 
-    # IMPORTANT: define x ONCE (same as full model behavior)
-    x = np.linspace(0, tow_length_mm, min(LT_steps, CAM_steps, LLSB_steps, LLSA_steps))
+    tow_offset = 0.0
+
+    def interp_to_common_steps(arr):
+        arr = np.asarray(arr, dtype=float)
+
+        if len(arr) == n_steps:
+            return arr
+
+        return np.interp(
+            np.linspace(0, len(arr) - 1, n_steps),
+            np.arange(len(arr)),
+            arr
+        )
 
     for _ in range(num_tows):
 
         LT = generate_random_walk(
-            "LT", LT_steps, RW_PROPOSAL_STD["LT"],
+            "LT",
+            STEP_CACHE["LT"],
+            RW_PROPOSAL_STD["LT"],
             NORMAL_distribution(*params["LT"]) if normal_mode else LT_distribution(*params["LT"]),
-            RW_CACHE["LT"][3], RW_CACHE["LT"][4]
+            norm if normal_mode else RW_CACHE["LT"][3],
+            params["LT"] if normal_mode else RW_CACHE["LT"][4]
         )
 
         CAM = generate_random_walk(
-            "CAM", CAM_steps, RW_PROPOSAL_STD["CAM"],
+            "CAM",
+            STEP_CACHE["CAM"],
+            RW_PROPOSAL_STD["CAM"],
             NORMAL_distribution(*params["CAM"]) if normal_mode else CAM_distribution(*params["CAM"]),
-            RW_CACHE["CAM"][3], RW_CACHE["CAM"][4]
+            norm if normal_mode else RW_CACHE["CAM"][3],
+            params["CAM"] if normal_mode else RW_CACHE["CAM"][4]
         )
 
         LLSB = generate_random_walk(
-            "LLS_B", LLSB_steps, RW_PROPOSAL_STD["LLS_B"],
+            "LLS_B",
+            STEP_CACHE["LLS_B"],
+            RW_PROPOSAL_STD["LLS_B"],
             NORMAL_distribution(*params["LLSB"]) if normal_mode else LLSB_distribution(*params["LLSB"]),
-            RW_CACHE["LLS_B"][3], RW_CACHE["LLS_B"][4]
+            norm if normal_mode else RW_CACHE["LLS_B"][3],
+            params["LLSB"] if normal_mode else RW_CACHE["LLS_B"][4]
         )
 
-        LLSA = generate_random_walk(
-            "LLS_A", LLSA_steps, RW_PROPOSAL_STD["LLS_A"],
-            NORMAL_distribution(*params["LLSA"]) if normal_mode else LLSA_distribution(*params["LLSA"]),
-            RW_CACHE["LLS_A"][3], RW_CACHE["LLS_A"][4]
-        )
+        # Normalize all signals to the same spatial resolution
+        LT = interp_to_common_steps(LT)
+        CAM = interp_to_common_steps(CAM)
+        LLSB = interp_to_common_steps(LLSB)
 
-        # interpolate EVERYTHING to SAME x (critical match to full model behavior)
-        def interp(arr):
-            return np.interp(
-                np.linspace(0, len(arr)-1, len(x)),
-                np.arange(len(arr)),
-                arr
-            )
-
-        LT = interp(LT)
-        CAM = interp(CAM)
-        LLSB = interp(LLSB)
-        LLSA = interp(LLSA)
-
-        center = tow_offset + CAM + LT
+        # Tow geometry
+        centerline = tow_offset + LT + CAM
         width = tow_width_mm + LLSB
 
-        top = center + 0.5 * width
-        bottom = center - 0.5 * width
+        top_edge = centerline + 0.5 * width
+        bottom_edge = centerline - 0.5 * width
 
-        top_paths.append(top)
-        bottom_paths.append(bottom)
+        top_paths.append(top_edge)
+        bottom_paths.append(bottom_edge)
 
         tow_offset += tow_spacing_mm
 
-    # -----------------------------
-    # GAP / OVERLAP (IDENTICAL LOGIC)
-    # -----------------------------
-    gap_area = 0
-    overlap_area = 0
+    gap_area = 0.0
+    overlap_area = 0.0
 
-    for i in range(len(top_paths) - 1):
+    for i in range(num_tows - 1):
         diff = bottom_paths[i + 1] - top_paths[i]
 
         gap_area += np.trapezoid(np.clip(diff, 0, None), x)
         overlap_area += np.trapezoid(np.clip(-diff, 0, None), x)
 
-    # IMPORTANT FIX: same normalization as full model
     total_height = top_paths[-1] - bottom_paths[0]
     total_area = np.trapezoid(total_height, x)
 
-    gap_percent = (gap_area / total_area) * 100 if total_area > 0 else 0
-    overlap_percent = (overlap_area / total_area) * 100 if total_area > 0 else 0
+    if total_area <= 0:
+        raise ValueError("Total laminate area is non-positive. Check tow geometry.")
+
+    gap_percent = 100 * gap_area / total_area
+    overlap_percent = 100 * overlap_area / total_area
 
     return gap_percent, overlap_percent
 
@@ -709,6 +723,23 @@ def draw_multisim_button():
 
 ############################################################################################################################################
 """Main loop"""
+
+if __name__ == "__main__":
+    import time
+
+    t0 = time.time()
+
+    avg_gap, avg_overlap, total_time = run_multi_simulation(
+    params,
+    runs=120,
+    tows=31)
+
+    print("\n=== 120 MCMC LAMINATE SIMULATIONS ===")
+    print(f"Average gap percentage:     {avg_gap:.4f} %")
+    print(f"Average overlap percentage: {avg_overlap:.4f} %")
+    print(f"Total time: {total_time:.2f} s")
+
+    raise SystemExit
 
 pygame.init()
 WIDTH, HEIGHT = 1920, 1080
