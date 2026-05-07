@@ -371,15 +371,14 @@ def get_proposal_distribution(sensor, tows=None, plot: bool=False):
 
     return std
 
-def get_normalized_proposal_STD(
+def get_interpolated_proposal_STDs(
         sensors=("LT", "CAM", "LLS_B", "LLS_A"),
         reference_sensor="CAM",
         tows=None,
         print_statement=True):
     
-    """Computes the proposal standard deviations for the Random Walk Metropolis
-    model, normalized to the spatial resolution of the CAM sensor because this has the lowest resolution.
-    """
+    """Computes Random Walk Metropolis proposal STDs normalized to the spatial
+    resolution of the reference sensor, by interpolation."""
 
     reference_steps = get_n_steps(reference_sensor)
 
@@ -389,32 +388,64 @@ def get_normalized_proposal_STD(
 
         sensor_steps = get_n_steps(sensor)
 
+        # Raw proposal STD from your original function
         raw_std = get_proposal_distribution(sensor, tows=tows)
 
-        scale_factor = sensor_steps / reference_steps
+        # Load separated experimental tow data
+        if tows is None:
+            data_sep, weights_sep = get_data(sensor, format="separated")
+        else:
+            data_sep, weights_sep = get_data(sensor, tows=list(tows), format="separated")
 
-        normalized_std = raw_std * np.sqrt(scale_factor)
+        normalized_diffs = []
 
-        results[sensor] = {
-            "sensor_steps": sensor_steps,
-            "reference_sensor": reference_sensor,
-            "reference_steps": reference_steps,
-            "scale_factor": scale_factor,
-            "raw_proposal_std": raw_std,
-            "normalized_proposal_std": normalized_std
-        }
+        for tow_values in data_sep:
+
+            tow_values = np.asarray(tow_values, dtype=float)
+            mask = np.isfinite(tow_values)
+            tow_values = tow_values[mask]
+
+            if len(tow_values) < 2:
+                continue
+
+            # Interpolate experimental tow to CAM resolution
+            if len(tow_values) != reference_steps:
+                tow_values_normalized = interpolate(tow_values, reference_steps)
+            else:
+                tow_values_normalized = tow_values
+
+            tow_values_normalized = np.asarray(tow_values_normalized, dtype=float)
+
+            # gEt differences between steps to calcualte SD and mean
+            diffs = tow_values_normalized[:-1] - tow_values_normalized[1:]
+
+            normalized_diffs.extend(diffs)
+
+        normalized_diffs = np.asarray(normalized_diffs, dtype=float)
+
+        if len(normalized_diffs) == 0:
+            raise ValueError(f"No valid interpolated step-size data found for sensor {sensor}")
+
+        normalized_mean = np.average(normalized_diffs)
+        normalized_std = np.std(normalized_diffs)
+
+        results[sensor] = {"sensor_steps": sensor_steps,
+                            "reference_sensor": reference_sensor,
+                            "reference_steps": reference_steps,
+                            "raw_proposal_std": raw_std,
+                            "CAM_normalized_proposal_mean": normalized_mean,
+                            "CAM_normalized_proposal_std": normalized_std}
 
         if print_statement:
             print(
                 f"\n{sensor}:"
                 f"\n  Sensor steps = {sensor_steps}"
                 f"\n  Reference steps ({reference_sensor}) = {reference_steps}"
-                f"\n  Scale factor = {scale_factor:.6f}"
-                f"\n  Raw proposal STD = {raw_std:.8g}"
-                f"\n  {reference_sensor}-normalized proposal STD = {normalized_std:.8g}"
-            )
+                f"\n  Raw proposal STD = {raw_std:.9g}"
+                f"\n  {reference_sensor}-normalized proposal STD = {normalized_std:.9g}")
 
     return results
+
 
 def interpolate(data, new_steps):
     data = np.array(data)
@@ -1666,7 +1697,7 @@ def main():
     # generate_virtual_lamina_figure(num_tows=3, save_PDF=True, style="presentation_3_tows")
     #find_RW_statistics(n_tows=1000)
     
-    print(get_proposal_distribution('LLS_B', tows=None))
+    get_interpolated_proposal_STDs()
 
 
 if __name__ == "__main__":
