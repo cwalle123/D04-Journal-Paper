@@ -88,7 +88,7 @@ def fit_random_walk(sensor: str, bins=40, tows=None):
         scale=params[-1]
     )
 
-    proposal_std = get_proposal_distribution(sensor, tows=tows)
+    proposal_std = get_interpolated_proposal_STDs(sensors=(sensor,), reference_sensor="CAM", tows=tows, print_statement=False)[sensor]["CAM_normalized_proposal_std"]
 
     return n_steps, proposal_std, target_distribution, dist, params
 
