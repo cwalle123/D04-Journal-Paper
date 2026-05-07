@@ -38,6 +38,9 @@ from Model_ALL_RandomSampling import user_interface_only_generate_RS_multitow
 def get_n_steps(sensor):
     """This function gets the number of steps, which is the number of data points in a one meter tow"""
     data, weights = get_data(sensor, format='separated')
+    n_steps = len(data[0])
+
+    return n_steps
 
 def propose_new_RWM_value(x_current, dist_std):    # random walk metropolis (RWM), using normal dist???
     mean = 0
@@ -56,7 +59,7 @@ def fit_random_walk(sensor: str, bins=40, tows=None):
         fits the RW only using those tows.
     """
 
-    n_steps = get_n_steps(sensor, tows=tows)
+    n_steps = get_n_steps(sensor)
 
     if tows is None:
         data, weights = get_data(sensor, format='merged')
@@ -405,6 +408,110 @@ def find_RW_statistics(n_tows: int=1000, proposal_type: str="RWM"):
         mean = np.average(data[i])
         standard_deviation = np.std(data[i])
         print(f"for {names[i]} the mean is {mean}, the standard deviation is {standard_deviation}")
+
+
+def find_CAM_normalized_synthetic_RW_statistics(
+        n_tows: int = 1000,
+        proposal_type: str = "RWM",
+        reference_sensor: str = "CAM",
+        sensors=("LT", "CAM", "LLS_B", "LLS_A"),
+        print_statement: bool = True):
+    """
+    Generates synthetic Random Walk data for each sensor, resamples every
+    generated synthetic path to the number of steps of the reference sensor
+    by default CAM, and then calculates the mean and standard deviation of
+    the CAM-resolution synthetic data.
+
+    This normalizes the SYNTHETIC RW outputs, not the proposal distributions.
+
+    Method:
+        1. Fit RW model for each sensor.
+        2. Generate n_tows synthetic paths at native sensor resolution.
+        3. Interpolate each generated path to CAM_steps.
+        4. Pool all CAM-resolution synthetic values.
+        5. Compute mean and standard deviation.
+
+    Returns
+    -------
+    results : dict
+        Dictionary with raw and CAM-normalized synthetic statistics.
+    """
+
+    print(
+        f"Running find_CAM_normalized_synthetic_RW_statistics. "
+        f"For {n_tows} simulated tows this may take a few minutes."
+    )
+
+    reference_steps = get_n_steps(reference_sensor)
+
+    results = {}
+
+    for sensor in sensors:
+
+        # Fit random walk model at native sensor resolution
+        sensor_steps, proposal_std, target_dist, dist, params = fit_random_walk(sensor)
+
+        raw_synthetic_data = []
+        normalized_synthetic_data = []
+
+        for _ in range(n_tows):
+
+            # Generate synthetic RW path at native resolution
+            generated_path = generate_random_walk(
+                sensor,
+                sensor_steps,
+                proposal_std,
+                target_dist,
+                dist,
+                params,
+                proposal_type=proposal_type
+            )
+
+            generated_path = np.asarray(generated_path, dtype=float)
+
+            # Store raw synthetic data
+            raw_synthetic_data.extend(generated_path)
+
+            # Resample synthetic path to CAM resolution
+            if sensor_steps != reference_steps:
+                generated_path_normalized = interpolate(generated_path, reference_steps)
+            else:
+                generated_path_normalized = generated_path
+
+            # Store CAM-resolution synthetic data
+            normalized_synthetic_data.extend(generated_path_normalized)
+
+        raw_synthetic_data = np.asarray(raw_synthetic_data, dtype=float)
+        normalized_synthetic_data = np.asarray(normalized_synthetic_data, dtype=float)
+
+        raw_mean = np.average(raw_synthetic_data)
+        raw_std = np.std(raw_synthetic_data)
+
+        normalized_mean = np.average(normalized_synthetic_data)
+        normalized_std = np.std(normalized_synthetic_data)
+
+        results[sensor] = {
+            "sensor_steps": sensor_steps,
+            "reference_sensor": reference_sensor,
+            "reference_steps": reference_steps,
+            "raw_synthetic_mean": raw_mean,
+            "raw_synthetic_std": raw_std,
+            "CAM_normalized_synthetic_mean": normalized_mean,
+            "CAM_normalized_synthetic_std": normalized_std
+        }
+
+        if print_statement:
+            print(
+                f"\n{sensor}:"
+                f"\n  Native steps = {sensor_steps}"
+                f"\n  Reference steps = {reference_steps}"
+                f"\n  Raw synthetic mean = {raw_mean}"
+                f"\n  Raw synthetic std = {raw_std}"
+                f"\n  CAM-normalized synthetic mean = {normalized_mean}"
+                f"\n  CAM-normalized synthetic std = {normalized_std}"
+            )
+
+    return results
 
 def generate_RW_multitow(
         num_tows: int=5,
@@ -1601,7 +1708,7 @@ def main():
     #plot_RW_tows(2, plot_individual_histograms=True)
     #analyze_tow_spacing_effect(spacing_values_mm = np.linspace(5.0, 7.5, 99), num_simulations = 100, num_tows_per_simulation = 29) # Takes 16 hours
     #analyze_tow_spacing_effect(existing_data="Cached Data/tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv", error_areas=True) # Only plots data
-    run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=120,num_tows=31) #Seems to converge at 120 sims
+    #run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=120,num_tows=31) #Seems to converge at 120 sims
     #plot_LLS_hist()
 
     # generate_RW_multitow_layout_lengths(num_tows=30, plot=True, histogram_bins = 300)
@@ -1616,6 +1723,7 @@ def main():
     # generate_virtual_lamina_figure(save_PDF=True, style="presentation")
     # generate_virtual_lamina_figure(num_tows=3, save_PDF=True, style="presentation_3_tows")
     #find_RW_statistics(n_tows=1000)
+    find_CAM_normalized_synthetic_RW_statistics(n_tows=1000)
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
