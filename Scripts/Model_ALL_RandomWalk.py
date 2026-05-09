@@ -1486,6 +1486,7 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
         ax.set_ylabel("Position (mm)")
         ax.grid(False)  # This removes the horizontal dashed lines
         ax.xaxis.set_ticks_position('both')
+        #ax.set_xlim(0, 1000)
         ax.yaxis.set_ticks_position('both')
         ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
         for spine in ax.spines.values():
@@ -1658,7 +1659,7 @@ def generate_virtual_lamina_figure(num_tows=5, tow_spacing_mm=6.35, tow_width_mm
         save_PDF = False
 
     if save_PDF == True:
-        plt.savefig("virtual lamina.svg", format="svg", bbox_inches=None)
+        plt.savefig("virtual lamina.pdf", format="pdf", bbox_inches=None)
     
     # plt.show()
 
@@ -1688,16 +1689,16 @@ def main():
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-    #                          error_areas=True, error_bars=False, save_PDF=False, save_SVG=True)
+    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+                              error_areas=True, error_bars=False, save_PDF=False, save_SVG=True)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
-    #generate_virtual_lamina_figure(save_PDF=False)
+    #generate_virtual_lamina_figure(save_PDF=True)
     # generate_virtual_lamina_figure(save_PDF=True, style="presentation")
     # generate_virtual_lamina_figure(num_tows=3, save_PDF=True, style="presentation_3_tows")
     #find_RW_statistics(n_tows=1000)
     
-    get_interpolated_proposal_STDs()
+    #get_interpolated_proposal_STDs()
 
 
 if __name__ == "__main__":

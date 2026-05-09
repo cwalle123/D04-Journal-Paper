@@ -37,9 +37,9 @@ from constants import (tow_width_specified, font_label, font_axis_ticks, figure_
 ##############################################################################################################
 # FFT processing toggles (EDIT THESE)
 
-USE_DETREND  = False     # True / False
-USE_WINDOW   = False     # True / False  (Tukey alpha=0.05 if True)
-USE_PADDING  = False     # True / False
+USE_DETREND  = True     # True / False
+USE_WINDOW   = True     # True / False  (Tukey alpha=0.05 if True)
+USE_PADDING  = True     # True / False
 PAD_FACTOR   = 4        # Only used if USE_PADDING = True
 TUKEY_ALPHA  = 0.05     # Tukey alpha if USE_WINDOW = True
 
@@ -303,7 +303,7 @@ def run_fft_compare(
         ax.set_ylabel("Amplitude (mm)")
         ax.grid(False)
         ax.set_xlim(0, 50)
-        ax.set_ylim(0, 0.15)
+        ax.set_ylim(0, 0.1)
 
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')

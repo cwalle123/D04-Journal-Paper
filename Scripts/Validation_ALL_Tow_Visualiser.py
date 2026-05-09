@@ -13,6 +13,7 @@ from scipy.stats import norm, pareto
 import sys, os
 from brokenaxes import brokenaxes
 from matplotlib.gridspec import GridSpecFromSubplotSpec
+from matplotlib.ticker import FormatStrFormatter
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 #Internal imports
@@ -327,7 +328,7 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, style: str = 
 
     if style == "paper":
         # Establish correct geometry
-        axes_units_per_box = 2
+        axes_units_per_box = 2         # 1.3333333 for 2 tows, 2 for 3 tows
         n_boxes = 1
         total_axes_units = n_boxes * axes_units_per_box
         figure_height = (total_axes_units * unit_box_height + (n_boxes - 1) * inter_axes_gap 
@@ -362,9 +363,12 @@ def plot_real_vs_D04_vs_RW_vs_RS_tow(tow: int, tow_length_mm=1000, style: str = 
         ax.set_xlabel("Tow length (mm)")
         ax.set_ylabel("Position (mm)")
 
+        #ax.set_xlim(0, 1000)
+
         ax.xaxis.set_ticks_position('both')
         ax.yaxis.set_ticks_position('both')
         ax.tick_params(top=True, bottom=True, left=True, right=True)                    # tick locations
+        #ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
         for spine in ax.spines.values():
             spine.set_linewidth(graph_box_thickness)                                    # black box around figure
             spine.set_edgecolor(color_borders)
@@ -1380,7 +1384,7 @@ def main():
 
     # compare_simulated_vs_real_tow(8)
     #compare_multiple_simulations(8, 50)
-    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True, save_SVG=False, style="presentation")
+    #plot_real_vs_D04_vs_RW_vs_RS_tow(2, save_PDF=True, save_SVG=False, style="paper")
     #compare_real_vs_RW_vs_RS_gaps_overlaps()
     #compare_real_vs_RW_simulated_gaps_overlaps_lengths(histogram_bins=300)
     #compare_real_vs_RS_simulated_gaps_overlaps_lengths(histogram_bins=300)
@@ -1391,7 +1395,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False, save_SVG=True)
+    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True, save_SVG=False)
 
 if __name__ == "__main__":
     main()

@@ -76,8 +76,8 @@ except Exception:
 # Processing settings (fixed per your requirements)
 
 TUKEY_ALPHA = 0.05   # same alpha used in FFT code when window enabled
-X_START_MM  = -50.0
-X_END_MM    = 1050.0
+X_START_MM  = 0.0
+X_END_MM    = 1000.0
 DX_MM       = 1.0    # x_grid_mm like-for-like
 
 ##############################################################################################################

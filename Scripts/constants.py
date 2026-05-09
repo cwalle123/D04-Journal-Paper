@@ -39,10 +39,10 @@ frame_width_traverse = 12.5 #mm
 ##############################################################################################################
 """Figure Formatting"""
 
-font_TNR = "Arial" #"Times New Roman"
-font_label = 8         #points
-font_axis_ticks = 6    #points
-font_legend = 8        #points
+font_TNR = "Times New Roman" #"Times New Roman"
+font_label = 7         #points
+font_axis_ticks = 5    #points
+font_legend = 7        #points
 
 figure_width = 345 / 72.27                      #points/points per inch = inch, amount of points taken from \the\textwidth in Overleaf
 unit_box_height = 0.1863 * figure_width         #Height of smallest black box
@@ -58,9 +58,9 @@ legend_line_thickness = 2                       #points
 annotation_thickness = 0.75                     #points
 annotation_stripe_height = 0.04                 #points
 break_marker_thickness = 1                      #points
-tick_width = 0.25                                #points, can be set equal to graph box thickness, for paper = 0.5, for presentation = 0.25
+tick_width = 0.5                                #points, can be set equal to graph box thickness, for paper = 0.5, for presentation = 0.25
 tick_length = 3                                 #points
-graph_box_thickness = 0.25                      #points, for paper = 0.5, for presentation = 0.25
+graph_box_thickness = 0.5                      #points, for paper = 0.5, for presentation = 0.25
 legend_box_thickness = graph_box_thickness      #points, has to be the same as graph box thickness
 
 color_exp = (0, 0.4470, 0.7410)                 # AKA Experiment, blue
