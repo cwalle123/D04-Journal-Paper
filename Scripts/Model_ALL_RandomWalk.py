@@ -1058,7 +1058,7 @@ def analyze_tow_spacing_effect(
 
     ax.annotate("Nominal tow width",
             xy=(6.35, 5.5),             # point on the line to point to
-            xytext=(5.88, 7.2),          # where the text should appear
+            xytext=(5.98 , 7.2),          # where the text should appear, x = 5.88 for labelsize = 8, x = 5.98 for labelsize = 7
             color='grey',
             fontsize=font_label-2,
             ha='left',                   # horizontal alignment of text
@@ -1690,7 +1690,7 @@ def main():
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
     analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-                              error_areas=True, error_bars=False, save_PDF=False, save_SVG=True)
+                              error_areas=True, error_bars=False, save_PDF=True, save_SVG=False)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
     #generate_virtual_lamina_figure(save_PDF=True)

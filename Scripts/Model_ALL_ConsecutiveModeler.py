@@ -254,7 +254,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, save_SVG: b
 
         # LT plot
         axs[0].imshow(im0, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[0].transAxes)
-        #axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
+        axs[0].hist(LT_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="Experimental data")
         axs[0].hist(LT_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled", label="RWM simulation data")
         axs[0].plot(x_pdf_LT, y_pdf_LT, color=color_PDF_fits, linewidth=annotation_thickness)
         annotate_mean_std(axs[0], LT_exp, sensor="LT", show_data=show_data)
@@ -265,7 +265,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, save_SVG: b
 
         # CAM plot
         axs[1].imshow(im1, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[1].transAxes)
-        #axs[1].hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled")   # pls keep at 245, this avoids over/under-binning
+        axs[1].hist(CAM_exp, color=color_exp, bins=245, density=True, alpha=transparency, histtype="stepfilled")   # pls keep at 245, this avoids over/under-binning
         axs[1].hist(CAM_walk_data, color=color_RW, bins=160, density=True, alpha=transparency, histtype="stepfilled",)
         axs[1].plot(x_pdf_CAM, y_pdf_CAM, color=color_PDF_fits, linewidth=annotation_thickness)
         annotate_mean_std(axs[1], CAM_exp, sensor="CAM", show_data=show_data)
@@ -276,7 +276,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, save_SVG: b
 
         # LLS_A 
         axs[2].imshow(im2, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[2].transAxes)
-        #axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
+        axs[2].hist(LLSA_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
         axs[2].hist(LLSA_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
         axs[2].plot(x_pdf_LLS_A, y_pdf_LLS_A, color=color_PDF_fits, linewidth=annotation_thickness)
         annotate_mean_std(axs[2], LLSA_exp, sensor="LLS_A", show_data=show_data)
@@ -287,7 +287,7 @@ def plot_RW_vs_exp_histograms(RW_tows: int=100, save_PDF: bool=True, save_SVG: b
 
         # LLS_B plot
         axs[3].imshow(im3, aspect='auto', extent=(0.866, 0.967, 0.525, 0.925), transform=axs[3].transAxes)
-        #axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
+        axs[3].hist(LLSB_exp, color=color_exp, bins=100, density=True, alpha=transparency, histtype="stepfilled")
         axs[3].hist(LLSB_walk_data, color=color_RW, bins=100, density=True, alpha=transparency, histtype="stepfilled",)
         axs[3].plot(x_pdf_LLS_B, y_pdf_LLS_B, color=color_PDF_fits, linewidth=annotation_thickness)
         annotate_mean_std(axs[3], LLSB_exp, sensor="LLS_B", show_data=show_data)
@@ -1279,8 +1279,8 @@ def main():
     #data = run_model()
     #Gap_Histogram(30)
     # KDE_curves(29)
-    model_distribution_figures(29, plottype="single no D04", save_PDF=True, save_SVG=False)
-    #plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True, save_SVG=False, use_RW_fit=False, show_data=True, style="paper")
+    #model_distribution_figures(29, plottype="single no D04", save_PDF=True, save_SVG=False)
+    plot_RW_vs_exp_histograms(RW_tows=31, save_PDF=True, save_SVG=False, use_RW_fit=False, show_data=True, style="paper")
 
 if __name__ == "__main__":
     main() # makes sure this only runs if you run *this* file, not if this file is imported somewhere else
