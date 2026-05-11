@@ -9,9 +9,6 @@ import time
 import sys
 import os
 
-# Internal imports
-from Model_ALL_RandomSampling import generate_random_sampling_data
-
 ############################################################################################################################################
 """Functions"""
 
@@ -28,6 +25,56 @@ STEP_CACHE = {
     "CAM": 400,
     "LLS_B": 400,
     "LLS_A": 400}
+
+def generate_random_sampling_data(sensor: str, params: dict, steps: int = 400, tows: int = 1, plot_histogram: bool = False):
+    """
+    Generate IID Gaussian tow data directly from the
+    enforced (mu, sigma) parameters.
+    """
+
+    if sensor not in params:
+        raise ValueError(f"Missing parameters for sensor: {sensor}")
+
+    mu, sigma = params[sensor]
+
+    if sigma < 0:
+        raise ValueError(f"Sigma must be non-negative for {sensor}")
+
+    # --------------------------------------------------
+    # Generate Gaussian samples
+    # --------------------------------------------------
+    generated_tows = np.random.normal(loc=mu, scale=sigma, size=(tows, steps))
+
+    # --------------------------------------------------
+    # Optional histogram
+    # --------------------------------------------------
+    if plot_histogram:
+
+        flat = generated_tows.flatten()
+
+        plt.figure(figsize=(8, 5))
+
+        plt.hist(
+            flat,
+            bins=30,
+            density=True,
+            alpha=0.6,
+            label="Generated data")
+
+        x = np.linspace(
+            mu - 4 * sigma,
+            mu + 4 * sigma,
+            500)
+
+        from scipy.stats import norm
+        plt.plot(x, norm.pdf(x, mu, sigma), label="Target normal distribution")
+        plt.title(f"{sensor} | μ={mu:.3f}, σ={sigma:.3f}")
+
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+    return generated_tows
 
 def NORMAL_distribution(mu, sigma):
     from scipy.stats import norm
@@ -46,13 +93,7 @@ def enforce_Wb_ge_Wa(Wa, params, steps, max_trials=5):
     # -----------------------------
     # Generate candidate error samples
     # -----------------------------
-    candidates = np.stack([
-        generate_random_sampling_data("LLS_B", steps=steps, tows=1)[0]
-        for _ in range(max_trials)
-    ])
-
-    # apply scaling (still errors)
-    candidates = candidates * params["LLSB"][1] + params["LLSB"][0]
+    candidates = np.stack([generate_random_sampling_data("LLSB", params=params, steps=steps, tows=1)[0] for _ in range(max_trials)])
 
     # -----------------------------
     # validity: error >= required error
@@ -100,14 +141,11 @@ def compute_spacing_distribution(params, num_tows=31, tow_length_mm=1000):
     # -----------------------------
     for _ in range(num_tows):
 
-        Pr = generate_random_sampling_data("LT", steps=LT_steps, tows=1)[0]
-        Pr = Pr * params["LT"][1] + params["LT"][0]
+        Pr = generate_random_sampling_data("LT", params=params, steps=LT_steps, tows=1)[0]
 
-        Pt = generate_random_sampling_data("CAM", steps=CAM_steps, tows=1)[0]
-        Pt = Pt * params["CAM"][1] + params["CAM"][0]
+        Pt = generate_random_sampling_data("CAM", params=params, steps=CAM_steps, tows=1)[0]
 
-        LLSA = generate_random_sampling_data("LLS_A", steps=LLSA_steps, tows=1)[0]
-        LLSA = LLSA * params["LLSA"][1] + params["LLSA"][0]
+        LLSA = generate_random_sampling_data("LLSA", params=params, steps=LLSA_steps, tows=1)[0]
 
         W0 = 6.35
         Wa = W0 + LLSA
@@ -1098,13 +1136,13 @@ if __name__ == "__main__":
     # plot_LT_CAM_spacing_variations_ordered(bins=100)
     # plot_LLSB_LLSA_spacing_variations_ordered(bins=100)
     # plot_baseline_vs_all_spacing_variations_ordered(bins=100)
-    # plot_LT_CAM_gap_length_variations_ordered(bins=30)
-    # plot_LLSB_LLSA_gap_length_variations_ordered(bins=30)
-    # plot_baseline_vs_all_gap_length_variations_ordered(bins=18)
+    # plot_LT_CAM_gap_length_variations_ordered(bins=15)
+    # plot_LLSB_LLSA_gap_length_variations_ordered(bins=13)
+    # plot_baseline_vs_all_gap_length_variations_ordered(bins=13)
 
-    # compute_baseline_spacing() # Takes 30 min
-    # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="sigma") # Takes 4 min
-    # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 1 hour!
+    # compute_baseline_spacing() # Takes 2 seconds
+    # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="sigma") # Takes 2 seconds
+    # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. # Takes 2 min
 
     # plot_spacing_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
     # plot_gap_length_distribution("Cached Data/Normal Distribution Variations RS/LLSB_RS_shifted_sigma_spacing_data.csv")
