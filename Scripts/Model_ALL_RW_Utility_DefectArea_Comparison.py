@@ -107,7 +107,7 @@ def _gap_overlap_percent_envelope(centerlines, widths, dx=1.0):
 
 def _wrap_labels(labels, width=16):
     """Wrap long x-axis labels to prevent crowding."""
-    return [textwrap.fill(s, width=width) for s in labels]
+    return [textwrap.fill(s, width=width, ) for s in labels]
 
 # ---------------------------------------------------------------------
 # Core simulation per layout (uses constant programmed_shift)
@@ -375,10 +375,10 @@ def plot_barchart(scenarios, summary, save_path, save_PDF=True, save_SVG=False):
         label="Overlap", color=color_overlap, zorder=2
 )
 
-    ax.set_ylabel("Defect area %")
+    ax.set_ylabel("Defect area %", fontsize=font_label)
     wrapped = _wrap_labels(labels, width=18)
     ax.set_xticks(x)
-    ax.set_xticklabels(wrapped, rotation=0, ha="center")
+    ax.set_xticklabels(wrapped, rotation=0, ha="center", fontsize=font_label)
     ax.set_ylim(0, 5)
     ax.yaxis.set_major_locator(MultipleLocator(Y_MAJOR_STEP))
     ax.yaxis.set_major_formatter(FormatStrFormatter(f"%.{Y_DECIMALS}f"))
