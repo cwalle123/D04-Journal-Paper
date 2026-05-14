@@ -154,7 +154,7 @@ def traverse_tow_gaps_and_overlaps(plot=True, tow_spacing=None, print_statement=
 
     return gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent
 
-def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_steps=False):
+def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_steps=False, scatter=False):
     """
     Compute lengths of gaps and overlaps between normalized traverse tows (2–30),
     applying +6.35 mm offset per tow index after tow 2.
@@ -187,7 +187,7 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_s
                         traverse_tow[col] = traverse_tow[col].iloc[indices].reset_index(drop=True)
                 traverse_tow = traverse_tow.reset_index(drop=True)
 
-        offset_mm = (tow - 2) * tow_width_specified, #Op 6.272
+        offset_mm = (tow - 2) * tow_width_specified
         x_vals_list.append(traverse_tow["x_centerline"].to_numpy())
         top_edge_paths.append(traverse_tow["y_left"].to_numpy() + offset_mm)
         bottom_edge_paths.append(traverse_tow["y_right"].to_numpy() + offset_mm)
@@ -219,6 +219,42 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_s
         dx = x_vals[1] - x_vals[0] if len(x_vals) > 1 else 1
         return np.array(lengths) * dx
 
+    # --- Helper to extract per-segment width statistics (max, mean, median, std) ---
+    def extract_width_stats(values, positive=True):
+        """Return arrays of (max, mean, median, std) for each continuous positive/negative run.
+
+        For overlaps (negative values) the absolute width is returned.
+        """
+        mask = values > 0 if positive else values < 0
+        stats_max = []
+        stats_mean = []
+        stats_median = []
+        stats_std = []
+        run_vals = []
+        for i in range(len(mask)):
+            if mask[i]:
+                run_vals.append(values[i])
+            elif run_vals:
+                arr = np.abs(np.array(run_vals)) if not positive else np.array(run_vals)
+                stats_max.append(np.max(arr))
+                stats_mean.append(np.mean(arr))
+                stats_median.append(np.median(arr))
+                stats_std.append(np.std(arr, ddof=0))
+                run_vals = []
+        if run_vals:
+            arr = np.abs(np.array(run_vals)) if not positive else np.array(run_vals)
+            stats_max.append(np.max(arr))
+            stats_mean.append(np.mean(arr))
+            stats_median.append(np.median(arr))
+            stats_std.append(np.std(arr, ddof=0))
+
+        return (
+            np.array(stats_max),
+            np.array(stats_mean),
+            np.array(stats_median),
+            np.array(stats_std),
+        )
+
     # --- Extract lengths for all tow pairs ---
     gap_lengths, overlap_lengths = [], []
     for gap_overlap in gap_overlap_list:
@@ -227,6 +263,8 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_s
 
     gap_lengths = np.array(gap_lengths)
     overlap_lengths = np.array(overlap_lengths)
+
+    
 
     # --- Pareto fit helper ---
     def fit_pareto(data):
@@ -239,6 +277,27 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_s
 
     gap_fit = fit_pareto(gap_lengths)
     overlap_fit = fit_pareto(overlap_lengths)
+
+    # --- Extract width statistics for all continuous gap/overlap segments ---
+    gap_maxs, gap_means, gap_medians, gap_stds = [], [], [], []
+    overlap_maxs, overlap_means, overlap_medians, overlap_stds = [], [], [], []
+    # iterate per tow-pair and aggregate
+    for gap_overlap in gap_overlap_list:
+        g_max, g_mean, g_med, g_std = extract_width_stats(gap_overlap, positive=True)
+        o_max, o_mean, o_med, o_std = extract_width_stats(gap_overlap, positive=False)
+        if g_max.size:
+            gap_maxs.extend(g_max.tolist())
+            gap_means.extend(g_mean.tolist())
+            gap_medians.extend(g_med.tolist())
+            gap_stds.extend(g_std.tolist())
+        if o_max.size:
+            overlap_maxs.extend(o_max.tolist())
+            overlap_means.extend(o_mean.tolist())
+            overlap_medians.extend(o_med.tolist())
+            overlap_stds.extend(o_std.tolist())
+
+    gap_widths = np.array(gap_maxs) if gap_maxs else np.array([])
+    overlap_widths = np.array(overlap_maxs) if overlap_maxs else np.array([])
 
     # --- Plot histograms ---
     if plot:
@@ -271,8 +330,50 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_s
 
         plt.tight_layout()
         plt.show()
+    
+    # --- Scatter plot of length vs width ---
+    if scatter:
+        plt.figure(figsize=(8, 5))
+        # Plot raw points
+        if gap_lengths.size and gap_widths.size:
+            plt.scatter(gap_lengths, gap_widths, alpha=0.6, label="Gaps", color="blue", edgecolor="black")
+        if overlap_lengths.size and overlap_widths.size:
+            plt.scatter(overlap_lengths, overlap_widths, alpha=0.6, label="Overlaps", color="red", edgecolor="black")
 
-    return gap_lengths, overlap_lengths, gap_fit, overlap_fit
+        # Fit and plot linear trendlines with R^2
+        def fit_and_plot(x, y, color, label_prefix):
+            if x.size < 2 or y.size < 2 or x.size != y.size:
+                return None
+            coeffs = np.polyfit(x, y, 1)
+            p = np.poly1d(coeffs)
+            x_line = np.linspace(np.min(x), np.max(x), 100)
+            y_line = p(x_line)
+            # R^2
+            y_pred = p(x)
+            ss_res = np.sum((y - y_pred) ** 2)
+            ss_tot = np.sum((y - np.mean(y)) ** 2)
+            r2 = 1 - ss_res / ss_tot if ss_tot > 0 else 0.0
+            plt.plot(x_line, y_line, color=color, linestyle="-", linewidth=2,
+                     label=f"{label_prefix} trend (R²={r2:.3f})")
+            return r2
+
+        r2_gap = None
+        r2_overlap = None
+        if gap_lengths.size and gap_widths.size and len(gap_lengths) == len(gap_widths):
+            r2_gap = fit_and_plot(np.array(gap_lengths), np.array(gap_widths), "navy", "Gaps")
+        if overlap_lengths.size and overlap_widths.size and len(overlap_lengths) == len(overlap_widths):
+            r2_overlap = fit_and_plot(np.array(overlap_lengths), np.array(overlap_widths), "maroon", "Overlaps")
+
+        plt.xlabel("Length (mm)")
+        plt.ylabel("Width (max, mm)")
+        plt.title("Scatter of Length vs Width for Gaps and Overlaps")
+        plt.legend()
+        plt.grid(True, linestyle=":")
+        plt.tight_layout()
+        plt.show()
+
+
+    return gap_lengths, overlap_lengths, gap_fit, overlap_fit, gap_widths, overlap_widths
 
 # Functions for checking the behaviour of the data:
 def LT_velocity_check(tow: int):
@@ -678,7 +779,7 @@ def analyze_real_tow_spacing_effect(spacing_values_mm: list = None, print_progre
 
 def main():
     #traverse_LT_viewer(10)
-    #traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_steps=False)
+    traverse_tow_gaps_and_overlaps_lengths(plot=False, histogram_bins=30, force_steps=False, scatter=True)
     # z_check(5)
     # LT_velocity_check(5)
     # GAP_velocity_check(5)
@@ -687,7 +788,7 @@ def main():
     # gap_overlap_df, gap_df, overlap_df, gap_percent, overlap_percent=traverse_tow_gaps_and_overlaps()
     # print(gap_overlap_df)
     #plot_lt_y_error_histogram(10)
-    analyze_real_tow_spacing_effect(existing_data="Cached Data/Tow_spacing_effect_Traverse.csv")
+    #analyze_real_tow_spacing_effect(existing_data="Cached Data/Tow_spacing_effect_Traverse.csv")
     
 
 if __name__ == "__main__":

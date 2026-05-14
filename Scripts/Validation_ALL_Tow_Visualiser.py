@@ -1395,7 +1395,7 @@ def main():
 
     #validate_gap_lengths(n_tows=29)
     # multiple_simulations_of_validate_gap_lengths(n_simulations=10)
-    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=True, save_SVG=False)
+    compare_real_vs_RS_RW_gap_length_distributions(save_PDF=False, save_SVG=False)
 
 if __name__ == "__main__":
     main()
