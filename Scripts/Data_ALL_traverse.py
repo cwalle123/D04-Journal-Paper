@@ -298,6 +298,7 @@ def traverse_tow_gaps_and_overlaps_lengths(plot=True, histogram_bins=30, force_s
 
     gap_widths = np.array(gap_maxs) if gap_maxs else np.array([])
     overlap_widths = np.array(overlap_maxs) if overlap_maxs else np.array([])
+    print(f"\nExtracted {len(gap_lengths)} gap segments and {len(overlap_lengths)} overlap segments across all tow pairs.")
 
     # --- Plot histograms ---
     if plot:
