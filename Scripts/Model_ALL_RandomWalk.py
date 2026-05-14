@@ -48,7 +48,7 @@ def propose_new_RWM_value(x_current, dist_std):    # random walk metropolis (RWM
     # update_states()     # comment this if not initialising from StartVariations
     return proposal
 
-def fit_random_walk(sensor: str, bins=40, tows=None):
+def fit_random_walk(sensor: str, bins=40, tows=None, proposal_type: str="norm"):
     """
     Fits the Random Walk model.
 
@@ -88,7 +88,16 @@ def fit_random_walk(sensor: str, bins=40, tows=None):
         scale=params[-1]
     )
 
-    proposal_std = get_interpolated_proposal_STDs(sensors=(sensor,), reference_sensor="CAM", tows=tows, print_statement=False)[sensor]["CAM_normalized_proposal_std"]
+    if proposal_type == "norm":
+        proposal_results = get_interpolated_proposal_STDs(sensors=(sensor,), reference_sensor="CAM", tows=tows, print_statement=False)
+        proposal_std = proposal_results[sensor]["CAM_normalized_proposal_std"]
+        n_steps = proposal_results[sensor]["reference_steps"]
+        #print("new, interpolated, fits")
+    elif proposal_type == "old":
+        proposal_std = get_proposal_distribution(sensor)
+        #print("original fits.")
+    else:
+        print("invalid proposal type, should be 'old' or 'norm'.")
 
     return n_steps, proposal_std, target_distribution, dist, params
 
@@ -1174,7 +1183,7 @@ def generate_RW_multitow_layout_lengths(
     plot: bool = False,
     scaled: bool = False,
     histogram_bins: int = 30
-):
+    ):
     """
     Wrapper that calls generate_RW_multitow(...) to create RW tows, then:
       - builds a gap/overlap DataFrame (indexed by x in mm),
@@ -1685,12 +1694,12 @@ def main():
     #run_multiple_RW_simulations_for_gaps_and_overlap_percentages(n_simulations=120,num_tows=31) #Seems to converge at 120 sims
     #plot_LLS_hist()
 
-    # generate_RW_multitow_layout_lengths(num_tows=30, plot=True, histogram_bins = 300)
+    generate_RW_multitow_layout_lengths(num_tows=620, plot=True, histogram_bins = 50)
 
     # generate_random_walk(sensor='CAM', n_steps=LT_steps, proposal_std=LT_proposal_std, target_dist=LT_target_dist, dist=LT_dist, params=LT_params, proposal_type='RWM', plot_histogram=True, return_pdf=True)
     #test_advanced_RW()
-    analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
-                              error_areas=True, error_bars=False, save_PDF=True, save_SVG=False)
+    #analyze_tow_spacing_effect(existing_data='Cached Data/Tow_spacing_effect_RWM_with_100_simulations_of_a_29_tow_laminate.csv',
+    #                          error_areas=True, error_bars=False, save_PDF=True, save_SVG=False)
     #test_LLS_A_B_condition()
     #generate_virtual_lamina_figure(num_tows=3, tow_spacing_mm=7.05, save_PDF=True)
     #generate_virtual_lamina_figure(save_PDF=True)
