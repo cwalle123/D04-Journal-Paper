@@ -1986,13 +1986,13 @@ if __name__ == "__main__":
     # plot_baseline_vs_all_gap_length_variations_ordered(bins=150)
 
     # compute_baseline_spacing()
-    params_test = {
-        "LT": (0.00, 0.1),
-        "CAM": (0.00, 0.1),
-        "LLSB": (0.05, 0.1),
-        "LLSA": (0.00, 0.1)}
+    # params_test = {
+    #     "LT": (0.00, 0.1),
+    #     "CAM": (0.00, 0.1),
+    #     "LLSB": (0.05, 0.1),
+    #     "LLSA": (0.00, 0.1)}
 
-    KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="mu") # GENERATES ONE DATA SET BASED ON PARAMS_TEST
+    # KDE_spacing_from_normals(params_test, runs=100, sensor_type="LLSB", distribution_parameter="mu") # GENERATES ONE DATA SET BASED ON PARAMS_TEST
     # run_spacing_multiple_simulations() # GENERATES A LOT OF DATA. Takes 25 min!
 
     # plot_spacing_distribution("Cached Data/Normal Distribution Variations/LT_shifted_mu_spacing_data.csv")
