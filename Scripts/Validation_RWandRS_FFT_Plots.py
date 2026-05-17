@@ -452,7 +452,7 @@ def main():
         show_plots=True,
         show_loglog=args.loglog,
         save_PDF=True,
-        save_SVG=True
+        save_SVG=False
     )
 
     # Batch metrics CSV (Tow 2..30) + AVG row
